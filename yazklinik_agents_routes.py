@@ -67,6 +67,7 @@ ozet_mod = _safe_import("yazklinik_gunluk_ozet_agent")
 mojibake_mod = _safe_import("yazklinik_mojibake_bekci_agent")
 pr_mod = _safe_import("yazklinik_pr_reviewer_agent")
 instagram_mod = _safe_import("yazklinik_instagram_agent")
+ceviri_mod = _safe_import("yazklinik_ceviri_agent")
 
 # Registry (opsiyonel)
 try:
@@ -164,6 +165,7 @@ def api_agents_manifest():
         "mojibake_bekci": mojibake_mod is not None,
         "pr_reviewer": pr_mod is not None,
         "instagram": instagram_mod is not None,
+        "ceviri": ceviri_mod is not None,
     }
     return jsonify(payload)
 
@@ -983,6 +985,492 @@ async function captionGen() {
 document.getElementById('scanBtn').addEventListener('click', scan);
 document.getElementById('enhanceBtn').addEventListener('click', enhance);
 document.getElementById('captionBtn').addEventListener('click', captionGen);
+</script>
+</body></html>
+"""
+
+
+# === Tibbi Ceviri Ajani (PubMed + Ollama/OpenAI) ==========================
+
+@agents_bp.route("/api/agents/ceviri/health", methods=["GET"])
+def ceviri_health():
+    auth = _require_session()
+    if auth:
+        return auth
+    err = _agent_or_503(ceviri_mod, "ceviri")
+    if err:
+        return err
+    try:
+        h = ceviri_mod.health_check()
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"ok": False, "agent": "ceviri", "error": str(exc)}), 500
+    return jsonify({"ok": True, "agent": "ceviri", "result": h})
+
+
+@agents_bp.route("/api/agents/ceviri/pubmed-search", methods=["POST"])
+def ceviri_pubmed_search():
+    auth = _require_session()
+    if auth:
+        return auth
+    err = _agent_or_503(ceviri_mod, "ceviri")
+    if err:
+        return err
+    p = _payload()
+    query = str(p.get("query") or "").strip()
+    max_results = int(p.get("max_results") or 20)
+    if not query:
+        return jsonify({"ok": False, "agent": "ceviri", "error": "query gerekli"}), 400
+    try:
+        out = ceviri_mod.search_pubmed(query, max_results=max_results)
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"ok": False, "agent": "ceviri", "error": str(exc)}), 500
+    _safe_audit("agents:ceviri_search", {"query": query, "count": len(out.get("hits", []))})
+    return jsonify({"ok": True, "agent": "ceviri", "result": out})
+
+
+@agents_bp.route("/api/agents/ceviri/pubmed-fetch", methods=["POST"])
+def ceviri_pubmed_fetch():
+    auth = _require_session()
+    if auth:
+        return auth
+    err = _agent_or_503(ceviri_mod, "ceviri")
+    if err:
+        return err
+    p = _payload()
+    pmid = str(p.get("pmid") or "").strip()
+    if not pmid:
+        return jsonify({"ok": False, "agent": "ceviri", "error": "pmid gerekli"}), 400
+    try:
+        art = ceviri_mod.fetch_pubmed_pmid(pmid)
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"ok": False, "agent": "ceviri", "error": str(exc)}), 500
+    _safe_audit("agents:ceviri_fetch", {"pmid": pmid})
+    return jsonify({"ok": True, "agent": "ceviri", "result": asdict(art)})
+
+
+@agents_bp.route("/api/agents/ceviri/translate", methods=["POST"])
+def ceviri_translate():
+    auth = _require_session()
+    if auth:
+        return auth
+    err = _agent_or_503(ceviri_mod, "ceviri")
+    if err:
+        return err
+    p = _payload()
+    text = str(p.get("text") or "").strip()
+    prefer = str(p.get("prefer") or "ollama")
+    if not text:
+        return jsonify({"ok": False, "agent": "ceviri", "error": "text gerekli"}), 400
+    try:
+        res = ceviri_mod.translate_smart(
+            text, prefer=prefer,
+            ollama_model=p.get("ollama_model"),
+            openai_model=p.get("openai_model") or "gpt-4o-mini",
+        )
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"ok": False, "agent": "ceviri", "error": str(exc)}), 500
+    _safe_audit("agents:ceviri_translate", {"method": res.method, "chars": len(text)})
+    return jsonify({"ok": True, "agent": "ceviri", "result": asdict(res)})
+
+
+@agents_bp.route("/api/agents/ceviri/summarize", methods=["POST"])
+def ceviri_summarize():
+    auth = _require_session()
+    if auth:
+        return auth
+    err = _agent_or_503(ceviri_mod, "ceviri")
+    if err:
+        return err
+    p = _payload()
+    text = str(p.get("text") or "").strip()
+    prefer = str(p.get("prefer") or "ollama")
+    if not text:
+        return jsonify({"ok": False, "agent": "ceviri", "error": "text gerekli"}), 400
+    try:
+        res = ceviri_mod.summarize_smart(text, prefer=prefer,
+                                          ollama_model=p.get("ollama_model"))
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"ok": False, "agent": "ceviri", "error": str(exc)}), 500
+    return jsonify({"ok": True, "agent": "ceviri", "result": asdict(res)})
+
+
+@agents_bp.route("/api/agents/ceviri/translate-pubmed", methods=["POST"])
+def ceviri_translate_pubmed():
+    auth = _require_session()
+    if auth:
+        return auth
+    err = _agent_or_503(ceviri_mod, "ceviri")
+    if err:
+        return err
+    p = _payload()
+    pmid = str(p.get("pmid") or "").strip()
+    prefer = str(p.get("prefer") or "ollama")
+    include_summary = bool(p.get("include_summary", True))
+    if not pmid:
+        return jsonify({"ok": False, "agent": "ceviri", "error": "pmid gerekli"}), 400
+    try:
+        full = ceviri_mod.translate_pubmed_article(pmid, prefer=prefer,
+                                                     include_summary=include_summary)
+        md = ceviri_mod.format_as_markdown(full)
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"ok": False, "agent": "ceviri", "error": str(exc)}), 500
+    _safe_audit("agents:ceviri_translate_pubmed", {"pmid": pmid, "method": full.method})
+    payload = asdict(full)
+    payload["markdown"] = md
+    return jsonify({"ok": True, "agent": "ceviri", "result": payload})
+
+
+@agents_bp.route("/api/agents/ceviri/prompt", methods=["POST"])
+def ceviri_prompt_only():
+    """LLM cagrisi yapmadan sadece prompt'u dondur (ChatGPT'ye yapistir)."""
+    auth = _require_session()
+    if auth:
+        return auth
+    err = _agent_or_503(ceviri_mod, "ceviri")
+    if err:
+        return err
+    p = _payload()
+    text = str(p.get("text") or "").strip()
+    mode = str(p.get("mode") or "translate")  # 'translate' | 'summary'
+    if not text:
+        return jsonify({"ok": False, "agent": "ceviri", "error": "text gerekli"}), 400
+    if mode == "summary":
+        prompt = ceviri_mod.build_summary_prompt(text)
+    else:
+        prompt = ceviri_mod.build_translation_prompt(text)
+    return jsonify({"ok": True, "agent": "ceviri", "result": {
+        "prompt": prompt, "mode": mode, "char_count": len(prompt),
+    }})
+
+
+@agents_bp.route("/ceviri-merkezi", methods=["GET"])
+def ceviri_page():
+    auth = _require_session()
+    if auth:
+        return auth
+    return render_template_string(_CEVIRI_PAGE)
+
+
+_CEVIRI_PAGE = r"""<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<title>Tibbi Ceviri Merkezi - YazKlinik</title>
+<style>
+  :root { --med-blue: #1769aa; --med-teal: #0c7488; --ink: #122236;
+          --muted: #5e7185; --line: rgba(94,113,133,0.18);
+          --surface: #ffffff; --bg: #f5f8fb; --ok: #16815f; --warn: #b8821f; --err: #b3261e; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+         background: var(--bg); color: var(--ink); margin: 0; padding: 18px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  .lead { color: var(--muted); font-size: 12px; margin: 0 0 14px; }
+  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 14px; align-items: start; }
+  @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
+  .panel { background: var(--surface); border: 1px solid var(--line);
+           border-radius: 12px; padding: 14px; }
+  .panel h3 { margin: 0 0 10px; font-size: 13px; color: var(--med-blue);
+              text-transform: uppercase; letter-spacing: 0.6px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 3px; }
+  input[type=text], input[type=number], select, textarea {
+    width: 100%; padding: 7px 10px; border: 1px solid var(--line);
+    border-radius: 8px; background: #fafbfd; color: var(--ink); font-size: 13px;
+    box-sizing: border-box; font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 100px; }
+  button { display: inline-flex; align-items: center; gap: 6px;
+           padding: 7px 14px; border: 0; border-radius: 8px; cursor: pointer;
+           font-size: 13px; font-weight: 600; margin-top: 4px; }
+  .btn-primary { background: linear-gradient(135deg, var(--med-blue), var(--med-teal)); color: #fff; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(23,105,170,0.25); }
+  .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+  .btn-ghost:hover { background: rgba(23,105,170,0.08); color: var(--med-blue); }
+  .status { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .status.ok { color: var(--ok); }
+  .status.fail { color: var(--err); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .badge.ok { background: #e2f3eb; color: var(--ok); }
+  .badge.warn { background: #fdf2db; color: var(--warn); }
+  .badge.err { background: #fbe6e4; color: var(--err); }
+  .results { margin-top: 8px; }
+  .res-item { padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px;
+              margin-bottom: 6px; cursor: pointer; background: #fafbfd;
+              transition: border-color 140ms ease, background 140ms ease; }
+  .res-item:hover { border-color: var(--med-blue); background: #fff; }
+  .res-item.sel { border-color: var(--med-teal); background: #e1f1f4; }
+  .res-item .title { font-weight: 600; color: var(--ink); font-size: 13px; }
+  .res-item .meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 800px) { .twocol { grid-template-columns: 1fr; } }
+  pre { background: #0d1117; color: #c9d1d9; padding: 10px; border-radius: 8px;
+        font-size: 12px; max-height: 380px; overflow: auto; white-space: pre-wrap;
+        font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace; }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .copy-ok { color: var(--ok) !important; }
+</style></head>
+<body>
+  <h1>Tibbi Ceviri Merkezi</h1>
+  <p class="lead">PubMed makalesi cek + Turkce ceviri + ozet. Mevcut Ollama (qwen2.5:32b) yerel calisir; yoksa OpenAI'a duser, o da yoksa ChatGPT prompt'u verir.
+     <span id="healthPill" class="badge warn">saglik kontrol ediliyor...</span></p>
+
+  <div class="layout">
+
+    <!-- SOL -->
+    <div class="panel">
+      <h3>1. Kaynak</h3>
+      <label>PubMed sorgusu (ornek: "preeclampsia 2025 review")</label>
+      <input type="text" id="pmQuery" placeholder="anahtar kelimeler...">
+      <button class="btn-primary" id="searchBtn">PubMed Ara</button>
+      <div class="results" id="searchResults"></div>
+      <div class="status" id="searchStatus"></div>
+
+      <label style="margin-top:14px;">Veya dogrudan PMID</label>
+      <input type="text" id="pmidInput" placeholder="40123456">
+      <button class="btn-primary" id="fetchBtn">PMID Getir + Ceviri</button>
+      <div class="status" id="fetchStatus"></div>
+
+      <h3 style="margin-top:18px;">2. Ya da serbest metin</h3>
+      <textarea id="freeText" placeholder="Ingilizce metin yapistir..."></textarea>
+      <div class="actions">
+        <button class="btn-primary" id="freeTranslateBtn">Ceviri (oto)</button>
+        <button class="btn-ghost" id="freeSummaryBtn">Ozet (TR)</button>
+        <button class="btn-ghost" id="freePromptBtn">ChatGPT promptu</button>
+      </div>
+      <div class="status" id="freeStatus"></div>
+
+      <h3 style="margin-top:18px;">Tercih</h3>
+      <label>LLM oncelik
+        <select id="prefer">
+          <option value="ollama">Ollama (yerel)</option>
+          <option value="openai">OpenAI</option>
+          <option value="prompt_only">Sadece prompt</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="incSummary" checked> Ozet de uret</label>
+    </div>
+
+    <!-- SAG -->
+    <div class="panel">
+      <h3>Sonuc</h3>
+      <div id="articleHead"></div>
+      <div class="twocol">
+        <div>
+          <label style="font-weight:600;color:var(--ink);">English</label>
+          <pre id="enOut">(bekleniyor)</pre>
+        </div>
+        <div>
+          <label style="font-weight:600;color:var(--ink);">Turkce</label>
+          <pre id="trOut">(bekleniyor)</pre>
+        </div>
+      </div>
+      <label style="font-weight:600;color:var(--ink);">Ozet (TR)</label>
+      <pre id="sumOut">(bekleniyor)</pre>
+
+      <div class="actions">
+        <button class="btn-ghost" id="copyTrBtn">TR ceviriyi kopyala</button>
+        <button class="btn-ghost" id="copyMdBtn">Tum markdown kopyala</button>
+        <button class="btn-ghost" id="downloadMdBtn">Markdown indir</button>
+        <button class="btn-ghost" id="sendAlexBtn">Alex'e gonder</button>
+      </div>
+      <div class="status" id="mainStatus"></div>
+    </div>
+  </div>
+
+<script>
+const S = { results: [], selectedPmid: null, currentMarkdown: '', currentArticle: null };
+
+async function checkHealth() {
+  try {
+    const r = await fetch('/api/agents/ceviri/health', {credentials: 'same-origin'});
+    const d = await r.json();
+    if (!d.ok) throw 0;
+    const h = d.result;
+    const ollama = h.ollama_available ? 'Ollama OK (' + (h.ollama_model||'?') + ')' : 'Ollama yok';
+    const oa = h.openai_available ? 'OpenAI OK' : 'OpenAI yok';
+    const pm = h.pubmed_reachable ? 'PubMed OK' : 'PubMed yok';
+    const pill = document.getElementById('healthPill');
+    pill.textContent = ollama + ' | ' + oa + ' | ' + pm;
+    pill.className = 'badge ' + (h.ollama_available || h.openai_available ? 'ok' : 'warn');
+  } catch (e) {
+    document.getElementById('healthPill').textContent = 'saglik kontrol hatasi';
+  }
+}
+
+async function pmSearch() {
+  const q = document.getElementById('pmQuery').value.trim();
+  const status = document.getElementById('searchStatus');
+  status.textContent = 'aranıyor...'; status.className = 'status';
+  try {
+    const r = await fetch('/api/agents/ceviri/pubmed-search', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({query: q, max_results: 20}),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || r.status);
+    S.results = d.result.hits || [];
+    renderResults();
+    status.textContent = S.results.length + ' sonuc.';
+    status.className = 'status ok';
+  } catch (e) {
+    status.textContent = 'Hata: ' + e.message; status.className = 'status fail';
+  }
+}
+
+function renderResults() {
+  const box = document.getElementById('searchResults');
+  if (!S.results.length) { box.innerHTML = ''; return; }
+  box.innerHTML = S.results.map(h => `
+    <div class="res-item" data-pmid="${h.pmid}" onclick="selectHit('${h.pmid}')">
+      <div class="title">${escapeHtml(h.title)}</div>
+      <div class="meta">${h.year} · ${escapeHtml(h.journal)} · PMID ${h.pmid}</div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(s) { return String(s||'').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+function selectHit(pmid) {
+  S.selectedPmid = pmid;
+  document.querySelectorAll('#searchResults .res-item').forEach(el => {
+    el.classList.toggle('sel', el.dataset.pmid === pmid);
+  });
+  document.getElementById('pmidInput').value = pmid;
+  fetchAndTranslate();
+}
+
+async function fetchAndTranslate() {
+  const pmid = (document.getElementById('pmidInput').value || S.selectedPmid || '').trim();
+  if (!pmid) { alert('PMID lazim'); return; }
+  const status = document.getElementById('fetchStatus');
+  const mainStatus = document.getElementById('mainStatus');
+  status.textContent = 'PMID ' + pmid + ' getiriliyor + cevriliyor...';
+  status.className = 'status';
+  mainStatus.textContent = '';
+  document.getElementById('enOut').textContent = 'cekiliyor...';
+  document.getElementById('trOut').textContent = 'cevriliyor...';
+  document.getElementById('sumOut').textContent = '';
+
+  try {
+    const prefer = document.getElementById('prefer').value;
+    const inc = document.getElementById('incSummary').checked;
+    const r = await fetch('/api/agents/ceviri/translate-pubmed', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({pmid: pmid, prefer: prefer, include_summary: inc}),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || r.status);
+    const res = d.result;
+    S.currentMarkdown = res.markdown || '';
+    S.currentArticle = res;
+    const a = res.article || {};
+    document.getElementById('articleHead').innerHTML = `
+      <div style="margin-bottom:8px;">
+        <div style="font-weight:700;font-size:14px;">${escapeHtml(a.title || '(baslik yok)')}</div>
+        ${res.title_tr ? '<div style="color:var(--med-teal);font-size:13px;margin-top:2px;">TR: ' + escapeHtml(res.title_tr) + '</div>' : ''}
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+          ${escapeHtml((a.authors||[]).slice(0,4).join(', '))} · ${escapeHtml(a.journal||'')} · ${a.year||''} · PMID ${a.pmid}
+          ${a.doi ? ' · <a href="https://doi.org/' + a.doi + '" target="_blank">DOI</a>' : ''}
+          · <a href="${a.pubmed_url}" target="_blank">PubMed</a>
+        </div>
+      </div>`;
+    document.getElementById('enOut').textContent = a.abstract || '(abstract bos)';
+    document.getElementById('trOut').textContent = res.abstract_tr || '(ceviri bos)';
+    document.getElementById('sumOut').textContent = res.summary_tr || '(ozet yok)';
+    const chain = (res.fallback_chain||[]).join(' -> ');
+    status.textContent = 'tamamlandi (' + chain + ')';
+    status.className = 'status ok';
+    if (res.error) {
+      mainStatus.textContent = 'Uyari: ' + res.error;
+      mainStatus.className = 'status fail';
+    }
+  } catch (e) {
+    status.textContent = 'Hata: ' + e.message;
+    status.className = 'status fail';
+  }
+}
+
+async function freeTranslate(mode) {
+  const text = document.getElementById('freeText').value.trim();
+  if (!text) { alert('Once metin yapistir'); return; }
+  const status = document.getElementById('freeStatus');
+  status.textContent = mode + ' isleniyor...'; status.className = 'status';
+  document.getElementById('enOut').textContent = text;
+  document.getElementById('trOut').textContent = mode === 'prompt' ? '' : 'cevriliyor...';
+  document.getElementById('sumOut').textContent = '';
+  try {
+    let url = '/api/agents/ceviri/translate';
+    let body = {text, prefer: document.getElementById('prefer').value};
+    if (mode === 'summary') url = '/api/agents/ceviri/summarize';
+    if (mode === 'prompt') { url = '/api/agents/ceviri/prompt'; body = {text, mode: 'translate'}; }
+    const r = await fetch(url, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin', body: JSON.stringify(body),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || r.status);
+    if (mode === 'prompt') {
+      document.getElementById('trOut').textContent = d.result.prompt;
+      status.textContent = 'Prompt hazir - kopyalayip ChatGPT\\'ye yapistirin.';
+    } else if (mode === 'summary') {
+      document.getElementById('sumOut').textContent = d.result.translated_text;
+      status.textContent = 'Ozet hazir.';
+    } else {
+      document.getElementById('trOut').textContent = d.result.translated_text;
+      status.textContent = 'Ceviri hazir (' + d.result.method + ').';
+    }
+    status.classList.add('ok');
+  } catch (e) {
+    status.textContent = 'Hata: ' + e.message; status.classList.add('fail');
+  }
+}
+
+function copyToClipboard(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ kopyalandi';
+    btn.classList.add('copy-ok');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copy-ok'); }, 1400);
+  });
+}
+
+document.getElementById('searchBtn').addEventListener('click', pmSearch);
+document.getElementById('fetchBtn').addEventListener('click', fetchAndTranslate);
+document.getElementById('freeTranslateBtn').addEventListener('click', () => freeTranslate('translate'));
+document.getElementById('freeSummaryBtn').addEventListener('click', () => freeTranslate('summary'));
+document.getElementById('freePromptBtn').addEventListener('click', () => freeTranslate('prompt'));
+
+document.getElementById('copyTrBtn').addEventListener('click', (e) => {
+  copyToClipboard(document.getElementById('trOut').textContent, e.target);
+});
+document.getElementById('copyMdBtn').addEventListener('click', (e) => {
+  copyToClipboard(S.currentMarkdown || document.getElementById('trOut').textContent, e.target);
+});
+document.getElementById('downloadMdBtn').addEventListener('click', () => {
+  const md = S.currentMarkdown || document.getElementById('trOut').textContent;
+  if (!md) return;
+  const blob = new Blob([md], {type: 'text/markdown;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const pmid = S.selectedPmid || 'metin';
+  a.download = 'ceviri_' + pmid + '_' + Date.now() + '.md';
+  a.click();
+});
+document.getElementById('sendAlexBtn').addEventListener('click', () => {
+  const tr = document.getElementById('trOut').textContent || '';
+  const inp = document.getElementById('ykVoiceQuickText');
+  if (inp) {
+    inp.value = 'Bu makaleye dair kisa yorumun nedir?\\n' + tr.slice(0, 1500);
+    inp.focus();
+    document.getElementById('mainStatus').textContent = 'Alex inputuna yazildi.';
+    document.getElementById('mainStatus').className = 'status ok';
+  } else {
+    document.getElementById('mainStatus').textContent = 'Alex bar bu sayfada degil.';
+    document.getElementById('mainStatus').className = 'status fail';
+  }
+});
+
+checkHealth();
 </script>
 </body></html>
 """

@@ -12,7 +12,7 @@ from copy import deepcopy
 from datetime import datetime
 
 
-AGENT_VERSION = "2026.05.16-integration-agents-ig"
+AGENT_VERSION = "2026.05.16-integration-agents-ig-ceviri"
 
 
 INTEGRATION_AGENTS = [
@@ -449,6 +449,46 @@ INTEGRATION_AGENTS = [
             "Caption sablonu uretir, hashtag setini secer, manuel rafine eder",
             "KVKK kontrol listesini madde madde isaretler",
             "Instagram'a manuel olarak yukler (ajan otomatik yapmaz)",
+        ],
+    },
+    {
+        "id": "ceviri",
+        "name": "Tibbi Ceviri Ajani (PubMed + LLM)",
+        "short": "Ingilizce PubMed makalesi ya da serbest metin -> Turkce ceviri + ozet. Ollama yerel (qwen2.5:32b), OpenAI fallback, ChatGPT prompt cikartma.",
+        "status": "ready_internal",
+        "risk": "low",
+        "directions": ["PubMed E-utilities (read) -> LLM (yerel/yabanci) -> Turkce metin"],
+        "module": "yazklinik_ceviri_agent",
+        "entry_function": "translate_pubmed_article",
+        "panel_route": "/ceviri-merkezi",
+        "api_endpoints": [
+            "GET  /api/agents/ceviri/health",
+            "POST /api/agents/ceviri/pubmed-search",
+            "POST /api/agents/ceviri/pubmed-fetch",
+            "POST /api/agents/ceviri/translate",
+            "POST /api/agents/ceviri/summarize",
+            "POST /api/agents/ceviri/translate-pubmed",
+            "POST /api/agents/ceviri/prompt",
+        ],
+        "safe_methods": [
+            "Once Ollama yerel (qwen2.5:32b - hasta verisi PC'den cikmaz)",
+            "OpenAI sadece kullanici acik tercih ederse",
+            "Sablonlu medikal Turkce ceviri promptu",
+            "OB-GYN agirlikli glossary (60+ terim) prompt'a otomatik eklenir",
+            "PubMed E-utilities ucretsiz (API key gerekmez)",
+            "Sonuc markdown export, panoya kopyala, Alex'e gonder",
+        ],
+        "blocked_methods": [
+            "Hasta verisi (isim/TC/protokol) yabanci LLM'e gonderme",
+            "Klinik tani veya tedavi onerisi yazma",
+            "PubMed API'sine hasta kimligi koyma",
+        ],
+        "doctor_actions": [
+            "/ceviri-merkezi'nde sorgu yazip PubMed'i arar",
+            "Begendigi makaleyi tiklar -> otomatik ceviri + ozet",
+            "VEYA serbest metin yapistirip ceviri/ozet alir",
+            "Yabanci LLM kullanmak istemiyorsa 'Sadece prompt' modu",
+            "Sonucu markdown indirir, kopyalar veya Alex'e gonderir",
         ],
     },
 ]
