@@ -47,6 +47,7 @@ SERVICES = [
 
 CHECK_INTERVAL = 30  # saniye
 RESTART_GRACE = 15  # restart sonrasi tekrar check etmeden bekleme
+INITIAL_GRACE = int(os.environ.get("YAZKLINIK_HEALTH_INITIAL_GRACE_SEC", "120"))
 
 
 def _open_restart_log(path: str):
@@ -133,6 +134,9 @@ def main():
           f"{', '.join(s[0] for s in SERVICES)}",
           flush=True)
     base_env = _load_config_env()
+    if INITIAL_GRACE > 0:
+        print(f"[{_ts()}] Ilk acilis bekleme: {INITIAL_GRACE}s", flush=True)
+        time.sleep(INITIAL_GRACE)
     last_restart = {}  # name -> ts (anti-spam)
 
     while True:

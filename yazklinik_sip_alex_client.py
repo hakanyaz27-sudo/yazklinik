@@ -981,8 +981,13 @@ class SIPAlexBridge:
                 data, addr = self.sock.recvfrom(65535)
             except socket.timeout:
                 continue
-            except OSError:
-                break
+            except OSError as exc:
+                if self.stop_event.is_set():
+                    break
+                self.set_error(f"SIP socket hata: {exc}")
+                log(f"SIP socket hata, dinleme devam: {exc}")
+                time.sleep(0.2)
+                continue
             self.handle_packet(data, addr)
 
 
