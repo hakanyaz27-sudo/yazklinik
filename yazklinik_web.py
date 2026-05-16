@@ -15191,6 +15191,7 @@ def _date_iso_from_text(value):
         return ""
     patterns = (
         r"(?<!\d)(?P<yyyy>20\d{2})[-_.]?(?P<mm>\d{2})[-_.]?(?P<dd>\d{2})(?!\d)",
+        r"(?<!\d)(?P<dd>\d{2})[-_.\/](?P<mm>\d{2})[-_.\/](?P<yyyy>20\d{2})(?!\d)",
         r"(?<!\d)(?P<yy>\d{2})[-_.](?P<mm>\d{2})[-_.](?P<dd>\d{2})(?:[-_.]\d+)?(?!\d)",
     )
     for pattern in patterns:
@@ -15746,8 +15747,8 @@ def _load_patient_listing(limit=200, include_full_path=False):
     limit = max(1, min(int(limit or 200), max_limit))
     query_limit = max(limit, min(max_limit, limit * 3))
     # D300 2026-05-16: cache versionunu artirdik; hasta listesi artik
-    # en yeni gelis/kayit sinyali en ustte olacak sekilde sabitlenir.
-    cache_key = f"terminal_patients_v4_latest_{limit}_{int(bool(include_full_path))}"
+    # son muayene/kontrol gelis satirina gore siralanir.
+    cache_key = f"terminal_patients_v5_visit_order_{limit}_{int(bool(include_full_path))}"
     ttl_key = "terminal_patient_listing" if include_full_path else "web_patient_listing"
     cached = cache_get(cache_key)
     if cached is not None:
@@ -15759,14 +15760,77 @@ def _load_patient_listing(limit=200, include_full_path=False):
         con.row_factory = lambda cur, row: {
             d[0]: row[i] for i, d in enumerate(cur.description)}
         rows = con.execute(f"""
-            WITH visit_stats AS (
+            WITH visit_source AS (
               SELECT
+                v.rowid AS visit_rowid,
                 v.patient_folder_key AS patient_key,
-                MAX(COALESCE(NULLIF(v.visit_date, ''),
-                             datetime(v.folder_mtime, 'unixepoch'))) AS last_visit
+                TRIM(COALESCE(v.visit_date, '')) AS visit_date_raw,
+                LOWER(TRIM(COALESCE(v.visit_type, ''))) AS visit_type_norm,
+                v.created_at,
+                v.first_seen_at,
+                v.folder_mtime
               FROM visits v
               WHERE COALESCE(v.archived_at, '') = ''
-              GROUP BY v.patient_folder_key
+                AND COALESCE(v.patient_folder_key, '') <> ''
+                AND (
+                  LOWER(TRIM(COALESCE(v.visit_type, ''))) = ''
+                  OR LOWER(TRIM(COALESCE(v.visit_type, ''))) LIKE '%muayene%'
+                  OR LOWER(TRIM(COALESCE(v.visit_type, ''))) LIKE '%kontrol%'
+                  OR LOWER(TRIM(COALESCE(v.visit_type, ''))) IN (
+                    'exam', 'examination', 'control', 'followup', 'follow-up'
+                  )
+                )
+            ),
+            visit_base AS (
+              SELECT
+                patient_key,
+                visit_rowid,
+                created_at,
+                first_seen_at,
+                CASE
+                  WHEN visit_date_raw GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*'
+                  THEN REPLACE(SUBSTR(visit_date_raw, 1, 19), 'T', ' ')
+                  WHEN visit_date_raw GLOB '[0-9][0-9].[0-9][0-9].[0-9][0-9][0-9][0-9]*'
+                  THEN SUBSTR(visit_date_raw, 7, 4) || '-' ||
+                       SUBSTR(visit_date_raw, 4, 2) || '-' ||
+                       SUBSTR(visit_date_raw, 1, 2)
+                  WHEN visit_date_raw GLOB '[0-9][0-9]/[0-9][0-9]/[0-9][0-9][0-9][0-9]*'
+                  THEN SUBSTR(visit_date_raw, 7, 4) || '-' ||
+                       SUBSTR(visit_date_raw, 4, 2) || '-' ||
+                       SUBSTR(visit_date_raw, 1, 2)
+                  WHEN visit_date_raw GLOB '[0-9][0-9]-[0-9][0-9]-[0-9][0-9]*'
+                  THEN '20' || SUBSTR(visit_date_raw, 1, 2) || '-' ||
+                       SUBSTR(visit_date_raw, 4, 2) || '-' ||
+                       SUBSTR(visit_date_raw, 7, 2)
+                  WHEN folder_mtime IS NOT NULL
+                  THEN datetime(folder_mtime, 'unixepoch')
+                  ELSE COALESCE(NULLIF(created_at, ''), NULLIF(first_seen_at, ''))
+                END AS visit_sort
+              FROM visit_source
+            ),
+            visit_ranked AS (
+              SELECT
+                patient_key,
+                visit_sort,
+                visit_rowid,
+                ROW_NUMBER() OVER (
+                  PARTITION BY patient_key
+                  ORDER BY visit_sort DESC,
+                           COALESCE(NULLIF(created_at, ''),
+                                    NULLIF(first_seen_at, '')) DESC,
+                           visit_rowid DESC
+                ) AS rn
+              FROM visit_base
+              WHERE COALESCE(visit_sort, '') <> ''
+            ),
+            visit_stats AS (
+              SELECT
+                patient_key,
+                SUBSTR(visit_sort, 1, 10) AS last_visit,
+                visit_sort AS last_visit_sort,
+                visit_rowid AS last_visit_rowid
+              FROM visit_ranked
+              WHERE rn = 1
             ),
             pdf_stats AS (
               SELECT
@@ -15851,6 +15915,8 @@ def _load_patient_listing(limit=200, include_full_path=False):
                    p.folder_mtime,
                    {("p.full_path," if include_full_path else "")}
                    COALESCE(vs.last_visit, '') AS last_visit,
+                   COALESCE(vs.last_visit_sort, '') AS last_visit_sort,
+                   COALESCE(vs.last_visit_rowid, 0) AS last_visit_rowid,
                    COALESCE(ps.last_pdf_visit, '') AS last_pdf_visit,
                    COALESCE(fs.flag_count, 0) AS flag_count,
                    COALESCE(ds.has_delivered, 0) AS has_delivered,
@@ -15877,20 +15943,13 @@ def _load_patient_listing(limit=200, include_full_path=False):
             WHERE COALESCE(p.archived_at, '') = ''
             ORDER BY
               CASE
-                WHEN MAX(
-                  COALESCE(vs.last_visit, ''),
-                  COALESCE(ps.last_pdf_visit, ''),
-                  COALESCE(datetime(p.folder_mtime, 'unixepoch'), ''),
-                  COALESCE(p.first_seen_at, '')
-                ) = ''
+                WHEN COALESCE(vs.last_visit_sort, '') = ''
+                 AND COALESCE(ps.last_pdf_visit, '') = ''
                 THEN 1 ELSE 0
               END,
-              MAX(
-                COALESCE(vs.last_visit, ''),
-                COALESCE(ps.last_pdf_visit, ''),
-                COALESCE(datetime(p.folder_mtime, 'unixepoch'), ''),
-                COALESCE(p.first_seen_at, '')
-              ) DESC,
+              COALESCE(vs.last_visit_sort, '') DESC,
+              COALESCE(vs.last_visit_rowid, 0) DESC,
+              COALESCE(ps.last_pdf_visit, '') DESC,
               COALESCE(p.display_name, p.folder_key) COLLATE NOCASE
             LIMIT ?
         """, (query_limit,)).fetchall()
@@ -15964,34 +16023,44 @@ def _load_patient_listing(limit=200, include_full_path=False):
         last_visit = str(item.get("last_visit") or "").strip()
         last_visit_date = last_visit[:10] if last_visit else ""
         first_seen_raw = str(item.get("first_seen_at") or "").strip()
-        first_seen_date = first_seen_raw[:10]
         folder_mtime_sort = _listing_mtime_sort_text(item.get("folder_mtime"))
-        last_visit_sort = _listing_sort_text(last_visit)
+        last_visit_sort = _listing_sort_text(
+            item.get("last_visit_sort") or last_visit)
         last_pdf_sort = _listing_sort_text(last_pdf_raw)
         first_seen_sort = _listing_sort_text(first_seen_raw)
         folder_visit_sort = (
             f"{folder_visit_iso} 00:00:00" if folder_visit_iso else "")
         sort_candidates = [
             v for v in (
-                last_pdf_date, last_visit_date, folder_visit_iso, first_seen_date
+                last_visit_date, last_pdf_date
             ) if v
         ]
         effective_visit_date = max(sort_candidates) if sort_candidates else ""
+        try:
+            last_visit_rowid = int(item.get("last_visit_rowid") or 0)
+        except Exception:
+            last_visit_rowid = 0
         sort_arrival_candidates = [
             v for v in (
-                last_visit_sort, folder_mtime_sort, folder_visit_sort,
-                first_seen_sort, last_pdf_sort
+                last_visit_sort, last_pdf_sort
             ) if v
         ]
         if effective_visit_date and (
                 not last_visit_date or effective_visit_date > last_visit_date):
             item["last_visit"] = effective_visit_date
+        fallback_arrival_candidates = [
+            v for v in (folder_visit_sort, folder_mtime_sort, first_seen_sort) if v
+        ]
         item["_sort_pdf_date"] = last_pdf_date
         item["_sort_visit_date"] = effective_visit_date
-        # En son gelen hasta en ustte: ziyaret, PDF, klasor tarihi ve ilk kayit
-        # sinyallerinden en yenisini tek siralama anahtari olarak kullan.
+        item["_sort_visit_rowid"] = last_visit_rowid
+        item["_sort_has_visit"] = 1 if sort_arrival_candidates else 0
+        # En son gelen hasta en ustte: once gercek muayene/kontrol gelisi,
+        # sonra PDF gelisi; hasta klasor/ilk import tarihleri yalniz yedektir.
         item["_sort_arrival"] = (
-            max(sort_arrival_candidates) if sort_arrival_candidates else "")
+            max(sort_arrival_candidates)
+            if sort_arrival_candidates
+            else (max(fallback_arrival_candidates) if fallback_arrival_candidates else ""))
         if not include_full_path:
             item.pop("full_path", None)
         item.pop("_full_path_for_filter", None)
@@ -16000,10 +16069,11 @@ def _load_patient_listing(limit=200, include_full_path=False):
         x.get("display_label") or x.get("display_name") or "").casefold())
     patients.sort(
         key=lambda x: (
+            int(x.get("_sort_has_visit") or 0),
             str(x.get("_sort_arrival") or ""),
+            int(x.get("_sort_visit_rowid") or 0),
             str(x.get("_sort_visit_date") or ""),
             str(x.get("_sort_pdf_date") or ""),
-            str(x.get("first_seen_at") or ""),
         ),
         reverse=True,
     )
