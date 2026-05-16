@@ -58594,10 +58594,11 @@ SMART_DIALOG_MODEL_PROFILE = [
     {
         "key": "dialog",
         "label": "Canli sohbet",
-        "model": DEFAULT_OLLAMA_MODEL,
+        "model": CLINICAL_OLLAMA_MODEL,
         "setting": "sysparam_ollama_task_phone_model",
-        "fallbacks": ["llama3.1:latest", BALANCED_OLLAMA_MODEL, "mixtral:8x7b"],
-        "why": "Canli sohbet icin hizli ve Turkce dengesi iyi model.",
+        "fallbacks": ["qwen3-coder:30b", "yaz:latest",
+                      DEFAULT_OLLAMA_MODEL, BALANCED_OLLAMA_MODEL],
+        "why": "RTX 5090 canli sohbet icin daha akici ve guclu 32B model.",
     },
     {
         "key": "fast",
@@ -61359,12 +61360,19 @@ def _smart_dialog_ai_reply(message, action_result=None, history=None,
     # D121: voice modda kisa+hizli, normal modda kapsamli klinik konsult.
     # Klinik konsultant kalitesi icin temperature 0.3 (daha tutarli).
     voice_max_tokens = 340 if is_voice_mode else 600
-    voice_timeout = 12 if is_voice_mode else 22
+    voice_timeout = 24 if is_voice_mode else 40
     voice_temperature = 0.3
 
-    # Akilli Dialog: cloud once (kalite), sonra ollama (lokal yedek).
+    # D300 RTX 5090: auto modda yerel Ollama/RTX once gelsin. Sadece doktor
+    # ozellikle cloud_first/online/OpenAI secmisse bulut once denenir.
     duration = 0
-    strategy = _ai_strategy_available_order(images=False, prefer_cloud=True)
+    provider_choice = _ai_provider_value()
+    prefer_cloud = (
+        provider_choice in {"cloud_first", "online", "cloud"}
+        or _ai_provider_is_cloud(provider_choice)
+    )
+    strategy = _ai_strategy_available_order(
+        images=False, prefer_cloud=prefer_cloud)
     for kind, provider in strategy:
         if kind == "cloud":
             ok, answer, duration = _b301_call_cloud_ai(
@@ -61420,8 +61428,28 @@ def _smart_dialog_pick_chat_model():
     except Exception:
         installed = []
     installed_norm = [str(m).strip().lower() for m in installed if m]
+    installed_by_lower = {
+        str(m).strip().lower(): str(m).strip()
+        for m in installed if str(m).strip()
+    }
+    for setting_key in (
+            "sysparam_ollama_task_dialog_model",
+            "sysparam_ollama_task_phone_model",
+            "sysparam_ollama_model"):
+        configured = str(_ollama_setting_value(setting_key, "") or "").strip()
+        if not configured:
+            continue
+        configured = _normalize_ollama_model_name(configured)
+        if _is_auto_model_value(configured):
+            continue
+        configured_key = configured.lower()
+        if configured_key in installed_by_lower:
+            return installed_by_lower[configured_key]
     # Tercih sirasi: hizli + iyi sohbet eden non-thinking modeller
     preferred = (
+        "qwen2.5:32b",
+        "qwen3-coder:30b",
+        "yaz:latest",
         "llama3.1:8b",
         "llama3.1:latest",
         "qwen2.5:7b",
@@ -157885,11 +157913,12 @@ if __name__ == "__main__":
         import threading as _thr
         def _alex_warm_worker():
             try:
-                _ai_strategy_available_order(images=False, prefer_cloud=True)
+                _ai_strategy_available_order(images=False, prefer_cloud=False)
             except Exception:
                 pass
+            model = None
             try:
-                _smart_dialog_pick_chat_model()
+                model = _smart_dialog_pick_chat_model()
             except Exception:
                 pass
             try:
@@ -157897,6 +157926,23 @@ if __name__ == "__main__":
                 _smart_dialog_system_prompt("", voice_mode=False)
             except Exception:
                 pass
+            try:
+                if str(os.environ.get("YAZKLINIK_ALEX_PREWARM", "1")).lower() not in {"0", "false", "no"}:
+                    time.sleep(3.0)
+                    ok, _answer, duration = call_ollama(
+                        "Tek kelimeyle hazir de.",
+                        model=model,
+                        temperature=0.2,
+                        max_tokens=24,
+                        timeout=60,
+                        use_cache=False,
+                        system=("Sen Alexsin. Kisa Turkce cevap ver; "
+                                "bu bir acilis isinma testidir."))
+                    if ok:
+                        print("  Alex RTX/Ollama model isindi: "
+                              f"{model or 'auto'} ({int(duration or 0)}ms)")
+            except Exception as _alex_warm_ex:
+                print(f"  Alex model isinma uyarisi: {_alex_warm_ex}")
         _thr.Thread(target=_alex_warm_worker, daemon=True,
                     name="alex_warmup").start()
     except Exception:
