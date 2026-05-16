@@ -20342,6 +20342,691 @@ def _rx_daily_review_payload(day=None, limit=80):
     }
 
 
+_SERVICE_AGENTS_CACHE = {"ts": 0.0, "payload": None}
+_SERVICE_AGENTS_TTL = 120
+
+
+def _service_agent_table_exists(con, name):
+    try:
+        return bool(con.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+            (str(name),)).fetchone())
+    except Exception:
+        return False
+
+
+def _service_agent_metric(label, value, hint=""):
+    try:
+        if isinstance(value, float) and value.is_integer():
+            value = int(value)
+    except Exception:
+        pass
+    return {"label": str(label), "value": value, "hint": str(hint or "")}
+
+
+def _service_agent_action(label, url, tone="outline-primary", icon="bi-arrow-right"):
+    return {
+        "label": str(label),
+        "url": str(url or "/dashboard"),
+        "tone": str(tone or "outline-primary"),
+        "icon": str(icon or "bi-arrow-right"),
+    }
+
+
+def _service_agent_item(title, detail="", url=""):
+    return {
+        "title": str(title or ""),
+        "detail": str(detail or ""),
+        "url": str(url or ""),
+    }
+
+
+def _service_agent_status_from(high=False, warn=False, watch=False):
+    if high:
+        return "high"
+    if warn:
+        return "warn"
+    if watch:
+        return "watch"
+    return "ok"
+
+
+def _service_agent_card(agent_id, name, mission, status, headline, body,
+                        metrics=None, items=None, actions=None,
+                        icon="bi-robot", score=50):
+    return {
+        "id": str(agent_id),
+        "name": str(name),
+        "mission": str(mission),
+        "status": str(status or "ok"),
+        "headline": str(headline),
+        "body": str(body),
+        "metrics": metrics or [],
+        "items": items or [],
+        "actions": actions or [],
+        "icon": str(icon or "bi-robot"),
+        "score": int(score or 0),
+    }
+
+
+def _service_agents_payload(force=False):
+    now_mono = time.monotonic()
+    cached = _SERVICE_AGENTS_CACHE.get("payload")
+    if (cached and not force and
+            now_mono - float(_SERVICE_AGENTS_CACHE.get("ts", 0.0))
+            < _SERVICE_AGENTS_TTL):
+        return dict(cached)
+
+    now = datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+    week_ago = (now - timedelta(days=7)).strftime("%Y-%m-%d")
+    month_ago = (now - timedelta(days=30)).strftime("%Y-%m-%d")
+    agents = []
+    errors = []
+
+    try:
+        tracker = _system_ai_tracker_snapshot(force=force, include_ai=False)
+    except Exception as ex:
+        tracker = {"counts": {}, "rows": {}, "suggestions": []}
+        errors.append("system_tracker: " + str(ex))
+    counts = tracker.get("counts") or {}
+    suggestions = tracker.get("suggestions") or []
+
+    def _count(name):
+        try:
+            return int(counts.get(name) or 0)
+        except Exception:
+            return 0
+
+    overdue_tasks = _count("overdue_tasks")
+    open_tasks = _count("open_tasks")
+    today_appts = _count("today_appts")
+    today_visits = _count("today_visits")
+    tomorrow_appts = _count("tomorrow_appts")
+    today_rx = _count("today_prescriptions")
+    risk_flags = _count("risk_flags")
+    recent_labs = _count("recent_labs")
+
+    komuta_status = _service_agent_status_from(
+        high=overdue_tasks > 0,
+        warn=(today_appts > 0 and today_visits < today_appts),
+        watch=(open_tasks > 0 or tomorrow_appts > 0))
+    komuta_items = [
+        _service_agent_item(x.get("title"), x.get("body"), x.get("url"))
+        for x in suggestions[:4]
+    ]
+    agents.append(_service_agent_card(
+        "gunluk_komuta",
+        "Gunluk Komuta Ajani",
+        "Randevu, gelis, gorev ve gunluk klinik ritmini izler.",
+        komuta_status,
+        ("Acil dikkat var" if komuta_status == "high" else
+         "Bugunun klinik akisi izleniyor"),
+        (f"Bugun {today_appts} randevu, {today_visits} gelis, "
+         f"{overdue_tasks} geciken gorev gorunuyor."),
+        metrics=[
+            _service_agent_metric("Bugun randevu", today_appts),
+            _service_agent_metric("Bugun gelis", today_visits),
+            _service_agent_metric("Geciken gorev", overdue_tasks),
+            _service_agent_metric("Yarin randevu", tomorrow_appts),
+        ],
+        items=komuta_items,
+        actions=[
+            _service_agent_action("Gun planini ac", "/gun-plani",
+                                  "primary", "bi-calendar2-check"),
+            _service_agent_action("Gorevleri ac", "/gorevler",
+                                  "outline-secondary", "bi-list-check"),
+            _service_agent_action("YZ onerileri", "/yz-sistem-onerileri",
+                                  "outline-primary", "bi-stars"),
+        ],
+        icon="bi-speedometer2",
+        score=95))
+
+    try:
+        rx_payload = _rx_daily_review_payload(day=today, limit=25)
+    except Exception as ex:
+        rx_payload = {"count": today_rx, "critical": 0, "warning": 0, "items": []}
+        errors.append("rx_review: " + str(ex))
+    rx_critical = int(rx_payload.get("critical") or 0)
+    rx_warning = int(rx_payload.get("warning") or 0)
+    rx_status = _service_agent_status_from(
+        high=rx_critical > 0,
+        warn=rx_warning > 0,
+        watch=int(rx_payload.get("count") or 0) > 0)
+    rx_items = []
+    for item in (rx_payload.get("items") or [])[:4]:
+        checks = item.get("checks") or []
+        detail = ", ".join([str(c.get("title") or "") for c in checks[:3]])
+        rx_items.append(_service_agent_item(
+            item.get("patient_name") or item.get("patient_key") or "Recete",
+            detail or "Kritik uyari bulunmadi.",
+            item.get("edit_url") or item.get("patient_url") or ""))
+    agents.append(_service_agent_card(
+        "recete_guvenlik",
+        "Recete Guvenlik Ajani",
+        "Bugun yazilan recetelerde alerji, gebelik ve tekrar riskini one cikarir.",
+        rx_status,
+        ("Recete kontrolu dikkat istiyor" if rx_status in ("high", "warn")
+         else "Recete kontrolu hazir"),
+        (f"Bugun {int(rx_payload.get('count') or 0)} recete; "
+         f"{rx_critical} kritik, {rx_warning} uyari."),
+        metrics=[
+            _service_agent_metric("Bugun recete", int(rx_payload.get("count") or 0)),
+            _service_agent_metric("Kritik", rx_critical),
+            _service_agent_metric("Uyari", rx_warning),
+        ],
+        items=rx_items,
+        actions=[
+            _service_agent_action("Recete kontrolu", "/recete-gunluk-kontrol",
+                                  "primary", "bi-shield-check"),
+            _service_agent_action("Ilac guvenlik", "/ilac-guvenlik",
+                                  "outline-secondary", "bi-capsule-pill"),
+            _service_agent_action("Tedavi planla", "/tedavi-planla",
+                                  "outline-primary", "bi-clipboard2-pulse"),
+        ],
+        icon="bi-shield-plus",
+        score=90))
+
+    try:
+        with db_conn() as con:
+            has = {name: _service_agent_table_exists(con, name) for name in [
+                "patients", "visits", "files", "prescriptions",
+                "patient_demographics", "patient_flags", "usg_measurements",
+                "appointments", "web_tasks", "bk_patients", "bk_protocols",
+                "bk_medical_infos", "bk_services", "bk_obstetri_index",
+                "bk_obstetri_visits", "bk_gynecology_resume",
+                "bk_gynecology_tracking", "bk_appointments",
+                "bk_patient_changes", "bk_voluson_links",
+            ]}
+
+            patient_count = _ai_tracker_one(
+                con, "SELECT COUNT(*) FROM patients "
+                     "WHERE COALESCE(archived_at,'')=''"
+            ) if has["patients"] else 0
+            patients_without_visit = _ai_tracker_one(
+                con,
+                "SELECT COUNT(*) FROM patients p "
+                "WHERE COALESCE(p.archived_at,'')='' "
+                "AND NOT EXISTS (SELECT 1 FROM visits v "
+                "WHERE v.patient_folder_key=p.folder_key "
+                "AND COALESCE(v.archived_at,'')='')"
+            ) if has["patients"] and has["visits"] else 0
+            recent_patients = _ai_tracker_one(
+                con,
+                "SELECT COUNT(*) FROM patients "
+                "WHERE COALESCE(archived_at,'')='' "
+                "AND COALESCE(updated_at,last_synced_at,first_seen_at,'') >= ?",
+                (week_ago,)
+            ) if has["patients"] else 0
+            recent_patient_rows = _ai_tracker_rows(
+                con,
+                "SELECT p.folder_key, p.display_name, "
+                "COALESCE(p.updated_at,p.last_synced_at,p.first_seen_at,'') AS seen_at "
+                "FROM patients p WHERE COALESCE(p.archived_at,'')='' "
+                "AND NOT EXISTS (SELECT 1 FROM visits v "
+                "WHERE v.patient_folder_key=p.folder_key "
+                "AND COALESCE(v.archived_at,'')='') "
+                "ORDER BY seen_at DESC LIMIT 5",
+                (), 5) if has["patients"] and has["visits"] else []
+            patient_items = [
+                _service_agent_item(
+                    r.get("display_name") or r.get("folder_key"),
+                    "Gelis kaydi henuz yok.",
+                    f"/hasta/{quote(str(r.get('folder_key') or ''), safe='')}"
+                    if r.get("folder_key") else "")
+                for r in recent_patient_rows
+            ]
+            patient_status = _service_agent_status_from(
+                warn=patients_without_visit > 0,
+                watch=recent_patients > 0)
+            agents.append(_service_agent_card(
+                "hasta_takip",
+                "Hasta Takip Ajani",
+                "Yeni veya eksik gelisli hasta dosyalarini izler.",
+                patient_status,
+                ("Gelis kaydi eksik hastalar var" if patients_without_visit
+                 else "Hasta takip listesi sakin"),
+                (f"{patient_count} aktif hasta icinde "
+                 f"{patients_without_visit} dosyada gelis kaydi eksik gorunuyor."),
+                metrics=[
+                    _service_agent_metric("Aktif hasta", patient_count),
+                    _service_agent_metric("Son 7 gun yeni/guncel", recent_patients),
+                    _service_agent_metric("Gelis kaydi eksik", patients_without_visit),
+                ],
+                items=patient_items,
+                actions=[
+                    _service_agent_action("Hastalari ac", "/hastalar",
+                                          "primary", "bi-people"),
+                    _service_agent_action("Yeni hasta", "/yeni-hasta",
+                                          "outline-primary", "bi-person-plus"),
+                    _service_agent_action("Arama", "/arama",
+                                          "outline-secondary", "bi-search"),
+                ],
+                icon="bi-person-lines-fill",
+                score=84))
+
+            bk_patients = _ai_tracker_one(
+                con, "SELECT COUNT(*) FROM bk_patients"
+            ) if has["bk_patients"] else 0
+            bk_protocols = _ai_tracker_one(
+                con, "SELECT COUNT(*) FROM bk_protocols"
+            ) if has["bk_protocols"] else 0
+            bk_links = _ai_tracker_one(
+                con, "SELECT COUNT(*) FROM bk_voluson_links"
+            ) if has["bk_voluson_links"] else 0
+            bk_missing = max(int(bk_patients) - int(bk_links), 0)
+            bk_clinical_visits = _ai_tracker_one(
+                con, "SELECT COUNT(*) FROM visits WHERE source='bulutklinik'"
+            ) if has["visits"] else 0
+            bk_clinical_rx = _ai_tracker_one(
+                con, "SELECT COUNT(*) FROM prescriptions "
+                     "WHERE purpose='bk-clinical-mirror' "
+                     "AND COALESCE(deleted_at,'')=''"
+            ) if has["prescriptions"] else 0
+            bk_pending_changes = _ai_tracker_one(
+                con, "SELECT COUNT(*) FROM bk_patient_changes "
+                     "WHERE COALESCE(synced_to_bk,0)=0"
+            ) if has["bk_patient_changes"] else 0
+            bk_missing_rows = _ai_tracker_rows(
+                con,
+                "SELECT p.bk_hasta_no, "
+                "TRIM(COALESCE(p.ad,'') || ' ' || COALESCE(p.soyad,'')) AS name, "
+                "COALESCE(p.updated_at,p.imported_at,'') AS updated_at "
+                "FROM bk_patients p LEFT JOIN bk_voluson_links l "
+                "ON l.bk_hasta_no=p.bk_hasta_no "
+                "WHERE l.bk_hasta_no IS NULL "
+                "ORDER BY updated_at DESC LIMIT 5",
+                (), 5
+            ) if has["bk_patients"] and has["bk_voluson_links"] else []
+            bk_items = [
+                _service_agent_item(
+                    r.get("name") or ("BK #" + str(r.get("bk_hasta_no") or "")),
+                    "Voluson/YazKlinik baglantisi eksik.",
+                    f"/bk-hastalar/{quote(str(r.get('bk_hasta_no') or ''), safe='')}"
+                    if r.get("bk_hasta_no") else "")
+                for r in bk_missing_rows
+            ]
+            if bk_pending_changes:
+                bk_items.insert(0, _service_agent_item(
+                    "BulutKlinik geri senkron bekliyor",
+                    f"{bk_pending_changes} hasta degisikligi onay bekliyor.",
+                    "/bk-hastalar"))
+            bk_status = _service_agent_status_from(
+                high=bk_missing > 0,
+                warn=bk_pending_changes > 0,
+                watch=bk_protocols > 0)
+            agents.append(_service_agent_card(
+                "bulutklinik_voluson",
+                "BulutKlinik-Voluson Ajani",
+                "BulutKlinik hastalari, gelisleri, receteleri ve Voluson bagini izler.",
+                bk_status,
+                ("BK verisi Voluson tarafinda tamamlanmali" if bk_missing
+                 else "BK-Voluson aynasi tamam gorunuyor"),
+                (f"{bk_patients} BK hasta, {bk_protocols} protokol, "
+                 f"{bk_clinical_visits} klinik gelis ve "
+                 f"{bk_clinical_rx} recete YazKlinik/Voluson tarafinda."),
+                metrics=[
+                    _service_agent_metric("BK hasta", bk_patients),
+                    _service_agent_metric("Protokol", bk_protocols),
+                    _service_agent_metric("Voluson bag", bk_links),
+                    _service_agent_metric("Eksik bag", bk_missing),
+                    _service_agent_metric("Aynalanan gelis", bk_clinical_visits),
+                    _service_agent_metric("Aynalanan recete", bk_clinical_rx),
+                ],
+                items=bk_items,
+                actions=[
+                    _service_agent_action("BK merkezi", "/bulutklinik-merkez",
+                                          "primary", "bi-cloud-check"),
+                    _service_agent_action("Voluson eslestir", "/bk-voluson-match",
+                                          "outline-primary", "bi-link-45deg"),
+                    _service_agent_action("BK hastalari", "/bk-hastalar",
+                                          "outline-secondary", "bi-table"),
+                ],
+                icon="bi-cloud-arrow-down",
+                score=92))
+
+            obstetri_count = _ai_tracker_one(
+                con, "SELECT COUNT(*) FROM bk_obstetri_index"
+            ) if has["bk_obstetri_index"] else 0
+            obstetri_recent = _ai_tracker_one(
+                con, "SELECT COUNT(*) FROM bk_obstetri_index "
+                     "WHERE COALESCE(last_visit,'') >= ?",
+                (week_ago,)
+            ) if has["bk_obstetri_index"] else 0
+            obstetri_stale = _ai_tracker_one(
+                con, "SELECT COUNT(*) FROM bk_obstetri_index "
+                     "WHERE COALESCE(last_visit,'') <> '' "
+                     "AND COALESCE(last_visit,'') < ?",
+                (month_ago,)
+            ) if has["bk_obstetri_index"] else 0
+            usg_count = _ai_tracker_one(
+                con, "SELECT COUNT(*) FROM usg_measurements"
+            ) if has["usg_measurements"] else 0
+            obstetri_rows = _ai_tracker_rows(
+                con,
+                "SELECT i.bk_hasta_no, i.visit_count, i.last_visit, "
+                "TRIM(COALESCE(p.ad,'') || ' ' || COALESCE(p.soyad,'')) AS name "
+                "FROM bk_obstetri_index i "
+                "LEFT JOIN bk_patients p ON p.bk_hasta_no=i.bk_hasta_no "
+                "WHERE COALESCE(i.last_visit,'') <> '' "
+                "AND COALESCE(i.last_visit,'') < ? "
+                "ORDER BY i.last_visit ASC LIMIT 5",
+                (month_ago,), 5
+            ) if has["bk_obstetri_index"] and has["bk_patients"] else []
+            obstetri_items = [
+                _service_agent_item(
+                    r.get("name") or ("BK #" + str(r.get("bk_hasta_no") or "")),
+                    f"Son obstetri takip: {r.get('last_visit') or '-'}",
+                    f"/bk-hastalar/{quote(str(r.get('bk_hasta_no') or ''), safe='')}"
+                    if r.get("bk_hasta_no") else "")
+                for r in obstetri_rows
+            ]
+            gebelik_status = _service_agent_status_from(
+                warn=risk_flags > 0,
+                watch=(obstetri_stale > 0 or obstetri_recent > 0))
+            agents.append(_service_agent_card(
+                "gebelik_takip",
+                "Gebelik ve Risk Ajani",
+                "Gebe takipleri, risk bayraklari ve USG olcum kayitlarini izler.",
+                gebelik_status,
+                ("Riskli/izlem gereken gebe dosyalari var" if
+                 (risk_flags or obstetri_stale) else "Gebelik izlemi takipte"),
+                (f"{obstetri_count} BK obstetri hastasi, "
+                 f"{risk_flags} risk bayragi, {usg_count} USG olcum kaydi."),
+                metrics=[
+                    _service_agent_metric("Obstetri hasta", obstetri_count),
+                    _service_agent_metric("Son 7 gun takip", obstetri_recent),
+                    _service_agent_metric("30 gun+ takip yok", obstetri_stale),
+                    _service_agent_metric("Risk bayragi", risk_flags),
+                    _service_agent_metric("USG olcum", usg_count),
+                ],
+                items=obstetri_items,
+                actions=[
+                    _service_agent_action("Riskli gebelik", "/riskli-gebelik",
+                                          "primary", "bi-heart-pulse"),
+                    _service_agent_action("Obstetrik", "/obstetrik",
+                                          "outline-primary", "bi-gender-female"),
+                    _service_agent_action("Gebelik araci", "/araclar/gebelik-hesapla",
+                                          "outline-secondary", "bi-calculator"),
+                ],
+                icon="bi-heart-pulse",
+                score=80))
+
+            file_count = _ai_tracker_one(
+                con, "SELECT COUNT(*) FROM files WHERE COALESCE(archived_at,'')=''"
+            ) if has["files"] else 0
+            visit_count = _ai_tracker_one(
+                con, "SELECT COUNT(*) FROM visits WHERE COALESCE(archived_at,'')=''"
+            ) if has["visits"] else 0
+            recent_file_count = _ai_tracker_one(
+                con, "SELECT COUNT(*) FROM files "
+                     "WHERE COALESCE(archived_at,'')='' "
+                     "AND datetime(mtime, 'unixepoch') >= ?",
+                (week_ago,)
+            ) if has["files"] else 0
+            try:
+                db_size_mb = round(os.path.getsize(DB_PATH) / 1024 / 1024, 1)
+            except Exception:
+                db_size_mb = 0
+            dosya_status = _service_agent_status_from(
+                warn=(visit_count > 0 and file_count == 0),
+                watch=recent_file_count > 0)
+            agents.append(_service_agent_card(
+                "dosya_nas",
+                "Dosya ve NAS Ajani",
+                "Hasta gelisleri, dosya indeksleri ve lokal DB sagligini izler.",
+                dosya_status,
+                "Voluson dosya indeksi takipte",
+                (f"{visit_count} gelis, {file_count} dosya kaydi ve "
+                 f"{db_size_mb} MB lokal DB gorunuyor."),
+                metrics=[
+                    _service_agent_metric("Gelis", visit_count),
+                    _service_agent_metric("Dosya", file_count),
+                    _service_agent_metric("Son 7 gun dosya", recent_file_count),
+                    _service_agent_metric("DB MB", db_size_mb),
+                ],
+                items=[],
+                actions=[
+                    _service_agent_action("Dosya konumlari", "/ayarlar/dosya-yerleri",
+                                          "primary", "bi-folder-fill"),
+                    _service_agent_action("Sistem durumu", "/sistem-durumu",
+                                          "outline-primary", "bi-activity"),
+                    _service_agent_action("DICOM", "/dicom",
+                                          "outline-secondary", "bi-image"),
+                ],
+                icon="bi-folder2-open",
+                score=74))
+
+            bk_today_appts = _ai_tracker_one(
+                con, "SELECT COUNT(*) FROM bk_appointments "
+                     "WHERE COALESCE(baslangic,'') LIKE ?",
+                (today + "%",)
+            ) if has["bk_appointments"] else 0
+            bk_tomorrow_appts = _ai_tracker_one(
+                con, "SELECT COUNT(*) FROM bk_appointments "
+                     "WHERE COALESCE(baslangic,'') LIKE ?",
+                (tomorrow + "%",)
+            ) if has["bk_appointments"] else 0
+            bk_appt_rows = _ai_tracker_rows(
+                con,
+                "SELECT bk_hasta_no, hasta_ad, hasta_soyad, baslangic, "
+                "randevu_tipi, durum FROM bk_appointments "
+                "WHERE COALESCE(baslangic,'') >= ? "
+                "ORDER BY baslangic LIMIT 5",
+                (today,), 5
+            ) if has["bk_appointments"] else []
+            randevu_items = [
+                _service_agent_item(
+                    (str(r.get("hasta_ad") or "") + " " +
+                     str(r.get("hasta_soyad") or "")).strip() or
+                    ("BK #" + str(r.get("bk_hasta_no") or "")),
+                    f"{r.get('baslangic') or '-'} | {r.get('randevu_tipi') or ''}",
+                    "/bulutklinik-merkez")
+                for r in bk_appt_rows
+            ]
+            randevu_status = _service_agent_status_from(
+                watch=(tomorrow_appts + bk_tomorrow_appts +
+                       today_appts + bk_today_appts) > 0)
+            agents.append(_service_agent_card(
+                "randevu_hatirlatma",
+                "Randevu Hatirlatma Ajani",
+                "YazKlinik ve BulutKlinik randevu akisini hatirlatir.",
+                randevu_status,
+                "Randevu hazirligi takipte",
+                (f"Bugun {today_appts + bk_today_appts}, yarin "
+                 f"{tomorrow_appts + bk_tomorrow_appts} randevu kaydi gorunuyor."),
+                metrics=[
+                    _service_agent_metric("YazKlinik bugun", today_appts),
+                    _service_agent_metric("BK bugun", bk_today_appts),
+                    _service_agent_metric("YazKlinik yarin", tomorrow_appts),
+                    _service_agent_metric("BK yarin", bk_tomorrow_appts),
+                ],
+                items=randevu_items,
+                actions=[
+                    _service_agent_action("Randevular", "/randevular",
+                                          "primary", "bi-calendar-event"),
+                    _service_agent_action("Toplu hatirlatma", "/toplu-hatirlatma",
+                                          "outline-primary", "bi-send"),
+                    _service_agent_action("BK merkezi", "/bulutklinik-merkez",
+                                          "outline-secondary", "bi-cloud"),
+                ],
+                icon="bi-alarm",
+                score=78))
+
+            recent_labs_count = recent_labs
+            lab_status = _service_agent_status_from(watch=recent_labs_count > 0)
+            agents.append(_service_agent_card(
+                "tahlil_takip",
+                "Tahlil ve Evrak Ajani",
+                "Son tahlil, PDF ve hasta evrak hareketlerini takip eder.",
+                lab_status,
+                "Tahlil ve evrak taramasi hazir",
+                (f"Son 7 gunde {recent_labs_count} tahlil sinyali, "
+                 f"{recent_file_count} yeni dosya indeksi var."),
+                metrics=[
+                    _service_agent_metric("Yeni tahlil", recent_labs_count),
+                    _service_agent_metric("Yeni dosya", recent_file_count),
+                    _service_agent_metric("PDF/dosya toplam", file_count),
+                ],
+                items=[],
+                actions=[
+                    _service_agent_action("Hasta sec", "/hastalar",
+                                          "primary", "bi-clipboard2-pulse"),
+                    _service_agent_action("Ekran yakala", "/ekran-yakala",
+                                          "outline-secondary", "bi-camera"),
+                    _service_agent_action("Arama", "/arama",
+                                          "outline-primary", "bi-search"),
+                ],
+                icon="bi-file-earmark-medical",
+                score=70))
+    except Exception as ex:
+        errors.append("db_agents: " + str(ex))
+
+    try:
+        ai_status = _ollama_status()
+    except Exception:
+        ai_status = {"online": False, "hint": ""}
+    try:
+        uk = "alex_" + str(session.get("user") or "doktor")
+        training_stats = _alex_training_stats(user_key=uk)
+    except Exception:
+        training_stats = {"total": 0, "good": 0, "bad": 0, "corrected": 0}
+    alex_total = int(training_stats.get("total") or 0)
+    alex_bad = int(training_stats.get("bad") or 0)
+    alex_status = _service_agent_status_from(
+        warn=alex_bad > 0,
+        watch=(not bool(ai_status.get("online")) or alex_total < 20))
+    agents.append(_service_agent_card(
+        "alex_egitim",
+        "Alex Egitim Ajani",
+        "Alex'in konusma kalitesini, egitim orneklerini ve yerel YZ durumunu izler.",
+        alex_status,
+        ("Alex egitim dikkati istiyor" if alex_status in ("warn", "watch")
+         else "Alex egitim hafizasi hazir"),
+        (f"{alex_total} egitim ornegi, {alex_bad} duzeltilecek cevap; "
+         f"yerel YZ {'acik' if ai_status.get('online') else 'kapali'}."),
+        metrics=[
+            _service_agent_metric("Egitim ornegi", alex_total),
+            _service_agent_metric("Iyi cevap", int(training_stats.get("good") or 0)),
+            _service_agent_metric("Duzeltme", int(training_stats.get("corrected") or 0)),
+            _service_agent_metric("Kotu cevap", alex_bad),
+        ],
+        items=[
+            _service_agent_item("YZ durumu",
+                                ai_status.get("hint") or
+                                ("Online" if ai_status.get("online") else "Ollama kapali"),
+                                "/yz-server-durum")
+        ],
+        actions=[
+            _service_agent_action("Alex egitimi", "/alex-egitim",
+                                  "primary", "bi-mortarboard"),
+            _service_agent_action("Akilli sohbet", "/akilli-dialog",
+                                  "outline-primary", "bi-chat-dots"),
+            _service_agent_action("YZ server", "/yz-server-durum",
+                                  "outline-secondary", "bi-hdd-network"),
+        ],
+        icon="bi-mortarboard",
+        score=76))
+
+    status_rank = {"high": 3, "warn": 2, "watch": 1, "ok": 0}
+    agents = sorted(
+        agents,
+        key=lambda a: (status_rank.get(a.get("status"), 0), a.get("score", 0)),
+        reverse=True)
+    summary = {
+        "total": len(agents),
+        "high": sum(1 for a in agents if a.get("status") == "high"),
+        "warn": sum(1 for a in agents if a.get("status") == "warn"),
+        "watch": sum(1 for a in agents if a.get("status") == "watch"),
+        "ok": sum(1 for a in agents if a.get("status") == "ok"),
+    }
+    summary["top"] = next(
+        (a.get("name") for a in agents if a.get("status") != "ok"), "")
+    payload = {
+        "ok": True,
+        "generated_at": now.isoformat(sep=" ", timespec="seconds"),
+        "summary": summary,
+        "agents": agents,
+        "errors": errors,
+        "privacy": (
+            "Hizmet ajanlari sadece lokal YazKlinik/Voluson DB okur; "
+            "hasta verisini dis servise gondermez."
+        ),
+        "guardrail": (
+            "Ajanlar karar destegidir. Klinik tani, tedavi, recete ve veri "
+            "aktarimi hekim onayi ile yapilir."
+        ),
+    }
+    _SERVICE_AGENTS_CACHE["ts"] = now_mono
+    _SERVICE_AGENTS_CACHE["payload"] = dict(payload)
+    return payload
+
+
+def _service_agent_status_meta(status):
+    return {
+        "high": ("Acil", "danger", "bi-exclamation-triangle-fill"),
+        "warn": ("Uyari", "warning", "bi-exclamation-circle"),
+        "watch": ("Takipte", "info", "bi-eye"),
+        "ok": ("Hazir", "success", "bi-check-circle"),
+    }.get(str(status or "ok"), ("Hazir", "success", "bi-check-circle"))
+
+
+def _service_agent_cards_html(agents):
+    cards = []
+    for agent in agents:
+        status_label, tone, status_icon = _service_agent_status_meta(
+            agent.get("status"))
+        metrics = "".join(
+            '<div class="yk-service-metric">'
+            f'<b>{safe_html(m.get("value"))}</b>'
+            f'<span>{safe_html(m.get("label"))}</span>'
+            f'{("<small>" + safe_html(m.get("hint")) + "</small>") if m.get("hint") else ""}'
+            '</div>'
+            for m in agent.get("metrics", []))
+        items = "".join(
+            '<li>'
+            + (f'<a href="{safe_attr(x.get("url"))}">' if x.get("url") else '')
+            + f'<b>{safe_html(x.get("title"))}</b>'
+            + (f'<small>{safe_html(x.get("detail"))}</small>'
+               if x.get("detail") else '')
+            + ('</a>' if x.get("url") else '')
+            + '</li>'
+            for x in agent.get("items", []))
+        if not items:
+            items = '<li class="muted">Su an acil madde yok.</li>'
+        actions = "".join(
+            f'<a class="btn btn-sm btn-{safe_attr(a.get("tone") or "outline-primary")}" '
+            f'href="{safe_attr(a.get("url") or "/dashboard")}">'
+            f'<i class="bi {safe_attr(a.get("icon") or "bi-arrow-right")}"></i> '
+            f'{safe_html(a.get("label") or "Ac")}</a>'
+            for a in agent.get("actions", []))
+        cards.append(f"""
+        <article class="yk-service-agent-card yk-status-{safe_attr(agent.get('status'))}">
+          <div class="yk-service-agent-head">
+            <div class="yk-service-agent-icon">
+              <i class="bi {safe_attr(agent.get('icon') or 'bi-robot')}"></i>
+            </div>
+            <div class="yk-service-agent-title">
+              <span>{safe_html(agent.get('mission'))}</span>
+              <h3>{safe_html(agent.get('name'))}</h3>
+            </div>
+            <span class="badge text-bg-{tone}">
+              <i class="bi {status_icon}"></i> {status_label}
+            </span>
+          </div>
+          <div class="yk-service-agent-body">
+            <h4>{safe_html(agent.get('headline'))}</h4>
+            <p>{safe_html(agent.get('body'))}</p>
+            <div class="yk-service-metrics">{metrics}</div>
+            <ul class="yk-service-items">{items}</ul>
+          </div>
+          <div class="yk-service-actions">{actions}</div>
+        </article>
+        """)
+    return "\n".join(cards)
+
+
 def _friendly_companion_banner_payload():
     """Header alti arkadasca destek banner'i icin akilli ozet uret."""
     now = datetime.now()
@@ -30807,13 +31492,17 @@ E&#351;le&#351;en men&uuml; yok. Enter ile genel arama yap.
  <span>YZ Komut</span>
  </a>
  <a href="/entegrasyon-ajanlari" class="sidebar-link {% if '/entegrasyon-ajanlari' in request.path %}active{% endif %}">
- <span class="sidebar-link-icon"><i class="bi bi-diagram-3"></i></span>
- <span>Ajan Merkezi</span>
- </a>
- <a href="/akilli-rehber" class="sidebar-link {% if '/akilli-rehber' in request.path %}active{% endif %}">
- <span class="sidebar-link-icon"><i class="bi bi-compass"></i></span>
- <span>Akıllı Rehber</span>
- </a>
+  <span class="sidebar-link-icon"><i class="bi bi-diagram-3"></i></span>
+  <span>Ajan Merkezi</span>
+  </a>
+  <a href="/hizmet-ajanlari" class="sidebar-link {% if '/hizmet-ajanlari' in request.path or '/benim-ajanlarim' in request.path %}active{% endif %}">
+  <span class="sidebar-link-icon"><i class="bi bi-person-workspace"></i></span>
+  <span>Hizmet Ajanlari</span>
+  </a>
+  <a href="/akilli-rehber" class="sidebar-link {% if '/akilli-rehber' in request.path %}active{% endif %}">
+  <span class="sidebar-link-icon"><i class="bi bi-compass"></i></span>
+  <span>Akıllı Rehber</span>
+  </a>
  <a href="/yz-kurulum-rehberi" class="sidebar-link {% if '/yz-kurulum' in request.path %}active{% endif %}">
  <span class="sidebar-link-icon"><i class="bi bi-rocket-takeoff"></i></span>
  <span>Kurulum Rehberi</span>
@@ -108549,6 +109238,178 @@ def system_ai_tracker_page():
     </div>
     """
     return render(content, title="YZ Sistem Onerileri")
+
+
+@app.route("/api/hizmet-ajanlari")
+@login_required
+def api_service_agents():
+    force = (request.args.get("force") or "0").lower() in ("1", "true", "evet")
+    return jsonify(_service_agents_payload(force=force))
+
+
+@app.route("/hizmet-ajanlari")
+@app.route("/benim-ajanlarim")
+@login_required
+def service_agents_page():
+    payload = _service_agents_payload(force=True)
+    summary = payload.get("summary") or {}
+    cards_html = _service_agent_cards_html(payload.get("agents") or [])
+    metric_html = "".join(
+        f'<div class="yk-service-top-metric"><b>{int(summary.get(key) or 0)}</b>'
+        f'<span>{safe_html(label)}</span></div>'
+        for key, label in [
+            ("total", "Ajan"),
+            ("high", "Acil"),
+            ("warn", "Uyari"),
+            ("watch", "Takipte"),
+            ("ok", "Hazir"),
+        ])
+    top_line = summary.get("top") or "Acil bekleyen madde yok"
+    error_html = ""
+    if payload.get("errors"):
+        error_html = (
+            '<div class="alert alert-warning mt-3 mb-0">'
+            'Bazi ajan verileri okunamadi: '
+            + safe_html("; ".join(payload.get("errors") or [])) +
+            '</div>')
+
+    content = f"""
+    <style>
+      .yk-service-shell {{
+        display:grid; gap:16px;
+      }}
+      .yk-service-hero {{
+        border:1px solid rgba(11,91,132,.18);
+        border-radius:18px;
+        background:linear-gradient(135deg,#f8fcff,#eefaf7);
+        box-shadow:0 16px 42px rgba(12,37,62,.08);
+        padding:20px;
+      }}
+      .yk-service-hero h2 {{
+        margin:0 0 6px; font-size:28px; color:#14213a;
+      }}
+      .yk-service-hero p {{
+        margin:0; color:#5d6f86; max-width:920px;
+      }}
+      .yk-service-top {{
+        display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;
+        align-items:flex-start;
+      }}
+      .yk-service-top-metrics {{
+        display:grid; grid-template-columns:repeat(5,minmax(90px,1fr));
+        gap:8px; min-width:min(100%,560px);
+      }}
+      .yk-service-top-metric {{
+        background:#fff; border:1px solid #dce8f2; border-radius:10px;
+        padding:10px 12px;
+      }}
+      .yk-service-top-metric b {{
+        display:block; font-size:24px; color:#0b63b6; line-height:1;
+      }}
+      .yk-service-top-metric span {{ color:#64748b; font-size:12px; }}
+      .yk-service-grid {{
+        display:grid; grid-template-columns:repeat(auto-fit,minmax(330px,1fr));
+        gap:14px;
+      }}
+      .yk-service-agent-card {{
+        background:#fff; border:1px solid #dbe6f0; border-radius:14px;
+        box-shadow:0 10px 26px rgba(12,37,62,.06);
+        display:flex; flex-direction:column; min-height:360px;
+        overflow:hidden;
+      }}
+      .yk-service-agent-card.yk-status-high {{ border-color:#f1a6a6; }}
+      .yk-service-agent-card.yk-status-warn {{ border-color:#ffd37a; }}
+      .yk-service-agent-card.yk-status-watch {{ border-color:#9bd4ff; }}
+      .yk-service-agent-head {{
+        display:flex; align-items:flex-start; gap:12px; padding:16px;
+        border-bottom:1px solid #edf2f7;
+      }}
+      .yk-service-agent-icon {{
+        width:42px; height:42px; display:grid; place-items:center;
+        border-radius:10px; background:#eef6ff; color:#0b63b6; font-size:22px;
+        flex:0 0 auto;
+      }}
+      .yk-service-agent-title {{ flex:1; min-width:0; }}
+      .yk-service-agent-title span {{
+        display:block; color:#6b7b90; font-size:12px; font-weight:700;
+      }}
+      .yk-service-agent-title h3 {{
+        margin:2px 0 0; font-size:20px; color:#14213a;
+      }}
+      .yk-service-agent-body {{ padding:15px 16px; flex:1; }}
+      .yk-service-agent-body h4 {{
+        margin:0 0 6px; font-size:16px; color:#1d3557;
+      }}
+      .yk-service-agent-body p {{ margin:0 0 12px; color:#53657d; }}
+      .yk-service-metrics {{
+        display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
+        gap:8px; margin-bottom:12px;
+      }}
+      .yk-service-metric {{
+        border:1px solid #e2eaf2; background:#fbfdff; border-radius:10px;
+        padding:9px 10px;
+      }}
+      .yk-service-metric b {{
+        display:block; font-size:20px; color:#0b63b6; line-height:1.1;
+        word-break:break-word;
+      }}
+      .yk-service-metric span {{
+        display:block; color:#65758a; font-size:12px;
+      }}
+      .yk-service-metric small {{
+        display:block; color:#8090a3; font-size:11px;
+      }}
+      .yk-service-items {{
+        margin:0; padding-left:18px; color:#334155;
+      }}
+      .yk-service-items li {{ margin-bottom:8px; }}
+      .yk-service-items li.muted {{ color:#8190a5; }}
+      .yk-service-items a {{ color:inherit; text-decoration:none; }}
+      .yk-service-items small {{
+        display:block; color:#65758a; line-height:1.35;
+      }}
+      .yk-service-actions {{
+        display:flex; gap:8px; flex-wrap:wrap; padding:14px 16px;
+        border-top:1px solid #edf2f7; background:#fbfdff;
+      }}
+      @media (max-width:720px) {{
+        .yk-service-grid {{ grid-template-columns:1fr; }}
+        .yk-service-top-metrics {{ grid-template-columns:repeat(2,1fr); }}
+      }}
+    </style>
+    <div class="yk-service-shell">
+      <section class="yk-service-hero">
+        <div class="yk-service-top">
+          <div>
+            <h2>Benim Hizmet Ajanlarim</h2>
+            <p>
+              Sana calisan ajanlar burada: hasta takibi, recete guvenligi,
+              BulutKlinik-Voluson aynasi, gebelik/risk izlemi, randevu ve
+              Alex egitim durumu tek ekranda.
+            </p>
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-primary" href="/hizmet-ajanlari">
+              <i class="bi bi-arrow-clockwise"></i> Yenile
+            </a>
+            <a class="btn btn-outline-secondary" target="_blank"
+               href="/api/hizmet-ajanlari?force=1">JSON</a>
+          </div>
+        </div>
+        <div class="yk-service-top-metrics mt-3">{metric_html}</div>
+        <div class="alert alert-light border mt-3 mb-0">
+          <b>Oncelik:</b> {safe_html(top_line)}
+          <br><small>{safe_html(payload.get('privacy'))}</small>
+        </div>
+        {error_html}
+      </section>
+      <section class="yk-service-grid">{cards_html}</section>
+      <div class="alert alert-warning mb-0">
+        {safe_html(payload.get('guardrail'))}
+      </div>
+    </div>
+    """
+    return render(content, title="Benim Hizmet Ajanlarim")
 
 
 @app.route("/akilli-rehber", methods=["GET", "POST"])
