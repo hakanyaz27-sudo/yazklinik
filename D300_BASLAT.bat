@@ -65,6 +65,8 @@ if "%YAZKLINIK_ENABLE_HTTPS%"=="1" (
 ) else (
   set "YAZKLINIK_SERVER_URL=http://127.0.0.1:%YAZKLINIK_WEB_PORT%"
 )
+set "PYTHONW_EXE=%VENV_PATH%\Scripts\pythonw.exe"
+if not exist "%PYTHONW_EXE%" set "PYTHONW_EXE=%VENV_PATH%\Scripts\python.exe"
 set "YAZKLINIK_WEB_URL=%YAZKLINIK_SERVER_URL%"
 set "YAZKLINIK_AI_SERVER_URL=%YAZKLINIK_SERVER_URL%"
 set "YAZKLINIK_DEFAULT_SERVER_URL=%YAZKLINIK_SERVER_URL%"
@@ -72,7 +74,12 @@ set "YAZKLINIK_ALLOW_LOCAL_TERMINAL_SERVER=1"
 if not defined YAZKLINIK_TERMINAL_TOKEN for /f %%t in ('powershell -NoProfile -Command "[guid]::NewGuid().ToString(''N'')"') do set "YAZKLINIK_TERMINAL_TOKEN=%%t"
 "%VENV_PATH%\Scripts\python.exe" "%~dp0D300_TERMINAL_SYNC.py" --server-url "%YAZKLINIK_SERVER_URL%" >nul 2>&1
 
-REM 3) Eski server zombie durdur
+REM 3) Eski D300 servislerini durdur (python.exe ve pythonw.exe)
+echo  [+] Eski D300 arka plan servisleri temizleniyor...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$root=(Resolve-Path '%~dp0').Path.TrimEnd('\'); $names=@('yazklinik_whisper_service.py','yazklinik_xtts_service.py','D300_HEALTH_MONITOR.py','yazklinik_piper_service.py','yazklinik_sip_alex_client.py','yazklinik_web.py'); Get-CimInstance Win32_Process | Where-Object { $cmd=$_.CommandLine; $_.Name -match '^pythonw?\.exe$' -and $cmd -and $cmd.Contains($root) -and (($names | Where-Object { $cmd.Contains($_) }).Count -gt 0) } | ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop; Write-Host ('     Eski servis PID ' + $_.ProcessId + ' durduruldu') } catch {} }"
+timeout /t 2 /nobreak >nul
+
+REM 3b) Eski server zombie durdur
 echo  [+] Port kontrol: %YAZKLINIK_WEB_PORT% ve eski 5052 fallback...
 for %%P in (%YAZKLINIK_WEB_PORT% 5052) do (
   set "OLD_PID="
@@ -116,8 +123,8 @@ if not defined YAZKLINIK_WHISPER_SERVICE_PORT set "YAZKLINIK_WHISPER_SERVICE_POR
 REM Whisper model/device/compute config.env'den okunur (RTX 5090: cuda/large-v3-turbo/float16).
 REM HF_HUB_OFFLINE=1 ise model ilk indirme'de basarisiz olur - off birak ki turbo indirilebilsin.
 set "WHISPER_LOG=%~dp0D300_whisper_service.log"
-start "" /B /HIGH "%VENV_PATH%\Scripts\python.exe" -u "%~dp0yazklinik_whisper_service.py" 1>"%WHISPER_LOG%" 2>&1
-echo      Whisper service baslatildi (log: D300_whisper_service.log)
+start "" "%PYTHONW_EXE%" "%~dp0D300_SERVICE_RUNNER.py" "%~dp0yazklinik_whisper_service.py" "%WHISPER_LOG%" "%~dp0D300_whisper_service.err.log"
+echo      Whisper service baslatildi (gizli, log: D300_whisper_service.log)
 
 REM 5c) XTTS-v2 mikroservisi (port 9002) - lokal RTX 5090 Emel/Ahmet voice clone
 echo  [+] XTTS-v2 mikroservisi (port 9002)...
@@ -131,16 +138,16 @@ if defined XTTS_OLD_PID (
 if not defined YAZKLINIK_XTTS_SERVICE_PORT set "YAZKLINIK_XTTS_SERVICE_PORT=9002"
 set "COQUI_TOS_AGREED=1"
 set "XTTS_LOG=%~dp0D300_xtts_service.log"
-start "" /B /HIGH "%VENV_PATH%\Scripts\python.exe" -u "%~dp0yazklinik_xtts_service.py" 1>"%XTTS_LOG%" 2>&1
-echo      XTTS service baslatildi (log: D300_xtts_service.log)
+start "" "%PYTHONW_EXE%" "%~dp0D300_SERVICE_RUNNER.py" "%~dp0yazklinik_xtts_service.py" "%XTTS_LOG%" "%~dp0D300_xtts_service.err.log"
+echo      XTTS service baslatildi (gizli, log: D300_xtts_service.log)
 
 REM 5e) Health Monitor (her 30sn'de servis check + dusenleri restart)
 echo  [+] Health Monitor baslatiliyor...
 set "HEALTH_OLD_PID="
 for /f "tokens=2" %%a in ('tasklist /FI "IMAGENAME eq python.exe" /FO csv ^| findstr /I "D300_HEALTH_MONITOR"') do set "HEALTH_OLD_PID=%%a"
 set "HEALTH_LOG=%~dp0D300_health_monitor.log"
-start "" /B "%VENV_PATH%\Scripts\python.exe" -u "%~dp0D300_HEALTH_MONITOR.py" 1>"%HEALTH_LOG%" 2>&1
-echo      Health Monitor baslatildi (log: D300_health_monitor.log)
+start "" "%PYTHONW_EXE%" "%~dp0D300_SERVICE_RUNNER.py" "%~dp0D300_HEALTH_MONITOR.py" "%HEALTH_LOG%" "%~dp0D300_health_monitor.err.log"
+echo      Health Monitor baslatildi (gizli, log: D300_health_monitor.log)
 
 REM 5d) Piper TTS mikroservisi (port 9001) - lokal yedek robotic ses
 echo  [+] Piper TTS mikroservisi (port 9001)...
@@ -153,8 +160,27 @@ if defined PIPER_OLD_PID (
 )
 if not defined YAZKLINIK_PIPER_SERVICE_PORT set "YAZKLINIK_PIPER_SERVICE_PORT=9001"
 set "PIPER_LOG=%~dp0D300_piper_service.log"
-start "" /B /HIGH "%VENV_PATH%\Scripts\python.exe" -u "%~dp0yazklinik_piper_service.py" 1>"%PIPER_LOG%" 2>&1
-echo      Piper service baslatildi (log: D300_piper_service.log)
+start "" "%PYTHONW_EXE%" "%~dp0D300_SERVICE_RUNNER.py" "%~dp0yazklinik_piper_service.py" "%PIPER_LOG%" "%~dp0D300_piper_service.err.log"
+echo      Piper service baslatildi (gizli, log: D300_piper_service.log)
+
+REM 5f) Alex SIP dahili client (opsiyonel) - PBX 19 numara
+set "YAZKLINIK_SIP_ENABLED=%YAZKLINIK_SIP_ENABLED: =%"
+if not defined YAZKLINIK_SIP_ENABLED if defined YAZKLINIK_SIP_PASSWORD set "YAZKLINIK_SIP_ENABLED=1"
+if "%YAZKLINIK_SIP_ENABLED%"=="0" goto D300_SKIP_SIP_ALEX
+echo  [+] Alex SIP dahili client...
+if not defined YAZKLINIK_SIP_CONTROL_PORT set "YAZKLINIK_SIP_CONTROL_PORT=9019"
+if not defined YAZKLINIK_SIP_LOCAL_PORT set "YAZKLINIK_SIP_LOCAL_PORT=5079"
+set "SIP_ALEX_OLD_PID="
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":%YAZKLINIK_SIP_CONTROL_PORT% " ^| findstr "LISTENING"') do set "SIP_ALEX_OLD_PID=%%a"
+if defined SIP_ALEX_OLD_PID (
+  echo      Eski Alex SIP PID !SIP_ALEX_OLD_PID! durduruluyor...
+  taskkill /PID !SIP_ALEX_OLD_PID! /F >nul 2>&1
+  timeout /t 1 /nobreak >nul
+)
+set "SIP_ALEX_LOG=%~dp0D300_sip_alex.log"
+start "" "%PYTHONW_EXE%" "%~dp0D300_SERVICE_RUNNER.py" "%~dp0yazklinik_sip_alex_client.py" "%SIP_ALEX_LOG%" "%~dp0D300_sip_alex.err.log"
+echo      Alex SIP client baslatildi ^(gizli, log: D300_sip_alex.log^)
+:D300_SKIP_SIP_ALEX
 
 REM 6) Server BASLAT (arka planda)
 echo  ============================================================
@@ -178,7 +204,8 @@ echo.
 set "STDOUT_LOG=%~dp0D300_server.log"
 set "STDERR_LOG=%~dp0D300_server_HATA.log"
 
-start "" /B /HIGH "%VENV_PATH%\Scripts\python.exe" -u yazklinik_web.py 1>"%STDOUT_LOG%" 2>"%STDERR_LOG%"
+start "" "%PYTHONW_EXE%" "%~dp0D300_SERVICE_RUNNER.py" "%~dp0yazklinik_web.py" "%STDOUT_LOG%" "%STDERR_LOG%"
+echo      Web server baslatildi (gizli)
 
 REM 7) Hazir olmasini bekle (max 45 sn). PowerShell yerine curl kullaniyoruz
 REM cunku PS5.1 ServerCertificateValidationCallback self-signed bypass'i guvenilir degil.
@@ -241,6 +268,13 @@ echo  ============================================================
 echo  Server arka planda calisiyor. Bu pencere LOG icin acik.
 echo  Server'i durdurmak: bu pencereyi kapat veya:
 echo    taskkill /F /IM python.exe
+echo    taskkill /F /IM pythonw.exe
 echo  ============================================================
 echo.
-cmd /k
+if "%YAZKLINIK_KEEP_LAUNCHER_OPEN%"=="1" (
+  cmd /k
+) else (
+  echo  Pencere 3 saniye icinde kapanacak. Loglar dosyaya yaziliyor.
+  timeout /t 3 /nobreak >nul
+  exit /b 0
+)

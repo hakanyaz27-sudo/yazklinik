@@ -54211,6 +54211,18 @@ def ai_phone_assistant_page():
     webhook_sample = safe_html(
         '{"secret":"' + settings["ai_phone_webhook_secret"] +
         '","caller":"+905...","transcript":"Randevu almak istiyorum"}')
+    sip_status = _sip_alex_status_payload()
+    sip_ok = bool(sip_status.get("registered") or sip_status.get("ok"))
+    sip_badge = (
+        '<span class="badge bg-success">19 kayitli</span>'
+        if sip_ok else '<span class="badge bg-warning text-dark">SIP bekliyor</span>'
+    )
+    sip_detail = sh(
+        sip_status.get("pbx")
+        or os.environ.get("YAZKLINIK_SIP_PBX_HOST")
+        or "192.168.1.250")
+    sip_local = sh(sip_status.get("local") or "-")
+    sip_err = sh(sip_status.get("last_error") or sip_status.get("error") or "")
     enabled_sel = "selected" if settings["ai_phone_enabled"] == "1" else ""
     disabled_sel = "selected" if settings["ai_phone_enabled"] != "1" else ""
     after_sel = "selected" if settings["ai_phone_after_hours_only"] == "1" else ""
@@ -54385,6 +54397,24 @@ def ai_phone_assistant_page():
     <div class="alert alert-warning">
       Güvenlik: YZ telesekreter tanı koymaz ve tedavi önermez. Acil belirtilerde
       112/acil servis yönlendirmesi yapar; klinik ekip daha sonra logu inceler.
+    </div>
+    <div class="card mb-3">
+      <div class="card-body d-flex flex-wrap align-items-center gap-3">
+        <div>
+          <div class="text-muted small">Alex SIP dahili</div>
+          <div><b>19</b> {sip_badge}</div>
+          <div class="text-muted small">PBX: {sip_detail} / Lokal: {sip_local}</div>
+          {('<div class="text-danger small">' + sip_err + '</div>') if sip_err else ''}
+        </div>
+        <button class="btn btn-outline-primary ms-auto" type="button"
+                onclick="fetch('/api/sip-alex/status').then(r=>r.json()).then(j=>alert(JSON.stringify(j,null,2))).catch(e=>alert(e))">
+          <i class="bi bi-activity"></i> SIP durum
+        </button>
+        <button class="btn btn-primary" type="button"
+                onclick="const n=prompt('Aranacak dahili','18'); if(n) fetch('/api/sip-alex/call',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{to:n}})}}).then(r=>r.json()).then(j=>alert(j.message||JSON.stringify(j))).catch(e=>alert(e));">
+          <i class="bi bi-telephone-outbound"></i> Dahili ara
+        </button>
+      </div>
     </div>
     <div class="yk-dialog-lab">
       <section class="yk-chat-panel">
@@ -55741,6 +55771,97 @@ def api_phone_test_chat():
         "handoff_queue": url_for("chat_center_page", filter="callback"),
         "voice_profile": _ai_phone_settings().get("ai_phone_voice_profile"),
     })
+
+
+def _sip_alex_control_url(path="/status"):
+    host = (os.environ.get("YAZKLINIK_SIP_CONTROL_HOST") or "127.0.0.1").strip()
+    try:
+        port = int(os.environ.get("YAZKLINIK_SIP_CONTROL_PORT") or "9019")
+    except Exception:
+        port = 9019
+    clean_path = "/" + str(path or "status").lstrip("/")
+    return f"http://{host}:{port}{clean_path}"
+
+
+def _sip_alex_control_request(path="/status", payload=None, timeout=5):
+    import urllib.request as _ureq
+    import urllib.error as _uerr
+    import json as _json
+    url = _sip_alex_control_url(path)
+    data = None
+    method = "GET"
+    headers = {}
+    if payload is not None:
+        data = _json.dumps(payload).encode("utf-8")
+        method = "POST"
+        headers["Content-Type"] = "application/json"
+    req = _ureq.Request(url, data=data, headers=headers, method=method)
+    try:
+        with _ureq.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read()
+            status_code = getattr(resp, "status", 200)
+        try:
+            body = _json.loads(raw.decode("utf-8", errors="replace") or "{}")
+        except Exception:
+            body = {"raw": raw.decode("utf-8", errors="replace")}
+        if isinstance(body, dict):
+            body.setdefault("http_status", status_code)
+        return body if isinstance(body, dict) else {"ok": True, "data": body}
+    except _uerr.HTTPError as ex:
+        raw = ex.read() if hasattr(ex, "read") else b""
+        try:
+            body = _json.loads(raw.decode("utf-8", errors="replace") or "{}")
+        except Exception:
+            body = {"error": raw.decode("utf-8", errors="replace") or str(ex)}
+        if isinstance(body, dict):
+            body.setdefault("ok", False)
+            body.setdefault("http_status", ex.code)
+        return body
+    except Exception as ex:
+        return {
+            "ok": False,
+            "error": str(ex),
+            "url": url,
+            "hint": "D300_SIP_ALEX_BASLAT.bat veya YAZKLINIK_SIP_ENABLED=1 kontrol edin.",
+        }
+
+
+def _sip_alex_call_extension(extension):
+    ext = re.sub(r"[^0-9*#+]", "", str(extension or ""))[:16]
+    if not ext:
+        return False, "Dahili numara gecersiz."
+    data = _sip_alex_control_request("/call", {"to": ext}, timeout=8)
+    if data.get("ok"):
+        return True, data.get("message") or f"{ext} dahili araniyor."
+    msg = data.get("message") or data.get("error") or "Alex SIP servisi cevap vermedi."
+    hint = data.get("hint") or ""
+    if hint:
+        msg = f"{msg} {hint}"
+    return False, msg
+
+
+def _sip_alex_status_payload():
+    data = _sip_alex_control_request("/status", timeout=3)
+    if not isinstance(data, dict):
+        return {"ok": False, "error": "status okunamadi"}
+    return data
+
+
+@app.route("/api/sip-alex/status", methods=["GET"])
+@login_required
+def api_sip_alex_status():
+    return jsonify(_sip_alex_status_payload())
+
+
+@app.route("/api/sip-alex/call", methods=["POST"])
+@login_required
+def api_sip_alex_call():
+    if not can("manage_command_center"):
+        return jsonify({"ok": False, "error": "yetki yok"}), 403
+    data = request.get_json(silent=True) or request.form
+    ok, msg = _sip_alex_call_extension(
+        data.get("to") or data.get("extension") or data.get("dahili"))
+    return jsonify({"ok": bool(ok), "message": msg}), (200 if ok else 502)
 
 
 @app.route("/alex-egitim", methods=["GET", "POST"])
@@ -61026,6 +61147,17 @@ def _command_center_parse(message):
             "safe_command_list", "Komut yetenekleri",
             "Akıllı Diyalog'un hazır uygulama yetenekleri listelenecek.")
 
+    sip_match = (
+        re.search(r"(?:^|\s)(\d{2,5})(?:\s*(?:numara|numarayi|dahili|dahiliyi))?\s+ara(?:\s|$)", folded)
+        or re.search(r"(?:dahili|numara)\s+(\d{2,5}).*\bara\b", folded)
+    )
+    if sip_match and any(k in folded for k in ("ara", "arasin", "arattir", "bagla")):
+        target_ext = sip_match.group(1)
+        return _command_center_action(
+            "sip_alex_call", "Alex dahili arama",
+            f"Alex SIP hattindan {target_ext} dahili aranacak.",
+            {"extension": target_ext})
+
     if _smart_dialog_is_action_request(text):
         nav_targets = (
             (("akilli dialog", "akilli sohbet"), "/akilli-dialog", "Akıllı Diyalog"),
@@ -61460,6 +61592,9 @@ def _command_center_execute(action):
         return _command_center_system_status_result(args)
     if key == "ollama_status":
         return _command_center_ollama_result()
+    if key == "sip_alex_call":
+        ok, msg = _sip_alex_call_extension((args or {}).get("extension"))
+        return bool(ok), msg
     if key == "set_ollama_auto":
         _db_set_setting("sysparam_ollama_model_mode", "auto")
         _refresh_ai_config()
