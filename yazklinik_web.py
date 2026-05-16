@@ -31420,7 +31420,7 @@ E&#351;le&#351;en men&uuml; yok. Enter ile genel arama yap.
  </a>
  </div>
  </details>
-<a href="/ses-ve-alex" class="sidebar-link {% if request.path in ['/ses-ve-alex', '/akilli-dialog', '/yz-akilli-dialog', '/sessiz-alex', '/sesli-recete', '/yz-ses-cevir', '/ses-profilleri', '/mikrofon-tani', '/alex-arastirma', '/alex-egitim'] %}active{% endif %}">
+<a href="/ses-ve-alex" class="sidebar-link {% if request.path in ['/ses-ve-alex', '/akilli-dialog', '/yz-akilli-dialog', '/sessiz-alex', '/sesli-recete', '/yz-ses-cevir', '/ses-profilleri', '/mikrofon-tani', '/alex-arastirma', '/alex-hafiza', '/alex-egitim'] %}active{% endif %}">
 <span class="sidebar-link-icon"><i class="bi bi-mic-fill"></i></span><span>Ses ve Alex</span>
 </a>
 <details class="sidebar-fold sidebar-subgroup yk-primary-fold" data-sidebar-group="ai-voice-bar" open>
@@ -31455,7 +31455,7 @@ E&#351;le&#351;en men&uuml; yok. Enter ile genel arama yap.
  </div>
  </details>
  <details class="sidebar-fold sidebar-subgroup yk-primary-fold" data-sidebar-group="ai-voice" open>
- <summary><span><i class="bi bi-mic"></i> Ses ve Diyalog</span><small>10</small></summary>
+ <summary><span><i class="bi bi-mic"></i> Ses ve Diyalog</span><small>11</small></summary>
  <div class="sidebar-fold-body">
  <a href="/akilli-dialog" class="sidebar-link {% if ('/akilli-dialog' in request.path or '/yz-akilli-dialog' in request.path) and not request.args.get('sessiz') %}active{% endif %}">
  <span class="sidebar-link-icon"><i class="bi bi-chat-dots"></i></span><span>Akıllı Diyalog</span>
@@ -31465,6 +31465,9 @@ E&#351;le&#351;en men&uuml; yok. Enter ile genel arama yap.
  </a>
  <a href="/alex-arastirma" class="sidebar-link {% if '/alex-arastirma' in request.path %}active{% endif %}">
  <span class="sidebar-link-icon"><i class="bi bi-search-heart"></i></span><span>Alex Araştırma</span>
+ </a>
+ <a href="/alex-hafiza" class="sidebar-link {% if '/alex-hafiza' in request.path %}active{% endif %}">
+ <span class="sidebar-link-icon"><i class="bi bi-journal-text"></i></span><span>Alex Hafizasi</span>
  </a>
  <a href="/alex-egitim-merkezi" class="sidebar-link {% if '/alex-egitim-merkezi' in request.path %}active{% endif %}">
  <span class="sidebar-link-icon"><i class="bi bi-mortarboard-fill"></i></span><span>Alex LLM Eğitim</span>
@@ -31862,7 +31865,7 @@ E&#351;le&#351;en men&uuml; yok. Enter ile genel arama yap.
 </a>
 </div>
 </details>
-<a href="/ses-ve-alex" class="sidebar-link {% if request.path in ['/ses-ve-alex', '/akilli-dialog', '/yz-akilli-dialog', '/sessiz-alex', '/sesli-recete', '/yz-ses-cevir', '/ses-profilleri', '/mikrofon-tani', '/alex-arastirma', '/alex-egitim'] %}active{% endif %}">
+<a href="/ses-ve-alex" class="sidebar-link {% if request.path in ['/ses-ve-alex', '/akilli-dialog', '/yz-akilli-dialog', '/sessiz-alex', '/sesli-recete', '/yz-ses-cevir', '/ses-profilleri', '/mikrofon-tani', '/alex-arastirma', '/alex-hafiza', '/alex-egitim'] %}active{% endif %}">
 <span class="sidebar-link-icon"><i class="bi bi-mic-fill"></i></span>
 <span>Ses ve Alex</span>
  </a>
@@ -35303,6 +35306,7 @@ const tag = document.activeElement.tagName;
  { icon: '<i class="bi bi-activity"></i>', label: 'YZ Server Durum', url: '/yz-server-durum' },
  { icon: '<i class="bi bi-mic-fill"></i>', label: 'Ses ve Alex Merkezi', url: '/ses-ve-alex' },
  { icon: '<i class="bi bi-search-heart"></i>', label: 'Alex Araştırma (PubMed+Web)', url: '/alex-arastirma' },
+ { icon: '<i class="bi bi-journal-text"></i>', label: 'Alex Hafizasi', url: '/alex-hafiza' },
  { icon: '<i class="bi bi-mortarboard-fill"></i>', label: 'Alex Eğitim', url: '/alex-egitim' },
  { icon: '<i class="bi bi-volume-up"></i>', label: 'Alex Ses Seçimi', url: '/ses-profilleri' },
  { icon: '<i class="bi bi-shield-check"></i>', label: 'Sistem Durumu', url: '/sistem-durumu' },
@@ -50009,6 +50013,442 @@ def _alex_facts_format_for_prompt(facts):
     return "\n".join(lines)
 
 
+# === ALEX UZUN HAFIZA: konusmadan ogrenilen kalici ozetler ===
+
+_ALEX_LEARNED_READY = False
+
+
+def _alex_session_user_key():
+    try:
+        return "alex_" + str(session.get("user") or "doktor")
+    except Exception:
+        return "alex_doktor"
+
+
+def _alex_learned_init():
+    """Konusma/egitimden cikarilan kalici ogrenimleri tutar."""
+    global _ALEX_LEARNED_READY
+    if _ALEX_LEARNED_READY:
+        return
+    try:
+        con = _alex_db_conn()
+        try:
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS alex_learned_summaries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_key TEXT NOT NULL,
+                    source TEXT DEFAULT 'dialog',
+                    summary TEXT NOT NULL,
+                    evidence_json TEXT DEFAULT '[]',
+                    confidence REAL DEFAULT 0.7,
+                    created_ts INTEGER NOT NULL,
+                    updated_ts INTEGER NOT NULL,
+                    last_used_ts INTEGER DEFAULT 0
+                )
+            """)
+            con.execute("""
+                CREATE INDEX IF NOT EXISTS idx_alex_learned_user_ts
+                ON alex_learned_summaries(user_key, updated_ts DESC)
+            """)
+            con.commit()
+        finally:
+            con.close()
+        _ALEX_LEARNED_READY = True
+    except Exception as exc:
+        try:
+            print(f"[ALEX-LEARNED] init HATA: {exc}", flush=True)
+        except Exception:
+            pass
+
+
+def _alex_memory_count(user_key):
+    _alex_memory_init()
+    try:
+        row = _alex_exec(
+            "SELECT COUNT(*) FROM alex_memory WHERE user_key = ?",
+            (str(user_key or "anon"),), fetch='one')
+        return int(row[0] if row else 0)
+    except Exception:
+        return 0
+
+
+def _alex_learning_text_is_sensitive(text):
+    raw = str(text or "")
+    if not raw.strip():
+        return False
+    folded = _fold_search_text(raw)
+    risky_words = (
+        "sifre", "password", "parola", "token", "cookie", "secret",
+        "api key", "apikey", "session", "tc kimlik", "kimlik no",
+        "kredi kart", "iban", "bulutklinik_session")
+    if any(w in folded for w in risky_words):
+        return True
+    if re.search(r"\b\d{11}\b", raw):
+        return True
+    if re.search(r"\bsk-[A-Za-z0-9_-]{12,}\b", raw):
+        return True
+    patient_markers = (
+        "protokol", "gebelik haftasi", "recete", "ilac", "muayene",
+        "sikayet", "tani", "sonuc", "rapor", "gelis", "kontrol")
+    if "hasta" in folded and any(w in folded for w in patient_markers):
+        return True
+    return False
+
+
+def _alex_should_learn_from_text(user_text):
+    text = str(user_text or "").strip()
+    if len(text) < 12 or _alex_learning_text_is_sensitive(text):
+        return False
+    folded = _fold_search_text(text)
+    triggers = (
+        "unutma", "hatirla", "hatirlat", "ogren", "bunu ogren",
+        "ben ", "benim ", "bana ", "severim", "sevmem", "tercih",
+        "istemiyorum", "istiyorum", "hep", "genelde", "aliskanligim",
+        "klinigim", "programda", "alex", "yaz llm", "ollama")
+    return any(t in folded for t in triggers)
+
+
+def _alex_yaz_memory_model():
+    """Ogrenme cikarma isinde Yaz LLM'i oncele."""
+    try:
+        status = _ollama_status(fast=True) or {}
+        installed = status.get("models") or []
+    except Exception:
+        installed = []
+    by_lower = {
+        str(m).strip().lower(): str(m).strip()
+        for m in installed if str(m).strip()
+    }
+    for cand in ("yaz:latest", "yaz", "yaz-llm:latest", "yazllm:latest"):
+        if cand in by_lower:
+            return by_lower[cand]
+    try:
+        picked = _smart_dialog_pick_chat_model()
+        if picked:
+            return picked
+    except Exception:
+        pass
+    return DEFAULT_OLLAMA_MODEL
+
+
+def _alex_parse_learning_json(raw_text):
+    import json as _json
+    raw = str(raw_text or "").strip()
+    if not raw:
+        return []
+    raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.IGNORECASE).strip()
+    raw = re.sub(r"\s*```$", "", raw).strip()
+    candidates = [raw]
+    m = re.search(r"\{.*\}", raw, flags=re.DOTALL)
+    if m:
+        candidates.insert(0, m.group(0))
+    for cand in candidates:
+        try:
+            obj = _json.loads(cand)
+        except Exception:
+            continue
+        items = obj.get("items") if isinstance(obj, dict) else obj
+        if not isinstance(items, list):
+            continue
+        out = []
+        for item in items:
+            if isinstance(item, dict):
+                summary = str(item.get("summary") or item.get("text") or "").strip()
+                category = str(item.get("category") or "konusma").strip()
+                try:
+                    confidence = float(item.get("confidence", 0.7))
+                except Exception:
+                    confidence = 0.7
+            else:
+                summary = str(item or "").strip()
+                category = "konusma"
+                confidence = 0.6
+            if summary:
+                out.append({
+                    "summary": summary,
+                    "category": category[:40],
+                    "confidence": max(0.0, min(confidence, 1.0)),
+                })
+        return out
+    return []
+
+
+def _alex_explicit_learning_fallback(user_text):
+    text = str(user_text or "").strip()
+    if not text:
+        return []
+    patterns = (
+        r"(?:bunu\s+unutma|unutma|hatirla|bunu\s+ogren|ogren)[:\s,;-]+(.+)$",
+        r"(ben(?:im)?\s+.+)$",
+        r"(bana\s+.+)$",
+    )
+    for pat in patterns:
+        m = re.search(pat, text, flags=re.IGNORECASE)
+        if not m:
+            continue
+        summary = re.sub(r"\s+", " ", m.group(1)).strip(" .,:;-")
+        if 8 <= len(summary) <= 500:
+            return [{"summary": summary, "category": "konusma",
+                     "confidence": 0.55}]
+    return []
+
+
+def _alex_learned_add(user_key, summary, source="dialog", evidence=None,
+                      confidence=0.7, category="konusma",
+                      promote_fact=True):
+    _alex_learned_init()
+    import json as _json
+    summary = re.sub(r"\s+", " ", str(summary or "")).strip()
+    if not summary or len(summary) < 8:
+        return False
+    if _alex_learning_text_is_sensitive(summary):
+        return False
+    if len(summary) > 900:
+        summary = summary[:900].rsplit(" ", 1)[0] + "..."
+    user_key = str(user_key or "anon")
+    now = int(time.time() * 1000)
+    try:
+        row = _alex_exec(
+            "SELECT id FROM alex_learned_summaries "
+            "WHERE user_key = ? AND lower(summary) = lower(?) LIMIT 1",
+            (user_key, summary), fetch='one')
+        if row:
+            _alex_exec(
+                "UPDATE alex_learned_summaries SET updated_ts = ?, "
+                "source = ?, confidence = max(confidence, ?) WHERE id = ?",
+                (now, str(source or "dialog")[:60], float(confidence or 0.7),
+                 int(row[0])), commit=True)
+            return int(row[0])
+    except Exception:
+        pass
+    try:
+        rid = _alex_exec(
+            "INSERT INTO alex_learned_summaries "
+            "(user_key, source, summary, evidence_json, confidence, "
+            "created_ts, updated_ts) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (user_key, str(source or "dialog")[:60], summary,
+             _json.dumps(evidence or {}, ensure_ascii=False)[:3000],
+             float(confidence or 0.7), now, now), commit=True)
+        if promote_fact:
+            try:
+                fact_text = f"[konusmadan ogrenildi] {summary}"
+                _alex_fact_add(user_key, fact_text,
+                               category=str(category or "konusma")[:40])
+            except Exception:
+                pass
+        return rid or True
+    except Exception as exc:
+        try:
+            print(f"[ALEX-LEARNED] add HATA: {exc}", flush=True)
+        except Exception:
+            pass
+        return False
+
+
+def _alex_learned_list(user_key, limit=50):
+    _alex_learned_init()
+    try:
+        rows = _alex_exec(
+            "SELECT id, source, summary, confidence, created_ts, updated_ts "
+            "FROM alex_learned_summaries WHERE user_key = ? "
+            "ORDER BY updated_ts DESC LIMIT ?",
+            (str(user_key or "anon"), int(limit)), fetch='all') or []
+        return [{
+            "id": r[0], "source": r[1] or "", "summary": r[2] or "",
+            "confidence": r[3] or 0, "created_ts": r[4], "updated_ts": r[5],
+        } for r in rows]
+    except Exception:
+        return []
+
+
+def _alex_learned_format_for_prompt(user_key, limit=20, max_chars_each=260):
+    rows = _alex_learned_list(user_key, limit=limit)
+    if not rows:
+        return ""
+    lines = []
+    used_ids = []
+    for row in rows:
+        text = str(row.get("summary") or "").strip()
+        if not text:
+            continue
+        if len(text) > max_chars_each:
+            text = text[:max_chars_each].rsplit(" ", 1)[0] + "..."
+        lines.append(f"- [{row.get('source') or 'hafiza'}] {text}")
+        try:
+            used_ids.append(int(row.get("id")))
+        except Exception:
+            pass
+    if used_ids:
+        try:
+            now = int(time.time() * 1000)
+            qmarks = ",".join("?" for _ in used_ids)
+            _alex_exec(
+                f"UPDATE alex_learned_summaries SET last_used_ts = ? "
+                f"WHERE id IN ({qmarks})",
+                tuple([now] + used_ids), commit=True)
+        except Exception:
+            pass
+    return "\n".join(lines)
+
+
+def _alex_extract_and_store_learnings(user_key, user_text, alex_response="",
+                                      source="dialog", model=None,
+                                      force=False):
+    if not force and not _alex_should_learn_from_text(user_text):
+        return 0
+    if _alex_learning_text_is_sensitive(user_text):
+        return 0
+    user_text = str(user_text or "").strip()
+    alex_response = str(alex_response or "").strip()
+    model = model or _alex_yaz_memory_model()
+    system = (
+        "Sen YazKlinik Alex uzun hafiza motorusun. Gorevin doktorun "
+        "konusmasindan kalici ve tekrar kullanilabilir tercih, talimat, "
+        "alisma sekli veya klinik is akisi bilgisini cikarmaktir. "
+        "Hasta verisi, sifre, token, cookie, tek seferlik gorev ve gecici "
+        "randevu bilgisini kaydetme. Sadece JSON dondur.")
+    prompt = (
+        "Asagidaki sohbetten 0-5 kalici ogrenim cikar.\n"
+        "JSON formati: {\"items\":[{\"summary\":\"...\","
+        "\"category\":\"tercih|is_akisi|kisisel|model|klinik\","
+        "\"confidence\":0.0}]}\n\n"
+        f"KULLANICI:\n{user_text[:1800]}\n\n"
+        f"ALEX CEVABI:\n{alex_response[:1200]}\n\n"
+        "Sadece dayanagi olan, gelecekte Alex'in kullanacagi bilgileri yaz.")
+    items = []
+    try:
+        ok, answer, _duration = call_ollama(
+            prompt, model=model, temperature=0.1, max_tokens=450,
+            timeout=30, use_cache=False, system=system, force_ollama=True)
+        if ok and answer:
+            items = _alex_parse_learning_json(answer)
+    except Exception as exc:
+        try:
+            print(f"[ALEX-LEARNED] ollama HATA: {exc}", flush=True)
+        except Exception:
+            pass
+    if not items:
+        items = _alex_explicit_learning_fallback(user_text)
+    saved = 0
+    evidence = {
+        "user_text": user_text[:900],
+        "alex_response": alex_response[:500],
+        "model": model or "",
+    }
+    for item in items[:5]:
+        summary = str(item.get("summary") or "").strip()
+        if not summary or _alex_learning_text_is_sensitive(summary):
+            continue
+        rid = _alex_learned_add(
+            user_key, summary, source=source, evidence=evidence,
+            confidence=item.get("confidence", 0.7),
+            category=item.get("category") or "konusma",
+            promote_fact=True)
+        if rid:
+            saved += 1
+    return saved
+
+
+def _alex_maybe_learn_from_turn(user_key, user_text, alex_response="",
+                                source="dialog", model=None,
+                                async_extract=True, force=False):
+    if not force and not _alex_should_learn_from_text(user_text):
+        return False
+    try:
+        if async_extract:
+            import threading as _thr
+            _thr.Thread(
+                target=_alex_extract_and_store_learnings,
+                args=(user_key, user_text, alex_response, source, model, force),
+                daemon=True).start()
+            return True
+        return _alex_extract_and_store_learnings(
+            user_key, user_text, alex_response, source=source,
+            model=model, force=force)
+    except Exception as exc:
+        try:
+            print(f"[ALEX-LEARNED] async HATA: {exc}", flush=True)
+        except Exception:
+            pass
+        return False
+
+
+def _alex_record_dialog_turn(user_key, user_text, alex_response, model="",
+                             category="chat", side_effects=None,
+                             source="smart_dialog", learn=True,
+                             async_extract=True):
+    try:
+        if user_text:
+            _alex_memory_append(user_key, "user", user_text)
+        if alex_response:
+            _alex_memory_append(user_key, "assistant", alex_response)
+        try:
+            _alex_training_log(
+                user_key, user_text, alex_response, model=model,
+                category=category, side_effects=side_effects or [])
+        except Exception:
+            pass
+        if learn:
+            _alex_maybe_learn_from_turn(
+                user_key, user_text, alex_response, source=source,
+                model=model, async_extract=async_extract)
+        return True
+    except Exception as exc:
+        try:
+            print(f"[ALEX-RECORD] HATA: {exc}", flush=True)
+        except Exception:
+            pass
+        return False
+
+
+def _alex_detect_learned_question_intent(text):
+    folded = _fold_search_text(text or "")
+    phrases = (
+        "benden ne ogrendin", "hakkimda ne biliyorsun",
+        "benim hakkimda ne biliyorsun", "hafizanda ne var",
+        "ne ogrendin", "ogrenilenleri soyle", "bana ogrendiklerini soyle",
+        "beni taniyor musun", "beni hatirliyor musun")
+    return any(p in folded for p in phrases)
+
+
+def _alex_learned_answer(user_key, limit=12):
+    learned = _alex_learned_list(user_key, limit=limit)
+    facts = _alex_facts_list(user_key, limit=limit)
+    lines = []
+    for row in learned[:limit]:
+        s = str(row.get("summary") or "").strip()
+        if s and s not in lines:
+            lines.append(s)
+    for fact in facts:
+        s = str(fact.get("fact") or "").strip()
+        s = re.sub(r"^\[konusmadan ogrenildi\]\s*", "", s,
+                   flags=re.IGNORECASE)
+        if s and s not in lines:
+            lines.append(s)
+        if len(lines) >= limit:
+            break
+    if not lines:
+        return (
+            "Doktorum, su an kalici hafizamda henuz kayitli bir ogrenim yok. "
+            "Bana 'bunu unutma' veya 'bunu ogren' diye soylersen Yaz LLM ile "
+            "isleyip saklayacagim.")
+    bullets = "\n".join(f"- {x}" for x in lines[:limit])
+    return "Doktorum, su ana kadar senden sunlari ogrendim:\n" + bullets
+
+
+def _alex_refresh_learned_from_recent(user_key, limit=40):
+    rows = _alex_memory_get(user_key, limit=limit)
+    if not rows:
+        return 0
+    parts = []
+    for role, content in rows[-(int(limit) * 2):]:
+        speaker = "Kullanici" if role == "user" else "Alex"
+        parts.append(f"{speaker}: {str(content or '')[:700]}")
+    combined = "\n".join(parts)
+    return _alex_extract_and_store_learnings(
+        user_key, combined, "", source="memory_refresh", force=True)
+
+
 # ============================================================================
 # D300 ARASTIRMA: PubMed + Web + LLM Sentez
 # ----------------------------------------------------------------------------
@@ -56751,6 +57191,212 @@ def api_alex_modelfile_create():
     return jsonify({"ok": ok, "message": msg})
 
 
+@app.route("/api/alex/learned/list", methods=["GET"])
+@login_required
+def api_alex_learned_list():
+    uk = _alex_session_user_key()
+    try:
+        limit = int(request.args.get("limit") or 80)
+    except Exception:
+        limit = 80
+    limit = max(5, min(limit, 200))
+    return jsonify({
+        "ok": True,
+        "items": _alex_learned_list(uk, limit=limit),
+        "facts": _alex_facts_list(uk, limit=limit),
+        "memory_count": _alex_memory_count(uk),
+        "training_stats": _alex_training_stats(user_key=uk),
+        "model": _alex_yaz_memory_model(),
+    })
+
+
+@app.route("/api/alex/learned/refresh", methods=["POST"])
+@login_required
+def api_alex_learned_refresh():
+    uk = _alex_session_user_key()
+    data = request.get_json(silent=True) or {}
+    try:
+        limit = int(data.get("limit") or 40)
+    except Exception:
+        limit = 40
+    limit = max(5, min(limit, 120))
+    saved = _alex_refresh_learned_from_recent(uk, limit=limit)
+    return jsonify({
+        "ok": True,
+        "saved": int(saved or 0),
+        "items": _alex_learned_list(uk, limit=80),
+    })
+
+
+@app.route("/api/alex/learned/add", methods=["POST"])
+@login_required
+def api_alex_learned_add():
+    uk = _alex_session_user_key()
+    data = request.get_json(silent=True) or {}
+    summary = str(data.get("summary") or "").strip()
+    category = str(data.get("category") or "manuel").strip() or "manuel"
+    if not summary:
+        return jsonify({"ok": False, "error": "summary bos"}), 400
+    rid = _alex_learned_add(
+        uk, summary, source="manual", evidence={"manual": True},
+        confidence=1.0, category=category, promote_fact=True)
+    if not rid:
+        return jsonify({"ok": False, "error": "kaydedilemedi"}), 400
+    return jsonify({"ok": True, "id": rid})
+
+
+@app.route("/api/alex/learned/<int:item_id>/delete", methods=["POST", "DELETE"])
+@login_required
+def api_alex_learned_delete(item_id):
+    uk = _alex_session_user_key()
+    try:
+        _alex_exec(
+            "DELETE FROM alex_learned_summaries WHERE id = ? AND user_key = ?",
+            (int(item_id), uk), commit=True)
+        return jsonify({"ok": True})
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+
+@app.route("/alex-hafiza", methods=["GET"])
+@login_required
+def alex_hafiza_page():
+    """Alex'in konusmadan/Yaz LLM ile cikardigi uzun hafiza ekrani."""
+    uk = _alex_session_user_key()
+    items = _alex_learned_list(uk, limit=120)
+    facts = _alex_facts_list(uk, limit=30)
+    stats = _alex_training_stats(user_key=uk)
+    memory_count = _alex_memory_count(uk)
+    model_name = _alex_yaz_memory_model()
+
+    def _fmt_ts(ms):
+        try:
+            import datetime as _dt
+            return _dt.datetime.fromtimestamp(int(ms) / 1000).strftime(
+                "%d.%m.%Y %H:%M")
+        except Exception:
+            return ""
+
+    rows_html = ""
+    for item in items:
+        rows_html += f"""
+        <tr>
+          <td><span class="badge text-bg-primary">{sh(item.get('source') or 'hafiza')}</span></td>
+          <td>{safe_html(item.get('summary') or '')}</td>
+          <td class="small text-muted text-nowrap">{safe_html(_fmt_ts(item.get('updated_ts')))}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-danger"
+              onclick="ykAlexForget({int(item.get('id') or 0)})">Sil</button>
+          </td>
+        </tr>
+        """
+    if not rows_html:
+        rows_html = (
+            '<tr><td colspan="4" class="text-center text-muted py-4">'
+            'Henuz kalici ogrenim yok. Alex ile konusurken "bunu unutma" '
+            'veya "bunu ogren" diyebilirsiniz.</td></tr>')
+
+    facts_html = "".join(
+        f'<span class="yk-fact-pill">{safe_html(f.get("category"))}: '
+        f'{safe_html((f.get("fact") or "")[:180])}</span>'
+        for f in facts[:18])
+    if not facts_html:
+        facts_html = '<span class="text-muted">Kalici bilgi henuz yok.</span>'
+
+    content = f"""
+    <style>
+      .yk-memory-shell {{ display:grid; gap:16px; }}
+      .yk-memory-hero {{
+        border:1px solid #d7e7f3; border-radius:14px; padding:18px;
+        background:linear-gradient(135deg,#f7fcff,#f3fff7);
+      }}
+      .yk-memory-stats {{
+        display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+        gap:10px; margin-top:12px;
+      }}
+      .yk-memory-stat {{
+        background:#fff; border:1px solid #dce8f2; border-radius:10px;
+        padding:12px;
+      }}
+      .yk-memory-stat b {{ display:block; font-size:24px; color:#0b63b6; }}
+      .yk-fact-pill {{
+        display:inline-flex; margin:4px; padding:7px 10px; border-radius:999px;
+        background:#eef7ff; border:1px solid #d2e7f7; font-size:12px;
+      }}
+      .yk-memory-table td {{ vertical-align:middle; }}
+    </style>
+    <div class="yk-memory-shell">
+      <section class="yk-memory-hero">
+        <h2>Alex Hafizasi</h2>
+        <p class="text-muted mb-0">
+          Konusma, klavye ve egitim kayitlarindan Yaz LLM/Ollama ile cikarilan
+          kalici ogrenimler burada tutulur. Alex cevap verirken bu hafizayi kullanir.
+        </p>
+        <div class="yk-memory-stats">
+          <div class="yk-memory-stat"><b>{len(items)}</b><span>Ogrenilen ozet</span></div>
+          <div class="yk-memory-stat"><b>{memory_count}</b><span>Konusma satiri</span></div>
+          <div class="yk-memory-stat"><b>{stats.get('total', 0)}</b><span>Egitim kaydi</span></div>
+          <div class="yk-memory-stat"><b>{safe_html(model_name or '-')}</b><span>Yaz LLM modeli</span></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <b>Kalici ogrenilenler</b>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary btn-sm" onclick="ykAlexRefresh()">
+              Son konusmalari Yaz LLM ile isle
+            </button>
+            <a class="btn btn-outline-secondary btn-sm" href="/alex-egitim-merkezi">
+              Egitim merkezi
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="ykAlexMemoryStatus" class="small mb-2"></div>
+          <table class="table table-sm yk-memory-table">
+            <thead><tr><th>Kaynak</th><th>Ogrenim</th><th>Guncel</th><th></th></tr></thead>
+            <tbody>{rows_html}</tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header"><b>Alex'e ogretilmis bilgiler</b></div>
+        <div class="card-body">{facts_html}</div>
+      </section>
+    </div>
+    <script>
+      async function ykAlexRefresh() {{
+        const st = document.getElementById('ykAlexMemoryStatus');
+        st.innerHTML = '<span class="text-primary">Yaz LLM son konusmalari isliyor...</span>';
+        try {{
+          const r = await fetch('/api/alex/learned/refresh', {{
+            method:'POST', credentials:'same-origin',
+            headers:{{'Content-Type':'application/json'}},
+            body:JSON.stringify({{limit:40}})
+          }});
+          const d = await r.json();
+          if (d.ok) {{
+            st.innerHTML = '<span class="text-success">Kaydedilen yeni ogrenim: ' + (d.saved||0) + '</span>';
+            setTimeout(() => location.reload(), 900);
+          }} else {{
+            st.innerHTML = '<span class="text-danger">' + (d.error||'Hata') + '</span>';
+          }}
+        }} catch(e) {{ st.innerHTML = '<span class="text-danger">'+e.message+'</span>'; }}
+      }}
+      async function ykAlexForget(id) {{
+        if (!confirm('Bu ogrenimi sileyim mi?')) return;
+        await fetch('/api/alex/learned/' + id + '/delete', {{
+          method:'POST', credentials:'same-origin'
+        }});
+        location.reload();
+      }}
+    </script>
+    """
+    return render(content, title="Alex Hafizasi")
+
+
 @app.route("/alex-egitim-merkezi", methods=["GET"])
 @login_required
 def alex_egitim_merkezi_page():
@@ -57629,6 +58275,12 @@ def api_phone_voice_turn_text():
         except Exception:
             pass
         facts_str = _alex_facts_format_for_prompt(facts_list)
+        learned_str = ""
+        try:
+            learned_str = _alex_learned_format_for_prompt(
+                user_key, limit=18, max_chars_each=240)
+        except Exception:
+            learned_str = ""
         history_rows = []
         try:
             # D300: 10 -> 4 turn (memory bleeding fix - eskidende kalan
@@ -57899,6 +58551,8 @@ def api_phone_voice_turn_text():
                     f"icin sunu yap: {cmd_text}]")
         # Final prompt insa
         prompt_parts = [sys_prompt]
+        if learned_str:
+            prompt_parts.append(f"[Yaz LLM uzun hafiza]\n{learned_str}")
         if facts_str:
             prompt_parts.append(f"[Kullanici hakkinda bilinen bilgiler]\n{facts_str}")
         if known_research_str:
@@ -58106,6 +58760,13 @@ def api_phone_voice_turn_text():
                             side_effects=side)
                     except Exception:
                         pass
+                    try:
+                        _alex_maybe_learn_from_turn(
+                            user_key, user_text, full_response.strip(),
+                            source="voice-text", model=model,
+                            async_extract=True)
+                    except Exception:
+                        pass
             except Exception as _exc:
                 try:
                     print(f"[VTT] memory save HATA: {_exc}", flush=True)
@@ -58267,6 +58928,12 @@ def api_phone_voice_turn():
         except Exception:
             pass
         facts_str = _alex_facts_format_for_prompt(facts_list)
+        learned_str = ""
+        try:
+            learned_str = _alex_learned_format_for_prompt(
+                user_key, limit=18, max_chars_each=240)
+        except Exception:
+            learned_str = ""
 
         # 2) Konusma hafizasi (son 10 turn)
         history_rows = []
@@ -58445,6 +59112,8 @@ def api_phone_voice_turn():
 
         # Final prompt insa et
         prompt_parts = [sys_prompt]
+        if learned_str:
+            prompt_parts.append(f"[Yaz LLM uzun hafiza]\n{learned_str}")
         if facts_str:
             prompt_parts.append(f"[Kullanici hakkinda bilinen bilgiler]\n{facts_str}")
         if known_research_str:
@@ -58630,6 +59299,25 @@ def api_phone_voice_turn():
                     _alex_memory_append(user_key, "user", user_text)
                     _alex_memory_append(user_key, "assistant",
                                         full_response.strip())
+                    try:
+                        side = []
+                        if research_context: side.append("research")
+                        if url_context: side.append("url")
+                        if promote_context: side.append("promote")
+                        if cmd_context: side.append("command")
+                        _alex_training_log(
+                            user_key, user_text, full_response.strip(),
+                            model=model, category="voice-turn",
+                            side_effects=side)
+                    except Exception:
+                        pass
+                    try:
+                        _alex_maybe_learn_from_turn(
+                            user_key, user_text, full_response.strip(),
+                            source="voice-turn", model=model,
+                            async_extract=True)
+                    except Exception:
+                        pass
             except Exception as _exc:
                 try:
                     print(f"[VOICE-TURN] memory save HATA: {_exc}", flush=True)
@@ -61145,6 +61833,7 @@ _SMART_DIALOG_ROUTE_REGISTRY = [
     ("/akilli-dialog", "Akıllı Diyalog"),
     ("/sessiz-alex", "Sessiz Alex"),
     ("/alex-arastirma", "Alex Araştırma (PubMed + Web online)"),
+    ("/alex-hafiza", "Alex Hafizasi (Yaz LLM uzun hafiza)"),
     ("/alex-egitim", "Alex Eğitim (kalıcı bilgi + özel komut)"),
     ("/sesli-recete", "Sesli reçete"),
     ("/yz-ses-cevir", "Ses çevir"),
@@ -63622,7 +64311,53 @@ def _smart_dialog_ai_reply(message, action_result=None, history=None,
     except Exception:
         pass
 
+    # D300: Akilli Diyalog da Alex'in uzun hafizasini kullansin.
+    user_key = _alex_session_user_key()
+    learned_context = ""
+    facts_context = ""
+    long_memory_context = ""
+    research_context = ""
+    rag_context = ""
+    try:
+        learned_context = _alex_learned_format_for_prompt(
+            user_key, limit=18, max_chars_each=240)
+    except Exception:
+        learned_context = ""
+    try:
+        facts_context = _alex_facts_format_for_prompt(
+            _alex_facts_list(user_key, limit=24))
+    except Exception:
+        facts_context = ""
+    try:
+        rows = _alex_memory_get(user_key, limit=4)
+        long_memory_context = _alex_memory_format_for_prompt(rows)
+    except Exception:
+        long_memory_context = ""
+    try:
+        research_context = _alex_research_format_for_prompt(
+            user_key, limit=5, max_chars_each=280, user_text=message)
+    except Exception:
+        research_context = ""
+    try:
+        words = str(message or "").strip().split()
+        if len(str(message or "").strip()) >= 15 and len(words) >= 3:
+            import yazklinik_rag as _rag
+            rag_context = _rag.retrieve_for_query(
+                message, top_k=3, threshold=0.55)
+    except Exception:
+        rag_context = ""
+
     prompt = (
+        ("Yaz LLM uzun hafiza:\n" + learned_context + "\n\n"
+         if learned_context else "") +
+        ("Alex'e ogretilmis kalici bilgiler:\n" + facts_context + "\n\n"
+         if facts_context else "") +
+        ("Son Alex hafizasi:\n" + long_memory_context + "\n\n"
+         if long_memory_context else "") +
+        ("Daha once kaynakli ogrenilen arastirma:\n" + research_context + "\n\n"
+         if research_context else "") +
+        ("Alakali RAG bilgisi:\n" + rag_context + "\n\n"
+         if rag_context else "") +
         "Konusma gecmisi:\n" + "\n".join(compact_history[-8:]) +
         "\n\nKullanici istegi:\n" + str(message or "") +
         action_text +
@@ -64101,6 +64836,31 @@ def _smart_dialog_handle(message, confirmed=False, speak=True, selected_patient=
     voice_ctx = bool(
         isinstance(client_context, dict)
         and (client_context.get("alex_mode") or client_context.get("voice")))
+    user_key = _alex_session_user_key()
+    if _alex_detect_learned_question_intent(message):
+        answer_text = _alex_learned_answer(user_key)
+        meta = {
+            "source": "learned_memory",
+            "duration_ms": 0,
+            "action": None,
+            "status": "learned_memory",
+        }
+        _smart_dialog_save("assistant", answer_text, meta=meta, dialog_id=dialog_id)
+        _alex_record_dialog_turn(
+            user_key, message, answer_text, model="yaz-memory",
+            category="memory", source="learned_memory", learn=False)
+        return {
+            "ok": True,
+            "dialog_id": dialog_id,
+            "answer": answer_text,
+            "source": "learned_memory",
+            "duration_ms": 0,
+            "action_result": None,
+            "action": None,
+            "needs_confirm": False,
+            "speak": bool(speak),
+            "status": {"learned_memory": True},
+        }
     if voice_ctx:
         folded_voice = _fold_search_text(message)
         domain_action = any(k in folded_voice for k in (
@@ -64153,6 +64913,10 @@ def _smart_dialog_handle(message, confirmed=False, speak=True, selected_patient=
                 "status": "voice_chat",
             }
             _smart_dialog_save("assistant", answer_text, meta=meta, dialog_id=dialog_id)
+            _alex_record_dialog_turn(
+                user_key, message, answer_text, model=source,
+                category="smart_voice", side_effects=["voice"],
+                source=source, learn=True)
             return {
                 "ok": True,
                 "dialog_id": dialog_id,
@@ -64179,6 +64943,10 @@ def _smart_dialog_handle(message, confirmed=False, speak=True, selected_patient=
             "status": "blocked",
         }
         _smart_dialog_save("assistant", answer_text, meta=meta, dialog_id=dialog_id)
+        _alex_record_dialog_turn(
+            user_key, message, answer_text, model="command_guard",
+            category="guard", side_effects=["blocked"],
+            source="command_guard", learn=True)
         return {
             "ok": True,
             "dialog_id": dialog_id,
@@ -64269,6 +65037,10 @@ def _smart_dialog_handle(message, confirmed=False, speak=True, selected_patient=
             "status": action_status or "fast_action",
         }
         _smart_dialog_save("assistant", answer_text, meta=meta, dialog_id=dialog_id)
+        _alex_record_dialog_turn(
+            user_key, message, answer_text, model="fast_action",
+            category="action", side_effects=[action_status or "fast_action"],
+            source="fast_action", learn=True)
         return {
             "ok": True,
             "dialog_id": dialog_id,
@@ -64292,6 +65064,9 @@ def _smart_dialog_handle(message, confirmed=False, speak=True, selected_patient=
             "status": "chat",
         }
         _smart_dialog_save("assistant", companion_reply, meta=meta, dialog_id=dialog_id)
+        _alex_record_dialog_turn(
+            user_key, message, companion_reply, model="live_companion",
+            category="chat", source="live_companion", learn=True)
         return {
             "ok": True,
             "dialog_id": dialog_id,
@@ -64350,6 +65125,10 @@ def _smart_dialog_handle(message, confirmed=False, speak=True, selected_patient=
         "status": (action_result or {}).get("status") or "chat",
     }
     _smart_dialog_save("assistant", answer_text, meta=meta, dialog_id=dialog_id)
+    _alex_record_dialog_turn(
+        user_key, message, answer_text, model=source,
+        category="chat", side_effects=[meta.get("status") or "chat"],
+        source=source, learn=True)
     payload = {
         "ok": True,
         "dialog_id": dialog_id,
@@ -73576,6 +74355,10 @@ def voice_alex_center_page():
         <a class="yk-vc-card" href="/alex-arastirma">
           <span class="yk-vc-icon"><i class="bi bi-search-heart"></i></span>
           <span><b>Alex Araştırma</b><small>PubMed + web arama, Türkçe özet + klinik öneri.</small></span>
+        </a>
+        <a class="yk-vc-card" href="/alex-hafiza">
+          <span class="yk-vc-icon"><i class="bi bi-journal-text"></i></span>
+          <span><b>Alex Hafizasi</b><small>Konusma ve klavyeden ogrendiklerini saklar.</small></span>
         </a>
         <a class="yk-vc-card" href="/alex-egitim">
           <span class="yk-vc-icon"><i class="bi bi-mortarboard-fill"></i></span>
