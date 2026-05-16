@@ -85,6 +85,8 @@ Test-Item "Vaultwarden container" { $containers -match "yk-vaultwarden" }
 Test-Item "Uptime Kuma container" { $containers -match "yk-uptime-kuma" }
 Test-Item "n8n container" { $containers -match "yk-n8n" }
 Test-Item "Open WebUI container" { $containers -match "yk-open-webui" }
+Test-Item "OHIF Viewer container (Asama 2)" { $containers -match "yk-ohif" }
+Test-Item "Stirling PDF container (Asama 2)" { $containers -match "yk-stirling" }
 
 # 6. YazKlinik server
 Write-Host ""
@@ -110,11 +112,37 @@ Test-Item "HTTPS yaniti" {
     }
 }
 Test-Item "X-YK-Server header" {
-    try {
-        [System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}
-        $r = Invoke-WebRequest -Uri "https://127.0.0.1:5443/giris" -UseBasicParsing -TimeoutSec 5
-        $r.Headers["X-YK-Server"] -eq "D300"
-    } catch { $false }
+    # PowerShell 5.1 TLS uyumsuzlugu Werkzeug ile; curl ile test (daha gercek)
+    $h = curl.exe -sk -I https://127.0.0.1:5443/giris --max-time 5 2>$null
+    ($h -match "X-YK-Server:\s*D300")
+}
+
+# 7. ASAMA 2: Tesseract + Poppler + Restic + Windows app'leri
+Write-Host ""
+Write-Host "[7/7] ASAMA 2 (OCR / Backup / Tibbi araclar)" -ForegroundColor Yellow
+Test-Item "Tesseract OCR binary" {
+    $tess = Get-Command tesseract -EA SilentlyContinue
+    if ($tess) { return $true }
+    # Default install yolu da kontrol
+    Test-Path "C:\Program Files\Tesseract-OCR\tesseract.exe"
+}
+Test-Item "Poppler pdftoppm binary" {
+    $pop = Get-Command pdftoppm -EA SilentlyContinue
+    if ($pop) { return $true }
+    # YazKlinik tools/poppler kontrol
+    $found = Get-ChildItem "$projectRoot\tools\poppler" -Recurse -Filter "pdftoppm.exe" -EA SilentlyContinue | Select-Object -First 1
+    $null -ne $found
+}
+Test-Item "Restic CLI" { $null -ne (Get-Command restic -EA SilentlyContinue) }
+Test-Item "Restic repo init" { Test-Path "$projectRoot\backup\restic-repo\config" }
+Test-Item "Obsidian" {
+    (winget list --id Obsidian.Obsidian -e 2>&1 | Select-String "Obsidian") -ne $null
+}
+Test-Item "Zotero" {
+    (winget list --id Zotero.Zotero -e 2>&1 | Select-String "Zotero") -ne $null
+}
+Test-Item "3D Slicer" {
+    (winget list --id Slicer.Slicer -e 2>&1 | Select-String "Slicer") -ne $null
 }
 
 # Ozet

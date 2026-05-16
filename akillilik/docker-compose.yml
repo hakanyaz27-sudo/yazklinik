@@ -99,6 +99,41 @@ services:
     ports:
       - "13000:8080"
 
+  # === 5) OHIF VIEWER (DICOM viewer, klinik kalitesi) ========================
+  # Voluson .dcm dosyalarini, MR/BT'yi profesyonel viewer ile incele.
+  # WADO/DICOMweb destekler; Orthanc varsa otomatik bagla.
+  ohif-viewer:
+    image: ohif/app:v3.10.1
+    container_name: yk-ohif
+    restart: unless-stopped
+    ports:
+      - "13003:80"
+    # Default config: USG goruntu test dataseti ile gelir.
+    # Orthanc'a bagli icin ./data/ohif/app-config.js ekle (rehbere bak)
+
+  # === 6) STIRLING-PDF (PDF profesyonel araclar self-host) ===================
+  # Merge, split, OCR (Tesseract), sign, redact, compress, watermark, password.
+  # e-Nabiz PDF'leri + hasta dosyalari + reseteler icin tek nokta.
+  stirling-pdf:
+    image: stirlingtools/stirling-pdf:latest
+    container_name: yk-stirling
+    restart: unless-stopped
+    environment:
+      - DOCKER_ENABLE_SECURITY=true
+      - SECURITY_ENABLELOGIN=true
+      - SECURITY_INITIALLOGIN_USERNAME=admin
+      - SECURITY_INITIALLOGIN_PASSWORD=${STIRLING_ADMIN_PASSWORD:-stirling-yk-CHANGE}
+      - INSTALL_BOOK_AND_ADVANCED_HTML_OPS=true
+      - LANGS=tr_TR,en_US
+      - SYSTEM_DEFAULTLOCALE=tr-TR
+      - UI_APPNAME=YazKlinik PDF
+    volumes:
+      - ./data/stirling/configs:/configs
+      - ./data/stirling/logs:/logs
+      - ./data/stirling/customFiles:/customFiles
+    ports:
+      - "13004:8080"
+
 # Tek bir bridge network. Servisler birbirini service-name ile bulur.
 networks:
   default:
