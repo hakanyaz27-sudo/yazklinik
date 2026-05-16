@@ -29,7 +29,7 @@ import urllib.parse
 import urllib.request
 import warnings
 import wave
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, Optional, Tuple
@@ -88,6 +88,28 @@ def now_ms() -> int:
 
 def safe_extension(value: str) -> str:
     return re.sub(r"[^0-9*#+]", "", str(value or ""))[:16]
+
+
+def sip_header_user(value: str) -> str:
+    """Extract caller user/extension from a SIP From header."""
+    text = str(value or "")
+    match = re.search(r"sip:([^@;>]+)", text, flags=re.I)
+    if not match:
+        return safe_extension(text)
+    raw = urllib.parse.unquote(match.group(1))
+    return safe_extension(raw) or raw[:32]
+
+
+def sip_header_display_name(value: str) -> str:
+    """Best-effort display name extraction from a SIP From header."""
+    text = str(value or "").strip()
+    match = re.match(r'"([^"]+)"', text)
+    if match:
+        return match.group(1).strip()
+    match = re.match(r"([^<;]+)<", text)
+    if match:
+        return match.group(1).strip().strip('"')
+    return ""
 
 
 def local_ip_for(remote_host: str, remote_port: int) -> str:
@@ -393,6 +415,8 @@ class CallState:
     direction: str = "incoming"
     active: bool = True
     history: list = field(default_factory=list)
+    transcript_parts: list = field(default_factory=list)
+    last_triage: dict = field(default_factory=dict)
     started_ms: int = field(default_factory=now_ms)
 
 
@@ -825,6 +849,37 @@ class SIPAlexBridge:
             log(f"AI webhook hata: {exc}")
         return "Doktorum, su an klinik zeka yaniti gecikti. Duyuyorum, tekrar deneyelim."
 
+    def triage_call_turn(self, call: CallState, transcript: str) -> dict:
+        """Run the telesekreter agent on the cumulative incoming transcript."""
+        if not transcript.strip():
+            return {}
+        try:
+            from yazklinik_telesekreter_agent import CallRecord, parse_call
+            caller = sip_header_user(call.from_header) or call.from_header or call.direction
+            caller_name = sip_header_display_name(call.from_header) or None
+            duration_sec = max(0, int((now_ms() - call.started_ms) / 1000))
+            record = CallRecord(
+                caller_phone=caller,
+                caller_name=caller_name,
+                transcript=transcript,
+                duration_sec=duration_sec,
+            )
+            triaged = parse_call(record)
+            payload = asdict(triaged)
+            call.last_triage = payload
+            log(
+                "Telesekreter triage: "
+                f"intent={payload.get('intent')} "
+                f"urgency={payload.get('urgency')} "
+                f"phone={payload.get('extracted_phone') or payload.get('caller_phone')} "
+                f"doctor_action={payload.get('requires_doctor_action')}"
+            )
+            return payload
+        except Exception as exc:
+            self.set_error(f"telesekreter triage hata: {exc}")
+            log(f"Telesekreter triage hata: {exc}")
+            return {}
+
     def run_call_audio(self, call: CallState) -> None:
         rtp = RTPAudioSession(self.cfg, call)
         try:
@@ -846,13 +901,24 @@ class SIPAlexBridge:
                     if not text:
                         reply = "Doktorum, sizi net duyamadim. Bir kez daha soyler misiniz?"
                     else:
+                        call.transcript_parts.append(text)
+                        triage = self.triage_call_turn(call, "\n".join(call.transcript_parts))
                         call.history.append({"role": "user", "content": text})
                         reply = self.ai_reply(text, caller=caller, history=call.history)
+                        if triage and triage.get("intent") == "urgent":
+                            reply = (
+                                "Bu anlattiginiz acil olabilir. Lutfen beklemeden klinigi "
+                                "veya 112'yi arayin. Ben notu doktor ekranina acil olarak isaretliyorum. "
+                                + reply
+                            )
                         call.history.append({"role": "assistant", "content": reply})
                 wav_out = self.synthesize(reply)
                 if wav_out:
                     rtp.send_wav(wav_out)
-            log(f"Call loop ended: {call.call_id}")
+            if call.last_triage:
+                log(f"Call loop ended: {call.call_id} triage={json.dumps(call.last_triage, ensure_ascii=False)}")
+            else:
+                log(f"Call loop ended: {call.call_id}")
         except Exception as exc:
             self.set_error(f"call audio hata: {exc}")
             log(traceback.format_exc())

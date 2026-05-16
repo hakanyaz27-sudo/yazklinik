@@ -31953,6 +31953,22 @@ E&#351;le&#351;en men&uuml; yok. Enter ile genel arama yap.
   <span class="sidebar-link-icon"><i class="bi bi-diagram-3"></i></span>
   <span>Ajan Merkezi</span>
   </a>
+  <a href="/ajanlar" class="sidebar-link {% if request.path == '/ajanlar' %}active{% endif %}">
+  <span class="sidebar-link-icon"><i class="bi bi-grid-3x3-gap"></i></span>
+  <span>Klinik Ajanlari</span>
+  </a>
+  <a href="/yz-konsultasyon" class="sidebar-link {% if '/yz-konsultasyon' in request.path %}active{% endif %}">
+  <span class="sidebar-link-icon"><i class="bi bi-clipboard2-pulse"></i></span>
+  <span>YZ Hekim Konsult</span>
+  </a>
+  <a href="/ceviri-merkezi" class="sidebar-link {% if '/ceviri-merkezi' in request.path %}active{% endif %}">
+  <span class="sidebar-link-icon"><i class="bi bi-translate"></i></span>
+  <span>Tibbi Ceviri</span>
+  </a>
+  <a href="/instagram-hazirla" class="sidebar-link {% if '/instagram-hazirla' in request.path %}active{% endif %}">
+  <span class="sidebar-link-icon"><i class="bi bi-image"></i></span>
+  <span>Instagram Ajani</span>
+  </a>
   <a href="/hizmet-ajanlari" class="sidebar-link {% if '/hizmet-ajanlari' in request.path or '/benim-ajanlarim' in request.path %}active{% endif %}">
   <span class="sidebar-link-icon"><i class="bi bi-person-workspace"></i></span>
   <span>Hizmet Ajanlari</span>
@@ -32068,7 +32084,8 @@ E&#351;le&#351;en men&uuml; yok. Enter ile genel arama yap.
  <a href="/randevu/yeni"><i class="bi bi-calendar-plus"></i> Randevu</a>
  <a href="/hizli-not"><i class="bi bi-pencil-square"></i> Not</a>
  <a href="/kullanim-kalitesi"><i class="bi bi-stars"></i> Akis</a>
- <a href="/entegrasyon-ajanlari"><i class="bi bi-diagram-3"></i> Ajanlar</a>
+ <a href="/ajanlar"><i class="bi bi-grid-3x3-gap"></i> Ajanlar</a>
+ <a href="/yz-konsultasyon"><i class="bi bi-clipboard2-pulse"></i> YZ Hekim</a>
  <a href="/ses-ve-alex"><i class="bi bi-mic-fill"></i> Ses ve Alex</a>
  </div>
 
@@ -46205,7 +46222,7 @@ def _patient_file_store_pdf_payload(patient_key, pdf_payload, applied=None):
     _patient_file_update_data_json(patient_key, _update)
 
 
-_PATIENT_FILE_PDF_AUTO_PROFILE_VERSION = "2026-05-14-profile-demographics-metrics-v3"
+_PATIENT_FILE_PDF_AUTO_PROFILE_VERSION = "2026-05-17-voluson-ga-metrics-v4"
 
 
 def _patient_file_pdf_candidate_signature(patient_key, max_pdfs=12):

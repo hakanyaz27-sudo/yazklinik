@@ -18,7 +18,7 @@ Endpointler:
     POST /api/agents/mojibake_bekci/run  -> {root} -> ScanResult
     POST /api/agents/pr_reviewer/run     -> {diff_text} -> ReviewResult
 
-Yetki kontrolu: session['username'] var mi diye bakar (zaten web.py decorator).
+Yetki kontrolu: session['user'] / session['username'] var mi diye bakar.
 Bu Blueprint o decorator'i import etmez; basit session check yapar.
 Tum cikti web layer audit'ine 'agents:*' aksiyonu olarak yansir.
 """
@@ -36,6 +36,65 @@ from flask import Blueprint, jsonify, render_template_string, request, session, 
 
 
 agents_bp = Blueprint("agents", __name__)
+
+
+@agents_bp.after_request
+def _agents_medical_theme(response):
+    """Ajan sayfalarini ana D300 medikal tema ve kisa gecislerle goster."""
+    try:
+        if response.mimetype != "text/html" or response.direct_passthrough:
+            return response
+        html = response.get_data(as_text=True)
+        if not html:
+            return response
+        if "yk-medical-theme-css" not in html:
+            link = (
+                '<link rel="stylesheet" '
+                'href="/static/yk-medical-theme.css?v=d300-medical-2026-05-16" '
+                'id="yk-medical-theme-css">'
+            )
+            if "</head>" in html:
+                html = html.replace("</head>", link + "</head>", 1)
+            else:
+                html = link + html
+        if "yk-agent-shortcuts" not in html:
+            style = (
+                '<style id="yk-agent-shortcuts-css">'
+                '.yk-agent-shortcuts{position:fixed;right:18px;top:14px;z-index:40;'
+                'display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}'
+                '.yk-agent-shortcuts a{background:#fff;border:1px solid #bfd7ea;'
+                'color:#14324a;text-decoration:none;border-radius:8px;padding:8px 10px;'
+                'font-weight:800;font-size:12px;box-shadow:0 8px 22px rgba(15,35,55,.10)}'
+                '@media(max-width:760px){.yk-agent-shortcuts{position:static;margin:10px 12px;'
+                'justify-content:flex-start}.yk-agent-shortcuts a{font-size:11px;padding:7px 8px}}'
+                '</style>'
+            )
+            nav = (
+                '<nav id="yk-agent-shortcuts" class="yk-agent-shortcuts">'
+                '<a href="/">Ana ekran</a>'
+                '<a href="/ajanlar">Klinik ajanlari</a>'
+                '<a href="/yz-konsultasyon">YZ hekim</a>'
+                '<a href="/ceviri-merkezi">Tibbi ceviri</a>'
+                '<a href="/instagram-hazirla">Instagram</a>'
+                '</nav>'
+            )
+            if "</head>" in html:
+                html = html.replace("</head>", style + "</head>", 1)
+            else:
+                html = style + html
+            body_idx = html.lower().find("<body")
+            if body_idx >= 0:
+                body_end = html.find(">", body_idx)
+                if body_end >= 0:
+                    html = html[:body_end + 1] + nav + html[body_end + 1:]
+                else:
+                    html = nav + html
+            else:
+                html = nav + html
+        response.set_data(html)
+    except Exception:
+        pass
+    return response
 
 # Instagram icin varsayilan yollar (config.env'den okumayi web layer yapar)
 _DEFAULT_VOLUSON_ROOT = os.environ.get("YAZKLINIK_NAS_ROOT") or r"\\asustor\Voluson"
@@ -83,7 +142,9 @@ def _require_session():
     """Web.py'in genel session kuralina hafif bagli kontrol.
     Doktor/asistan/sekreter girisi yoksa 401 dondur.
     """
-    user = session.get("username") if hasattr(session, "get") else None
+    # YazKlinik ana login'i session["user"] yazar. Eski notlarda
+    # session["username"] geciyordu; iki anahtari da kabul et.
+    user = (session.get("user") or session.get("username")) if hasattr(session, "get") else None
     if not user:
         return jsonify({"ok": False, "error": "auth_required"}), 401
     return None
