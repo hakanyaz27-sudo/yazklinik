@@ -33,6 +33,7 @@ CODEX_D300_QUICK_CHECK_OK
 
 ## Son degisiklikler
 
+- **2026-05-16:** 10 klinik ajan eklendi (telesekreter / sesli onay / USG rapor / geri cagirma / BK sync bekci / NAS izleyici / recete / gunluk ozet / mojibake bekci / PR reviewer). `/ajanlar` dashboard + `/api/agents/*` Blueprint. Detayli handoff: **`CODEX_HANDOFF_2026-05-16_AJANLAR.md`**. v68 ve mevcut route'lar dokunulmadi.
 - WebShell hizli Chrome/Edge app-mode kabuga tasindi.
 - WebShell fast-mode algilamasi user-agent ve `yk_webshell=1` ile garanti edildi.
 - Mod secimi ve tema secimi ust menude tekrar calisir.

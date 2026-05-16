@@ -130,6 +130,30 @@
 - **CSRF** - genelde Flask session cookie ile, manuel POST'larda Cookie header lazim
 - **Rate limit** - yok (lokal kullanim)
 
+## Klinik Ajanlari (2026-05-16, Blueprint = `agents_bp`)
+
+> Detayli handoff: [CODEX_HANDOFF_2026-05-16_AJANLAR.md](CODEX_HANDOFF_2026-05-16_AJANLAR.md)
+> Wire dosyasi: `yazklinik_agents_routes.py` (yeni)
+> Modul dosyalari: `yazklinik_<id>_agent.py` (10 adet)
+
+| Route | Method | Aciklama |
+|---|---|---|
+| `/ajanlar` | GET | 10 ajan dashboard (HTML, kart grid + manifest dump) |
+| `/api/agents` | GET | Manifest + modul import durumu |
+| `/api/agents/telesekreter/run` | POST | Cagri triyaji - niyet/aciliyet/onerilen slot |
+| `/api/agents/sesli_onay/run` | POST | "Evet/hayir/ertele" yaniti -> randevu kararı |
+| `/api/agents/usg_rapor/run` | POST | BPD/HC/AC/FL -> Hadlock EFW + rapor TASLAGI |
+| `/api/agents/geri_cagirma/run` | POST | Kontrol/asi/postop hatirlatma kuyrugu (KVKK) |
+| `/api/agents/bk_sync_bekci/run` | POST | BulutKlinik OAuth/cookie saglik |
+| `/api/agents/nas_yedek_izleyici/run` | POST | NAS yedek + disk doluluk (read-only) |
+| `/api/agents/recete_hazirlayici/run` | POST | Gecmis + alerji ile recete TASLAGI |
+| `/api/agents/gunluk_ozet/run` | POST | Gun sonu trafik + ciro + bekleyenler |
+| `/api/agents/mojibake_bekci/run` | POST | Encoding bozuklugu (SADECE TESPIT, auto-fix YOK) |
+| `/api/agents/pr_reviewer/run` | POST | Diff sablon kontrol (v68/DELETE/NAS unlink) |
+
+**Standart cevap:** `{"ok": true, "agent": "<id>", "result": {...}}`
+**Hata kodlari:** 401 auth_required · 400 bad_request · 500 agent_failure · 503 module_import_failed
+
 ## Yeni Route Ekleme Pattern
 
 ```python
