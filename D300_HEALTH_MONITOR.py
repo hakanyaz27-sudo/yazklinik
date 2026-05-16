@@ -49,6 +49,19 @@ CHECK_INTERVAL = 30  # saniye
 RESTART_GRACE = 15  # restart sonrasi tekrar check etmeden bekleme
 
 
+def _open_restart_log(path: str):
+    """Open a service log; if Windows has it locked, use a monitor-owned file."""
+    try:
+        return open(path, "ab")
+    except PermissionError:
+        fallback_dir = os.path.join(HERE, "runtime_state", "health_logs")
+        os.makedirs(fallback_dir, exist_ok=True)
+        base = os.path.basename(path)
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        fallback = os.path.join(fallback_dir, f"{stamp}_{base}")
+        return open(fallback, "ab")
+
+
 def _ts():
     return datetime.now().strftime("%H:%M:%S")
 
@@ -92,14 +105,21 @@ def _restart(name: str, script: str, log: str, errlog: str,
     out_path = os.path.join(HERE, log)
     err_path = os.path.join(HERE, errlog)
     try:
+        stdout = _open_restart_log(out_path)
+        stderr = _open_restart_log(err_path)
+        flags = (
+            subprocess.CREATE_NO_WINDOW
+            | getattr(subprocess, "DETACHED_PROCESS", 0x00000008)
+            | getattr(subprocess, "HIGH_PRIORITY_CLASS", 0x00000080)
+        )
         proc = subprocess.Popen(
             [VENV_PY, "-u", script],
             cwd=HERE,
             env=env,
-            stdout=open(out_path, "ab"),
-            stderr=open(err_path, "ab"),
-            creationflags=(subprocess.CREATE_NO_WINDOW
-                           | getattr(subprocess, "HIGH_PRIORITY_CLASS", 0x00000080)),
+            stdout=stdout,
+            stderr=stderr,
+            creationflags=flags,
+            close_fds=True,
         )
         return proc.pid
     except Exception as exc:

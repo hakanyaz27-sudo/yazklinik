@@ -50320,6 +50320,12 @@ def _ai_phone_normalize_tts_text(text):
     s = _re.sub(r"\]+", " ", s)
     # Emoji / sembol (XTTS okuyamaz, garip ses cikarir)
     s = _re.sub(r"[*_`~|<>{}#@\\^]+", " ", s)
+    # Alex bazen hitabi arka arkaya tekrar eder; TTS bunu dogal okumaz.
+    s = _re.sub(
+        r"\b(doktorum|hocam|doktor)\b(?:[\s,]+\1\b)+",
+        r"\1",
+        s,
+        flags=_re.IGNORECASE)
     # Tek karakterlik orphan punctuation -> sil (sentence end'de hanging .)
     s = _re.sub(r"\s+[,;:]+\s*$", ".", s)
     # === 1) Unvan birlesimleri (Op. Dr. ozellikle - 'op' ayri okunmasin) ===
@@ -50476,6 +50482,10 @@ def _ai_phone_xtts_stream_generator(text, voice="emel"):
         port = int(os.environ.get("YAZKLINIK_XTTS_SERVICE_PORT", "9002"))
     except Exception:
         port = 9002
+    try:
+        text = _ai_phone_normalize_tts_text(text)
+    except Exception:
+        pass
     url = f"http://127.0.0.1:{port}/tts/stream"
     body = _json.dumps({"text": text, "voice": voice}).encode("utf-8")
     req = urllib.request.Request(
@@ -56526,12 +56536,16 @@ def api_phone_tts():
         requested_rate or _ai_phone_settings().get("ai_phone_voice_rate"))
     try:
         import hashlib as _hash
+        # Include engine generation so old Edge/Piper fallback cache never masks
+        # a recovered local XTTS service.
         cache_key = _hash.sha256(
-            f"{voice}|{rate_percent}|{profile_pitch}|{profile_volume}|{text}".encode("utf-8")
+            f"xtts-first-v2|{profile_key}|{voice}|{rate_percent}|"
+            f"{profile_pitch}|{profile_volume}|{text}".encode("utf-8")
         ).hexdigest()
         cached = _ai_phone_tts_cache_get(cache_key)
         if cached:
             audio = cached
+            engine = "cache:wav" if audio[:4] == b"RIFF" else "cache:mp3"
             # Cache'deki dosya WAV (Piper) ise mime audio/wav, MP3 (Edge) ise audio/mpeg
             mime = "audio/wav" if audio[:4] == b"RIFF" else "audio/mpeg"
             download = "yazklinik_turkce_ses.wav" if mime == "audio/wav" else "yazklinik_turkce_ses.mp3"
@@ -56546,6 +56560,7 @@ def api_phone_tts():
                 xtts_voice = _ai_phone_xtts_voice_from_profile(profile_key, voice)
             audio = _ai_phone_xtts_tts_bytes(text, voice=xtts_voice)
             if audio:
+                engine = f"xtts_v2:{xtts_voice}"
                 mime = "audio/wav"
                 download = "yazklinik_turkce_ses.wav"
             else:
@@ -56553,21 +56568,25 @@ def api_phone_tts():
                     text, voice, rate_percent,
                     pitch=profile_pitch, volume=profile_volume)
                 if audio:
+                    engine = f"edge_tts:{voice}"
                     mime = "audio/mpeg"
                     download = "yazklinik_turkce_ses.mp3"
                 else:
                     audio = _ai_phone_piper_tts_bytes(text)
+                    engine = "piper"
                     mime = "audio/wav"
                     download = "yazklinik_turkce_ses.wav"
                     if not audio:
                         raise RuntimeError("TTS bos ses dondu (XTTS, Edge, Piper)")
             _ai_phone_tts_cache_put(cache_key, audio)
-        return send_file(
+        resp = send_file(
             BytesIO(audio),
             mimetype=mime,
             as_attachment=False,
             download_name=download,
             max_age=0)
+        resp.headers["X-TTS-Engine"] = engine
+        return resp
     except Exception as ex:
         # D300: Kullanici Emel sesi bekliyor ama Edge TTS basarisiz - acik log
         try:
