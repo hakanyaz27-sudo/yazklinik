@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from typing import Iterable
 
 
-MANIFEST_VERSION = "2026.05.16-D300-CLIENT-DEVICE"
+MANIFEST_VERSION = "2026.05.16-D300-AGENTS-WIRED"
 
 SURFACES = ("web", "desktop_hybrid", "webshell")
 DESKTOP_MODES = ("shell", "hybrid", "mirror")
@@ -437,6 +437,20 @@ FEATURE_GROUPS = (
         _r("/sifre-degistir", "Sifre Degistir", "Kullanici sifresi", "system", "[S]"),
         _r("/yardim", "Yardim", "Yardim sayfasi", "system", "?"),
         _r("/cikis", "Cikis", "Oturumu kapat", "system", "[X]", simple=True),
+    )),
+    ("AJANLAR", (
+        _r("/ajanlar", "Klinik Ajanlari", "10 ajan dashboard + manifest", "ai", "[AJ]",
+           simple=True, aliases=("agents", "ajan paneli", "ajan merkezi")),
+        _r("/api/agents/telesekreter/run", "YZ Telesekreter", "Aramayi triyaj eder", "ai", "[TS]"),
+        _r("/api/agents/sesli_onay/run", "Sesli Randevu Onay", "Evet/hayir/ertele karari", "ai", "[SO]"),
+        _r("/api/agents/usg_rapor/run", "USG Rapor Taslak", "Olcumden EFW+rapor", "ai", "[UR]"),
+        _r("/api/agents/geri_cagirma/run", "Geri Cagirma", "Hatirlatma kuyrugu", "ai", "[GC]"),
+        _r("/api/agents/bk_sync_bekci/run", "BK Sync Bekci", "BulutKlinik baglanti saglik", "ai", "[BS]"),
+        _r("/api/agents/nas_yedek_izleyici/run", "NAS Yedek Izleyici", "Yedek+disk saglik", "ai", "[NY]"),
+        _r("/api/agents/recete_hazirlayici/run", "Recete Taslak", "Gecmis+alerji ile recete", "ai", "[RT]"),
+        _r("/api/agents/gunluk_ozet/run", "Gunluk Ozet", "Gun sonu klinik ozeti", "ai", "[GO]"),
+        _r("/api/agents/mojibake_bekci/run", "Mojibake Bekci", "Encoding tespit (read-only)", "system", "[MB]"),
+        _r("/api/agents/pr_reviewer/run", "PR Reviewer", "Diff sablon kontrol", "system", "[PR]"),
     )),
 )
 

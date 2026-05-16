@@ -630,6 +630,16 @@ from yazklinik_textfix import fix_mojibake_text
 
 app = Flask(__name__)
 
+# === 10 klinik ajan Blueprint - tek wire point ===
+try:
+    from yazklinik_agents_routes import agents_bp as _agents_bp
+    app.register_blueprint(_agents_bp)
+except Exception as _agents_exc:  # noqa: BLE001
+    import logging as _agents_log
+    _agents_log.getLogger(__name__).warning(
+        "agents_bp register basarisiz: %s", _agents_exc
+    )
+
 # === GZIP middleware (otomatik sikistirma, hizli yanit) ===
 import gzip as _gzip
 import io as _gzip_io
