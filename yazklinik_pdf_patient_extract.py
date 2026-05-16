@@ -331,10 +331,10 @@ def _parse_gpal_values(lines: list[str], folded_text: str) -> dict[str, int]:
             break
 
     specs = (
-        ("gravida", ("gravida", "gravidite", "gebelik sayisi", "g")),
-        ("para", ("para", "parite", "dogum sayisi", "p")),
-        ("abortus", ("abortus", "abort", "dusuk", "kuretaj", "a")),
-        ("living", ("living", "yasayan", "canli", "yasayan cocuk", "l")),
+        ("gravida", ("gravida", "gravidite", "gebelik sayisi")),
+        ("para", ("para", "parite", "dogum sayisi")),
+        ("abortus", ("abortus", "abort", "dusuk", "kuretaj")),
+        ("living", ("living", "yasayan", "canli", "yasayan cocuk")),
     )
     forbidden = ("hafta", "hf", "gebelik haftasi", "efw", "bpd", "hc", "ac", "fl")
     for line in lines:
