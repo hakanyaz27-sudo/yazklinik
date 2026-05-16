@@ -26,14 +26,22 @@ Tum cikti web layer audit'ine 'agents:*' aksiyonu olarak yansir.
 from __future__ import annotations
 
 import json
+import os
 import traceback
 from dataclasses import asdict, is_dataclass
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from flask import Blueprint, jsonify, render_template_string, request, session
+from flask import Blueprint, jsonify, render_template_string, request, session, send_file, abort
 
 
 agents_bp = Blueprint("agents", __name__)
+
+# Instagram icin varsayilan yollar (config.env'den okumayi web layer yapar)
+_DEFAULT_VOLUSON_ROOT = os.environ.get("YAZKLINIK_NAS_ROOT") or r"\\asustor\Voluson"
+_DEFAULT_IG_DRAFT_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "instagram_drafts"
+)
 
 
 # --- Agent imports - hata olursa modul yine yuklensin ---
@@ -58,6 +66,7 @@ recete_mod = _safe_import("yazklinik_recete_hazirlayici_agent")
 ozet_mod = _safe_import("yazklinik_gunluk_ozet_agent")
 mojibake_mod = _safe_import("yazklinik_mojibake_bekci_agent")
 pr_mod = _safe_import("yazklinik_pr_reviewer_agent")
+instagram_mod = _safe_import("yazklinik_instagram_agent")
 
 # Registry (opsiyonel)
 try:
@@ -154,6 +163,7 @@ def api_agents_manifest():
         "gunluk_ozet": ozet_mod is not None,
         "mojibake_bekci": mojibake_mod is not None,
         "pr_reviewer": pr_mod is not None,
+        "instagram": instagram_mod is not None,
     }
     return jsonify(payload)
 
@@ -467,3 +477,512 @@ def run_pr_reviewer():
     p = _payload()
     diff_text = str(p.get("diff_text") or "")
     return _wrap_call("pr_reviewer", pr_mod.review_diff, {"diff_text": diff_text})
+
+
+# === Instagram Hazirlik Ajani ============================================
+# Path traversal koruma: sadece allowed_roots altindaki dosyalar okunabilir.
+
+def _allowed_image_root(path_str: str) -> Optional[Path]:
+    """Path izinli koklerden birinin altindaysa Path dondurur, degilse None."""
+    candidates = [
+        _DEFAULT_VOLUSON_ROOT,
+        os.environ.get("YAZKLINIK_NAS_ROOT"),
+        os.path.dirname(os.path.abspath(__file__)),  # proje kokunden tarama
+    ]
+    for root in candidates:
+        if not root:
+            continue
+        try:
+            root_p = Path(root).resolve()
+            target = Path(path_str).resolve()
+            target.relative_to(root_p)
+            return target
+        except Exception:
+            continue
+    return None
+
+
+@agents_bp.route("/api/agents/instagram/scan", methods=["POST"])
+def ig_scan():
+    auth = _require_session()
+    if auth:
+        return auth
+    err = _agent_or_503(instagram_mod, "instagram")
+    if err:
+        return err
+    p = _payload()
+    root = str(p.get("root") or _DEFAULT_VOLUSON_ROOT)
+    max_candidates = int(p.get("max_candidates") or 60)
+    include_pdf = bool(p.get("include_pdf", True))
+    min_score = float(p.get("min_score") or 0.30)
+    try:
+        result = instagram_mod.scan_archive(
+            root=root, max_candidates=max_candidates,
+            include_pdf=include_pdf, min_score=min_score,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"ok": False, "agent": "instagram", "error": "scan_failure",
+                         "detail": f"{type(exc).__name__}: {exc}"}), 500
+    _safe_audit("agents:instagram_scan", {"root": root, "count": result.get("count_returned", 0)})
+    return jsonify({"ok": True, "agent": "instagram", "result": result})
+
+
+@agents_bp.route("/api/agents/instagram/thumbnail", methods=["GET"])
+def ig_thumbnail():
+    """Path traversal-korumali thumbnail server.
+
+    Sadece izinli koklerin altindaki goruntu/PDF'lerden 320px thumbnail uretir.
+    """
+    auth = _require_session()
+    if auth:
+        return auth
+    err = _agent_or_503(instagram_mod, "instagram")
+    if err:
+        return err
+    raw_path = request.args.get("path") or ""
+    target = _allowed_image_root(raw_path)
+    if not target or not target.is_file():
+        return abort(404)
+    try:
+        img = instagram_mod._open_image(target)  # type: ignore[attr-defined]
+        if img is None:
+            return abort(404)
+        max_dim = int(request.args.get("size") or 320)
+        max_dim = max(64, min(1024, max_dim))
+        w, h = img.size
+        if w > h:
+            new_w = max_dim
+            new_h = int(h * (max_dim / w))
+        else:
+            new_h = max_dim
+            new_w = int(w * (max_dim / h))
+        from PIL import Image
+        thumb = img.resize((new_w, new_h), Image.LANCZOS)
+        from io import BytesIO
+        buf = BytesIO()
+        thumb.save(buf, "JPEG", quality=80)
+        buf.seek(0)
+        return send_file(buf, mimetype="image/jpeg", download_name="thumb.jpg",
+                          max_age=300)
+    except Exception:
+        return abort(500)
+
+
+@agents_bp.route("/api/agents/instagram/enhance", methods=["POST"])
+def ig_enhance():
+    auth = _require_session()
+    if auth:
+        return auth
+    err = _agent_or_503(instagram_mod, "instagram")
+    if err:
+        return err
+    p = _payload()
+    raw_path = str(p.get("source_path") or "")
+    target = _allowed_image_root(raw_path)
+    if not target:
+        return jsonify({"ok": False, "agent": "instagram", "error": "path_not_allowed",
+                         "detail": "Goruntu izinli root disinda."}), 403
+
+    output_dir = str(p.get("output_dir") or _DEFAULT_IG_DRAFT_DIR)
+    try:
+        opts = instagram_mod.EnhanceOptions(
+            header_crop_ratio=float(p.get("header_crop_ratio", instagram_mod.DEFAULT_HEADER_CROP_RATIO)),
+            side_crop_ratio=float(p.get("side_crop_ratio", instagram_mod.DEFAULT_SIDE_CROP_RATIO)),
+            sharpen=float(p.get("sharpen", 1.2)),
+            contrast=float(p.get("contrast", 1.10)),
+            brightness=float(p.get("brightness", 1.05)),
+            saturation=float(p.get("saturation", 1.05)),
+            add_watermark=bool(p.get("add_watermark", True)),
+            watermark_text=str(p.get("watermark_text") or "(c) Op. Dr. Hakan Yaz"),
+            output_format=str(p.get("output_format") or "portrait"),
+            blur_corners=bool(p.get("blur_corners", False)),
+            output_quality=int(p.get("output_quality") or 92),
+        )
+        result = instagram_mod.enhance_image(
+            source_path=str(target),
+            output_dir=output_dir,
+            opts=opts,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"ok": False, "agent": "instagram", "error": "enhance_failure",
+                         "detail": f"{type(exc).__name__}: {exc}",
+                         "trace": traceback.format_exc(limit=3)}), 500
+    _safe_audit("agents:instagram_enhance", {"source": str(target), "draft": result.draft_path})
+    return jsonify({"ok": True, "agent": "instagram", "result": asdict(result)})
+
+
+@agents_bp.route("/api/agents/instagram/caption", methods=["POST"])
+def ig_caption():
+    auth = _require_session()
+    if auth:
+        return auth
+    err = _agent_or_503(instagram_mod, "instagram")
+    if err:
+        return err
+    p = _payload()
+    theme = str(p.get("theme") or "egitim_3d_4d")
+    hashtag_groups = p.get("hashtag_groups") or ["core_tr", "brand"]
+    if not isinstance(hashtag_groups, list):
+        hashtag_groups = ["core_tr", "brand"]
+    custom_intro = str(p.get("custom_intro") or "")
+    try:
+        suggestions = instagram_mod.caption_suggestions(
+            theme=theme, hashtag_groups=hashtag_groups, custom_intro=custom_intro,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"ok": False, "agent": "instagram", "error": "caption_failure",
+                         "detail": f"{type(exc).__name__}: {exc}"}), 500
+    return jsonify({
+        "ok": True,
+        "agent": "instagram",
+        "result": {
+            "suggestions": [asdict(s) for s in suggestions],
+            "available_themes": list(instagram_mod.CAPTION_TEMPLATES.keys()),
+            "available_hashtag_groups": list(instagram_mod.HASHTAG_GROUPS.keys()),
+            "kvkk_checklist": list(instagram_mod.KVKK_CHECKLIST),
+        }
+    })
+
+
+@agents_bp.route("/api/agents/instagram/draft-download", methods=["GET"])
+def ig_draft_download():
+    """Draft klasorundeki bir resmi indir."""
+    auth = _require_session()
+    if auth:
+        return auth
+    raw = request.args.get("file") or ""
+    draft_dir = Path(_DEFAULT_IG_DRAFT_DIR).resolve()
+    try:
+        target = (draft_dir / raw).resolve()
+        target.relative_to(draft_dir)
+        if not target.is_file():
+            return abort(404)
+        return send_file(str(target), as_attachment=True)
+    except Exception:
+        return abort(404)
+
+
+@agents_bp.route("/instagram-hazirla", methods=["GET"])
+def instagram_page():
+    auth = _require_session()
+    if auth:
+        return auth
+    return render_template_string(_INSTAGRAM_PAGE,
+                                  default_root=_DEFAULT_VOLUSON_ROOT,
+                                  default_draft=_DEFAULT_IG_DRAFT_DIR)
+
+
+_INSTAGRAM_PAGE = r"""<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<title>Instagram Hazirlik Ajani - YazKlinik</title>
+<style>
+  :root { --med-blue: #1769aa; --med-teal: #0c7488; --med-rose: #c2185b;
+          --med-green: #16815f; --med-amber: #b8821f; --med-red: #b3261e;
+          --ink: #122236; --muted: #5e7185; --line: rgba(94,113,133,0.18);
+          --surface: #ffffff; --bg: #f5f8fb; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+         background: var(--bg); color: var(--ink); margin: 0; padding: 18px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  .lead { color: var(--muted); font-size: 12px; margin: 0 0 16px; }
+  .kvkk { background: #fff8e1; border: 1px solid #f0c14b; padding: 10px 14px;
+          border-radius: 10px; color: #7a5612; font-size: 12px; margin-bottom: 14px; }
+  .layout { display: grid; grid-template-columns: 280px 1fr 320px; gap: 14px; }
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+  .panel { background: var(--surface); border: 1px solid var(--line);
+           border-radius: 12px; padding: 14px; }
+  .panel h3 { margin: 0 0 10px; font-size: 13px; color: var(--med-blue);
+              text-transform: uppercase; letter-spacing: 0.6px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 3px; }
+  input[type=text], input[type=number], select, textarea {
+    width: 100%; padding: 7px 10px; border: 1px solid var(--line);
+    border-radius: 8px; background: #fafbfd; color: var(--ink); font-size: 13px;
+    box-sizing: border-box;
+  }
+  input[type=range] { width: 100%; }
+  button { display: inline-flex; align-items: center; gap: 6px;
+           padding: 7px 14px; border: 0; border-radius: 8px; cursor: pointer;
+           font-size: 13px; font-weight: 600; }
+  .btn-primary { background: linear-gradient(135deg, var(--med-blue), var(--med-teal));
+                 color: #fff; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(23,105,170,0.25); }
+  .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+  .btn-ghost:hover { background: rgba(23,105,170,0.08); color: var(--med-blue); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .card { background: #fff; border: 2px solid transparent; border-radius: 10px;
+          overflow: hidden; cursor: pointer; transition: transform 160ms ease, border-color 160ms ease; }
+  .card:hover { transform: translateY(-2px); border-color: rgba(23,105,170,0.32); }
+  .card.selected { border-color: var(--med-blue); box-shadow: 0 4px 16px rgba(23,105,170,0.22); }
+  .card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #eef2f7; display: block; }
+  .card .meta { padding: 6px 8px; font-size: 11px; }
+  .card .score { color: var(--med-teal); font-weight: 700; font-size: 12px; }
+  .card .name { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card .badge-pdf { display: inline-block; background: var(--med-rose); color: #fff;
+                     border-radius: 4px; padding: 1px 5px; font-size: 9px; margin-left: 4px; }
+  pre, .json { background: #0d1117; color: #c9d1d9; padding: 10px; border-radius: 8px;
+               font-size: 11px; max-height: 240px; overflow: auto; }
+  .preview { aspect-ratio: 1/1; background: #eef2f7; border-radius: 10px;
+             display: flex; align-items: center; justify-content: center; color: var(--muted);
+             margin-bottom: 8px; overflow: hidden; }
+  .preview img { max-width: 100%; max-height: 100%; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill { background: rgba(23,105,170,0.10); color: var(--med-blue);
+          padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .status { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .status.ok { color: var(--med-green); }
+  .status.fail { color: var(--med-red); }
+  .draft-list { font-size: 12px; color: var(--ink); }
+  .draft-list a { color: var(--med-blue); display: block; padding: 4px 0;
+                  text-decoration: none; word-break: break-all; }
+  .draft-list a:hover { color: var(--med-teal); text-decoration: underline; }
+</style></head>
+<body>
+  <h1>Instagram Hazirlik Ajani</h1>
+  <p class="lead">USG arsivinizden Instagram icin uygun goruntuleri secer, anonimlestirir, iyilestirir ve draft klasorune kaydeder.
+     <span class="pill">DOKTOR ONAYLI</span> <span class="pill">KVKK GUVENLI</span></p>
+
+  <div class="kvkk">
+    <strong>KVKK uyarisi:</strong> USG goruntulerinde hasta adi, TC kimlik, tarih ve cihaz seri numarasi
+    BURNED-IN olabilir. Anonimlestirmeden Instagram'a yuklemeyin. Hasta yazili onayi olmadan
+    egitim/farkindalik amacli da paylasilamaz. Otomatik kirpma yetmeyebilir; her bir resmi gozle son kontrol edin.
+  </div>
+
+  <div class="layout">
+
+    <!-- SOL: scan parametreleri + draft listesi -->
+    <div class="panel">
+      <h3>1. Tarama</h3>
+      <label>Klasor yolu</label>
+      <input type="text" id="rootInput" value="{{ default_root }}">
+      <label>Maks aday</label>
+      <input type="number" id="maxCandidates" value="40" min="1" max="200">
+      <label>Min skor (0..1)</label>
+      <input type="number" id="minScore" value="0.30" min="0" max="1" step="0.05">
+      <label><input type="checkbox" id="includePdf" checked> PDF'leri de tara</label>
+      <button class="btn-primary" id="scanBtn" style="margin-top:10px;">Tara</button>
+      <div class="status" id="scanStatus"></div>
+
+      <h3 style="margin-top:18px;">Draft klasoru</h3>
+      <div class="status">{{ default_draft }}</div>
+      <div class="draft-list" id="draftList"></div>
+    </div>
+
+    <!-- ORTA: aday grid -->
+    <div class="panel">
+      <h3>2. Adaylar</h3>
+      <div class="grid" id="candidateGrid"></div>
+      <div class="status" id="candStatus">Henuz tarama yapilmadi.</div>
+    </div>
+
+    <!-- SAG: secili karta iyilestirme + caption -->
+    <div class="panel">
+      <h3>3. Iyilestirme</h3>
+      <div class="preview" id="preview">Sol/orta panelden bir resim secin</div>
+      <label>Format
+        <select id="outFormat">
+          <option value="portrait">Portre 1080x1350 (4:5)</option>
+          <option value="square">Kare 1080x1080 (1:1)</option>
+          <option value="story">Story 1080x1920 (9:16)</option>
+          <option value="landscape">Yatay 1080x566 (1.91:1)</option>
+          <option value="original">Orijinal</option>
+        </select>
+      </label>
+      <label>Ust strip kirp (varsayilan 0.13 = %13)
+        <input type="range" id="headerCrop" min="0" max="0.40" step="0.01" value="0.13">
+        <span id="headerCropV">0.13</span>
+      </label>
+      <label>Netlik
+        <input type="range" id="sharpen" min="0" max="3" step="0.1" value="1.2">
+        <span id="sharpenV">1.2</span>
+      </label>
+      <label>Kontrast
+        <input type="range" id="contrast" min="0.6" max="1.6" step="0.05" value="1.10">
+        <span id="contrastV">1.10</span>
+      </label>
+      <label>Parlaklik
+        <input type="range" id="brightness" min="0.6" max="1.6" step="0.05" value="1.05">
+        <span id="brightnessV">1.05</span>
+      </label>
+      <label>Doygunluk
+        <input type="range" id="saturation" min="0.0" max="1.6" step="0.05" value="1.05">
+        <span id="saturationV">1.05</span>
+      </label>
+      <label><input type="checkbox" id="blurCorners"> Alt koseleri bulaniklastir (ek anonimleme)</label>
+      <label><input type="checkbox" id="addWatermark" checked> Watermark "(c) Op. Dr. Hakan Yaz"</label>
+      <button class="btn-primary" id="enhanceBtn" style="margin-top:10px;">Drafta Kaydet</button>
+      <div class="status" id="enhanceStatus"></div>
+
+      <h3 style="margin-top:18px;">4. Caption</h3>
+      <label>Tema
+        <select id="captionTheme">
+          <option value="egitim_3d_4d">Egitim - 3D/4D</option>
+          <option value="gebelik_takip">Gebelik takibi</option>
+          <option value="kontrol_hatirlatma">Kontrol hatirlatma</option>
+          <option value="farkindalik">Farkindalik</option>
+        </select>
+      </label>
+      <label>Hashtag gruplari</label>
+      <select id="hashGroups" multiple size="5" style="height:auto;">
+        <option value="core_tr" selected>Turkce core</option>
+        <option value="obgyn_intl">OB-GYN uluslararasi</option>
+        <option value="specialty_3d4d">3D/4D bransi</option>
+        <option value="ivf_ovulasyon">IVF/ovulasyon</option>
+        <option value="brand" selected>Brand</option>
+      </select>
+      <button class="btn-ghost" id="captionBtn" style="margin-top:8px;">Caption Uret</button>
+      <pre id="captionOut" style="margin-top:8px;">Tema sec ve "Caption Uret" tikla...</pre>
+    </div>
+  </div>
+
+<script>
+const state = { candidates: [], selectedIdx: -1, scanRoot: '' };
+
+['headerCrop','sharpen','contrast','brightness','saturation'].forEach(id => {
+  const el = document.getElementById(id);
+  const out = document.getElementById(id + 'V');
+  el.addEventListener('input', () => { out.textContent = el.value; });
+});
+
+async function scan() {
+  const status = document.getElementById('scanStatus');
+  status.textContent = 'Taraniyor...';
+  status.className = 'status';
+  try {
+    const res = await fetch('/api/agents/instagram/scan', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        root: document.getElementById('rootInput').value,
+        max_candidates: parseInt(document.getElementById('maxCandidates').value),
+        min_score: parseFloat(document.getElementById('minScore').value),
+        include_pdf: document.getElementById('includePdf').checked,
+      })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || res.status);
+    state.candidates = data.result.candidates || [];
+    state.scanRoot = data.result.root;
+    renderCandidates();
+    status.textContent = data.result.scanned_count + ' dosya tarandi, '
+      + state.candidates.length + ' aday bulundu.';
+    status.classList.add('ok');
+  } catch (e) {
+    status.textContent = 'Hata: ' + e.message;
+    status.classList.add('fail');
+  }
+}
+
+function renderCandidates() {
+  const grid = document.getElementById('candidateGrid');
+  const stat = document.getElementById('candStatus');
+  if (!state.candidates.length) {
+    grid.innerHTML = '';
+    stat.textContent = 'Bu klasorde aday yok.';
+    return;
+  }
+  grid.innerHTML = state.candidates.map((c, i) => {
+    const thumbUrl = '/api/agents/instagram/thumbnail?path=' + encodeURIComponent(c.path) + '&size=240';
+    const isPdf = c.is_pdf ? '<span class="badge-pdf">PDF</span>' : '';
+    const score = (c.final_score * 100).toFixed(0);
+    return `
+      <div class="card" data-i="${i}" onclick="selectCandidate(${i})">
+        <img src="${thumbUrl}" loading="lazy" alt="">
+        <div class="meta">
+          <div class="score">${score}/100 ${isPdf}</div>
+          <div class="name" title="${c.filename}">${c.filename}</div>
+        </div>
+      </div>`;
+  }).join('');
+  stat.textContent = state.candidates.length + ' aday gosteriliyor.';
+}
+
+function selectCandidate(i) {
+  state.selectedIdx = i;
+  document.querySelectorAll('#candidateGrid .card').forEach((el, j) => {
+    el.classList.toggle('selected', i === j);
+  });
+  const c = state.candidates[i];
+  const preview = document.getElementById('preview');
+  preview.innerHTML = '<img src="/api/agents/instagram/thumbnail?path='
+    + encodeURIComponent(c.path) + '&size=600" alt="preview">';
+}
+
+async function enhance() {
+  if (state.selectedIdx < 0) {
+    alert('Once orta panelden bir resim secin.');
+    return;
+  }
+  const c = state.candidates[state.selectedIdx];
+  const status = document.getElementById('enhanceStatus');
+  status.textContent = 'Iyilestiriliyor...';
+  status.className = 'status';
+  try {
+    const res = await fetch('/api/agents/instagram/enhance', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        source_path: c.path,
+        output_format: document.getElementById('outFormat').value,
+        header_crop_ratio: parseFloat(document.getElementById('headerCrop').value),
+        sharpen: parseFloat(document.getElementById('sharpen').value),
+        contrast: parseFloat(document.getElementById('contrast').value),
+        brightness: parseFloat(document.getElementById('brightness').value),
+        saturation: parseFloat(document.getElementById('saturation').value),
+        blur_corners: document.getElementById('blurCorners').checked,
+        add_watermark: document.getElementById('addWatermark').checked,
+      })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || res.status);
+    const r = data.result;
+    status.innerHTML = '<span class="status ok">Hazir:</span> ' + r.draft_path
+      + ' (' + r.width + 'x' + r.height + ', ' + Math.round(r.size_bytes/1024) + ' KB)';
+    addDraft(r.draft_path);
+  } catch (e) {
+    status.textContent = 'Hata: ' + e.message;
+    status.classList.add('fail');
+  }
+}
+
+function addDraft(path) {
+  const list = document.getElementById('draftList');
+  const fname = path.split(/[\\\\/]/).pop();
+  const a = document.createElement('a');
+  a.href = '/api/agents/instagram/draft-download?file=' + encodeURIComponent(fname);
+  a.textContent = fname;
+  a.title = path;
+  a.download = fname;
+  list.prepend(a);
+}
+
+async function captionGen() {
+  const theme = document.getElementById('captionTheme').value;
+  const groups = Array.from(document.getElementById('hashGroups').selectedOptions).map(o => o.value);
+  const out = document.getElementById('captionOut');
+  out.textContent = 'Uretiliyor...';
+  try {
+    const res = await fetch('/api/agents/instagram/caption', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({theme, hashtag_groups: groups})
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || res.status);
+    const ss = data.result.suggestions || [];
+    out.textContent = ss.map((s, i) =>
+      '--- Oneri ' + (i+1) + ' (' + s.char_count + ' karakter) ---\n' +
+      s.text + '\n\n' + s.hashtags.join(' ')
+    ).join('\n\n');
+  } catch (e) {
+    out.textContent = 'Hata: ' + e.message;
+  }
+}
+
+document.getElementById('scanBtn').addEventListener('click', scan);
+document.getElementById('enhanceBtn').addEventListener('click', enhance);
+document.getElementById('captionBtn').addEventListener('click', captionGen);
+</script>
+</body></html>
+"""

@@ -12,7 +12,7 @@ from copy import deepcopy
 from datetime import datetime
 
 
-AGENT_VERSION = "2026.05.16-integration-agents"
+AGENT_VERSION = "2026.05.16-integration-agents-ig"
 
 
 INTEGRATION_AGENTS = [
@@ -407,6 +407,48 @@ INTEGRATION_AGENTS = [
         "doctor_actions": [
             "Rapora bakar, blocker varsa PR'i reddeder",
             "Warn'lari Codex'e tasitir",
+        ],
+    },
+    {
+        "id": "instagram",
+        "name": "Instagram Hazirlik Ajani",
+        "short": "USG arsivinden Instagram icin guzel goruntuler secer, anonimlestirir, iyilestirir; draft klasorune kaydeder. ASLA otomatik post atmaz.",
+        "status": "ready_internal",
+        "risk": "high",
+        "directions": ["NAS USG arsivi (read) -> instagram_drafts (yaz)"],
+        "module": "yazklinik_instagram_agent",
+        "entry_function": "scan_archive",
+        "panel_route": "/instagram-hazirla",
+        "api_endpoints": [
+            "POST /api/agents/instagram/scan",
+            "GET  /api/agents/instagram/thumbnail",
+            "POST /api/agents/instagram/enhance",
+            "POST /api/agents/instagram/caption",
+            "GET  /api/agents/instagram/draft-download",
+        ],
+        "safe_methods": [
+            "Arsivi sadece OKUR; orijinal dosyalar degistirilmez/silinmez",
+            "Ust strip (hasta bilgi seridi) VARSAYILAN OLARAK kirpilir",
+            "Iyilestirme PIL ile yapilir, sonuc instagram_drafts/ klasorune yazilir",
+            "Caption + hashtag yalniz sablon kutuphanesinden uretilir",
+            "Path-traversal koruma: izinli koklerin disindaki dosyalar reddedilir",
+            "KVKK kontrol listesi (7 madde) doktor onayina sunulur",
+        ],
+        "blocked_methods": [
+            "Instagram API ile otomatik post atma",
+            "Orijinal NAS dosyasini degistirme / silme",
+            "Hasta yazili onayi olmadan 'ready_to_post' isaretleme",
+            "Goruntu disinda hasta verisi (PII) drafta yazma",
+            "Caption icine hasta adi / vakaya ozgu bilgi koyma",
+        ],
+        "doctor_actions": [
+            "/instagram-hazirla sayfasinda klasor verir, tarar",
+            "Aday gridinden begendiklerini secer",
+            "Crop / netlik / kontrast slider'lariyla ince ayar yapar",
+            "Drafta kaydeder; sonra ChatGPT veya Instagram Editor ile son rotusu yapar",
+            "Caption sablonu uretir, hashtag setini secer, manuel rafine eder",
+            "KVKK kontrol listesini madde madde isaretler",
+            "Instagram'a manuel olarak yukler (ajan otomatik yapmaz)",
         ],
     },
 ]
