@@ -55849,7 +55849,8 @@ def _bk_voluson_context_panel_html(patient_key=""):
                     "bk_patients", "bk_protocols", "bk_voluson_links",
                     "bk_patient_changes", "visits", "prescriptions",
                     "bk_obstetri_visits", "bk_gynecology_resume",
-                    "bk_gynecology_tracking", "bk_services",
+                    "bk_gynecology_tracking", "obstetric_form",
+                    "gynec_form", "bk_services",
                     "bk_appointments")
             }
             if has["bk_patients"]:
@@ -55913,6 +55914,41 @@ def _bk_voluson_context_panel_html(patient_key=""):
                         ORDER BY COALESCE(tarih,'') DESC
                         LIMIT 3
                     """, (bk_no,)) if has["bk_gynecology_resume"] else []
+                    gyn_track_rows = _rows(con, """
+                        SELECT tarih, usg_age, efw, sikayet
+                        FROM bk_gynecology_tracking
+                        WHERE bk_hasta_no=?
+                        ORDER BY COALESCE(tarih,'') DESC
+                        LIMIT 3
+                    """, (bk_no,)) if has["bk_gynecology_tracking"] else []
+                    form_badges = []
+                    for table, label in (
+                            ("obstetric_form", "Obstetri forma aktarildi"),
+                            ("gynec_form", "Jinekoloji forma aktarildi")):
+                        if not has.get(table):
+                            continue
+                        form_rows = _rows(
+                            con,
+                            f"SELECT data_json, updated_at FROM {table} "
+                            "WHERE patient_key=?",
+                            (patient_key,))
+                        if not form_rows:
+                            continue
+                        try:
+                            import json as _bk_panel_json
+                            form_data = _bk_panel_json.loads(
+                                form_rows[0].get("data_json") or "{}")
+                            bk_form = form_data.get("bulutklinik") or {}
+                            summary = bk_form.get("summary") or {}
+                            count = int(summary.get("count") or 0)
+                            last_date = str(summary.get("last_date") or "")
+                            if count:
+                                form_badges.append(
+                                    f"<span class='yk-bk-v-sync'>{sh(label)}: "
+                                    f"<b>{count}</b> kayit"
+                                    f"{(' / son ' + sh(last_date)) if last_date else ''}</span>")
+                        except Exception:
+                            continue
                     protos = "".join(
                         f"<li><b>{sh(r.get('protokol_tarihi') or '-')}</b> "
                         f"{sh(r.get('gelis_nedeni') or r.get('brans') or '-')}"
@@ -55924,11 +55960,34 @@ def _bk_voluson_context_panel_html(patient_key=""):
                         f"EFW {sh(r.get('efw') or '-')} "
                         f"<small>{sh(r.get('sikayet') or '')}</small></li>"
                         for r in obs_rows)
+                    gyn_items = []
+                    for r in gyn_rows:
+                        gyn_items.append({
+                            "date": r.get("tarih") or "",
+                            "main": r.get("tani") or r.get("sikayet_oyku") or "-",
+                            "small": r.get("recete") or r.get("tedavi_plani") or "",
+                        })
+                    for r in gyn_track_rows:
+                        gyn_items.append({
+                            "date": r.get("tarih") or "",
+                            "main": r.get("sikayet") or "Jinekoloji takip",
+                            "small": " ".join(x for x in (
+                                ("USG " + str(r.get("usg_age"))) if r.get("usg_age") else "",
+                                ("EFW " + str(r.get("efw"))) if r.get("efw") else "",
+                            ) if x),
+                        })
+                    gyn_items = sorted(
+                        gyn_items, key=lambda x: str(x.get("date") or ""),
+                        reverse=True)[:4]
                     gyn = "".join(
-                        f"<li><b>{sh(r.get('tarih') or '-')}</b> "
-                        f"{sh(r.get('tani') or r.get('sikayet_oyku') or '-')}"
-                        f"<small>{sh(r.get('recete') or r.get('tedavi_plani') or '')}</small></li>"
-                        for r in gyn_rows)
+                        f"<li><b>{sh(r.get('date') or '-')}</b> "
+                        f"{sh(r.get('main') or '-')}"
+                        f"<small>{sh(r.get('small') or '')}</small></li>"
+                        for r in gyn_items)
+                    form_badges_html = (
+                        "<div class='yk-bk-v-sync-row'>"
+                        + "".join(form_badges) + "</div>"
+                        if form_badges else "")
                     patient_html = f"""
                       <div class="yk-bk-v-panel-patient">
                         <div>
@@ -55942,6 +56001,7 @@ def _bk_voluson_context_panel_html(patient_key=""):
                           <a class="btn btn-sm btn-outline-primary" href="/api/bk-hastalar/{quote(bk_no, safe='')}/voluson-export-suggest" target="_blank" rel="noopener">BK -> Voluson oner</a>
                         </div>
                       </div>
+                      {form_badges_html}
                       <div class="yk-bk-v-lists">
                         <div><b>Protokoller</b><ul>{protos or '<li>Kayit yok</li>'}</ul></div>
                         <div><b>Obstetri</b><ul>{obs or '<li>Kayit yok</li>'}</ul></div>
@@ -56019,6 +56079,8 @@ def _bk_voluson_context_panel_html(patient_key=""):
       .yk-bk-v-panel-patient p{{margin:0;color:#657991;font-size:13px}}
       .yk-bk-v-warn{{border-color:#f1d28b;background:#fff9e8}}
       .yk-bk-v-tag{{display:inline-block;font-size:11px;font-weight:900;text-transform:uppercase;color:#176b55;background:#e8f8ef;border-radius:999px;padding:4px 8px}}
+      .yk-bk-v-sync-row{{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}}
+      .yk-bk-v-sync{{display:inline-flex;align-items:center;gap:4px;background:#eef8ff;border:1px solid #cfe4f8;color:#17304f;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800}}
       .yk-bk-v-lists{{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}}
       .yk-bk-v-lists>div{{background:#fff;border:1px solid #dceaf6;border-radius:14px;padding:11px}}
       .yk-bk-v-lists b{{color:#17304f}}
