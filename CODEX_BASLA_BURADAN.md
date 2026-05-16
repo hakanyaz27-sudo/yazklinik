@@ -33,6 +33,7 @@ CODEX_D300_QUICK_CHECK_OK
 
 ## Son degisiklikler
 
+- **2026-05-16 (aksam):** Uzaktan erisim altyapisi - `yazklinik_remote_access.py` (ProxyFix + audit) + `TAILSCALE_UZAKTAN_ERISIM.md` (kurulum rehberi). Public IP 176.236.92.142:65187 / Tailscale Funnel ikinci PC'den koprulenir; bu PC dogrudan internete acilmaz.
 - **2026-05-16 (ogleden sonra):** 3 yeni ajan + 1 buyuk fix + 2 UX iyilestirme. Detayli handoff: **`CODEX_HANDOFF_2026-05-16_SESSION2.md`**.
     - YZ Konsultasyon ajani (`/yz-konsultasyon`) - 5-step OB-GYN klinik karar destek
     - Tibbi Ceviri ajani (`/ceviri-merkezi`) - PubMed + qwen2.5:32b yerel

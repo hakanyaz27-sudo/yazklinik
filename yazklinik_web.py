@@ -630,6 +630,19 @@ from yazklinik_textfix import fix_mojibake_text
 
 app = Flask(__name__)
 
+# === D300 2026-05-16: Reverse proxy / Tailscale Funnel destegi ===
+# Public IP / Funnel arkasinda calistiginda X-Forwarded-* basliklarina guven,
+# is_remote_request() helper + before_request audit hook'u register et.
+# Bu register'i Blueprint'lerden ONCE yapiyoruz ki tum route'lara uygulansin.
+try:
+    from yazklinik_remote_access import register_remote_access as _yk_register_remote
+    _yk_register_remote(app, log_remote_requests=True)
+except Exception as _ra_exc:  # noqa: BLE001
+    import logging as _ra_log
+    _ra_log.getLogger(__name__).warning(
+        "remote_access register basarisiz: %s", _ra_exc
+    )
+
 # === 10 klinik ajan Blueprint - tek wire point ===
 try:
     from yazklinik_agents_routes import agents_bp as _agents_bp

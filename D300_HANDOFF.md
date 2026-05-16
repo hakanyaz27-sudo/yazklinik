@@ -28,9 +28,13 @@ Set-Location "D:\YazKlinik_Final_D300"
 Adres:
 
 ```text
-https://127.0.0.1:5443
-doktor / 1234
+Lokal:    https://127.0.0.1:5443         doktor / 1234
+Tailnet:  https://<host>.tailnet.ts.net  (Tailscale Funnel kurulduysa)
+Public:   https://176.236.92.142:65187   (router NAT + ikinci PC reverse proxy)
 ```
+
+> **Uzaktan erisim:** Ayrintili kurulum: [`TAILSCALE_UZAKTAN_ERISIM.md`](TAILSCALE_UZAKTAN_ERISIM.md)
+> Server tarafi `yazklinik_remote_access.py` modulu ile ProxyFix + audit otomatik aktif (PR 2026-05-16).
 
 ## D300 ile gelen son durum
 
