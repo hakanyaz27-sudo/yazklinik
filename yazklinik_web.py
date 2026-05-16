@@ -34701,9 +34701,15 @@ background:#ecfdf5;color:#047857;font-size:11px;font-weight:800;
  let lastConfirmMessage = '';
   // D300 SIRI-MODE: max kayit suresi VAD failsafe (kullanici 1.2 sn susarsa kapanir).
   // Uzun cumle veya cevap icin 12 sn yeterli (cogu konusma 2-8 sn).
-  const VOICE_AGENT_RECORD_SECONDS = 12;
-  const ALEX_WAKE_RECORD_SECONDS = 10;
-  const ALEX_COMMAND_RECORD_SECONDS = 12;
+  const VOICE_AGENT_RECORD_SECONDS = 7;
+  const ALEX_WAKE_RECORD_SECONDS = 3.5;
+  const ALEX_COMMAND_RECORD_SECONDS = 5.5;
+  const ALEX_VAD_RMS = 0.006;
+  const ALEX_VAD_MIN_RECORD_MS = 650;
+  const ALEX_VAD_MIN_SPEECH_MS = 250;
+  const ALEX_VAD_SILENCE_MS = 650;
+  const ALEX_BARGE_THRESHOLD = 0.018;
+  const ALEX_BARGE_MIN_MS = 180;
  const VOICE_AGENT_ROUTE_TIMEOUT_MS = 3500;
  const VOICE_AGENT_DIALOG_TIMEOUT_MS = 12000;
   const VOICE_AGENT_COMMAND_TIMEOUT_MS = 6500;
@@ -35798,11 +35804,13 @@ return _voiceFocusGetUserMedia().then(function(stream) {
        // D300 SIRI-MODE: hassas ama SABIRLI VAD - duraksamaya izin ver.
        // 1.2 sn min kayit + 600ms+ konusma + 1200ms sessizlik = kullanici bitirsin.
        // Kullanici 1 sn duraksasa kesilmesin; gercek bitince (1.2 sn sessizlik) kapansin.
-       if (rms > 0.008) { spokeMs += 100; silenceMs = 0; }
-       else if (spokeMs > 0) { silenceMs += 100; }
-       if (elapsed > 1200 && spokeMs > 600 && silenceMs >= 1200) {
-         try { if (rec.state !== 'inactive') rec.stop(); } catch (_e) {}
-       }
+      if (rms > ALEX_VAD_RMS) { spokeMs += 100; silenceMs = 0; }
+      else if (spokeMs > 0) { silenceMs += 100; }
+      if (elapsed > ALEX_VAD_MIN_RECORD_MS &&
+          spokeMs >= ALEX_VAD_MIN_SPEECH_MS &&
+          silenceMs >= ALEX_VAD_SILENCE_MS) {
+        try { if (rec.state !== 'inactive') rec.stop(); } catch (_e) {}
+      }
      } catch (_e) {}
    }, 100);
  }
@@ -35816,7 +35824,7 @@ return _voiceFocusGetUserMedia().then(function(stream) {
  });
  }
  function recordAlexChunk(seconds) {
- const recordSeconds = Math.max(2, Math.min(Number(seconds || ALEX_WAKE_RECORD_SECONDS), 8));
+ const recordSeconds = Math.max(1.5, Math.min(Number(seconds || ALEX_WAKE_RECORD_SECONDS), 5.5));
  // D300: VAD'li browser MediaRecorder yolu ONCELIKLI - WebShell olsa bile.
  // Boylece 8sn beklemek yerine konusma susunca (1sn) hemen Whisper'a gider.
  if (_secureMicContext() && navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder) {
@@ -35950,11 +35958,13 @@ return _voiceFocusGetUserMedia().then(function(stream) {
        var elapsed = Date.now() - startedAt2;
        // D300 SIRI-MODE: hassas ama SABIRLI VAD - duraksamaya izin ver.
        // 1.2 sn min + 600ms+ konusma + 1200ms sessizlik = gercek bitis.
-       if (rms > 0.008) { spokeMs2 += 100; silenceMs2 = 0; }
-       else if (spokeMs2 > 0) { silenceMs2 += 100; }
-       if (elapsed > 1200 && spokeMs2 > 600 && silenceMs2 >= 1200) {
-         try { if (rec.state !== 'inactive') rec.stop(); } catch (_e) {}
-       }
+      if (rms > ALEX_VAD_RMS) { spokeMs2 += 100; silenceMs2 = 0; }
+      else if (spokeMs2 > 0) { silenceMs2 += 100; }
+      if (elapsed > ALEX_VAD_MIN_RECORD_MS &&
+          spokeMs2 >= ALEX_VAD_MIN_SPEECH_MS &&
+          silenceMs2 >= ALEX_VAD_SILENCE_MS) {
+        try { if (rec.state !== 'inactive') rec.stop(); } catch (_e) {}
+      }
      } catch (_e) {}
    }, 100);
  }
@@ -35982,7 +35992,7 @@ return _voiceFocusGetUserMedia().then(function(stream) {
  try { clearTimeout(alexTimer); } catch (_e) {}
  alexTimer = null;
  }
- alexTimer = setTimeout(alexTick, Math.max(250, Number(delayMs || 700)));
+ alexTimer = setTimeout(alexTick, Math.max(100, Number(delayMs || 350)));
  }
  function startAlexAlwaysOn(persist) {
  ensureAlexRuntimeOn();
@@ -36018,7 +36028,7 @@ return _voiceFocusGetUserMedia().then(function(stream) {
  setConversation(true);
  setAlexUi('Alex aktif. Sayfa değişse bile arka planda sizi takip eder.');
  showVoiceBanner('Alex aktif. "Alex kapat" dersen beklemeye geçer; "Alex tamamen durdur" dersen kapanır.', 'system');
- scheduleAlex(700);
+ scheduleAlex(120);
  }
  function standbyAlexAlwaysOn(persist, msg) {
  showVoiceBar('voice', {focus:false, quiet:true, noStop:true});
@@ -36033,7 +36043,7 @@ return _voiceFocusGetUserMedia().then(function(stream) {
  stopAll();
  setAlexUi(msg || 'Alex beklemede. Sadece "alex" veya "alex aç" bekleniyor.');
  showVoiceBanner(msg || 'Alex beklemede. Yazılı bar açık kaldı.', 'system');
- scheduleAlex(900);
+ scheduleAlex(350);
  }
  function stopAlexAlwaysOn(persist) {
  alexLoop = false;
@@ -36268,12 +36278,12 @@ return _voiceFocusGetUserMedia().then(function(stream) {
  try { stopAlexAlwaysOn(true); } catch (_e) {}
  return;
  }
- setAlexUi('Alex mikrofon bekliyor (' + alexFailures + '/' + ALEX_MAX_FAILURES + '): ' + msg.slice(0,90));
+  setAlexUi('Alex mikrofon bekliyor (' + alexFailures + '/' + ALEX_MAX_FAILURES + '): ' + msg.slice(0,90));
  } finally {
  alexBusy = false;
- // D300 karsilikli konusma: aktifken 200ms (hizli), wake'de 700ms
+ // D300 karsilikli konusma: aktifken 100ms, wake'de 350ms.
  if (alexLoop) {
- const baseDelay = alexArmed ? 200 : 700;
+ const baseDelay = alexArmed ? 100 : 350;
  const backoff = alexFailures === 0 ? baseDelay
                   : alexFailures === 1 ? 1500
                   : alexFailures === 2 ? 3000
@@ -37868,7 +37878,7 @@ function _ykShowAudioUnlockButton(audioToPlay) {
     _ykStopNaturalAudio();
     // Voice: explicit opts.voice -> window._ykVoicePref -> server DB profile (no override)
     var voice = (opts.voice || window._ykVoicePref || '').toString().toLowerCase();
-    setSpeakChip('speaking', voice === 'ahmet' ? 'Ahmet...' : 'Emel...');
+    setSpeakChip('speaking', voice === 'ahmet' ? 'Ahmet...' : (voice === 'emel' ? 'Emel...' : 'Turkce ses...'));
 
     return new Promise(function(resolve) {
       var finished = false;
@@ -37903,7 +37913,7 @@ function _ykShowAudioUnlockButton(audioToPlay) {
         var audio = new Audio(url);
         _ykSpeakAudio = audio;
         audio.onplaying = function() {
-          if (token === _ykSpeakSerial) setSpeakChip('speaking', voice === 'ahmet' ? 'Ahmet (RTX)' : 'Emel (RTX)');
+          if (token === _ykSpeakSerial) setSpeakChip('speaking', voice === 'ahmet' ? 'Ahmet (RTX)' : (voice === 'emel' ? 'Emel (RTX)' : 'Turkce ses'));
         };
         audio.onended = function() {
           if (token === _ykSpeakSerial) setSpeakChip('ready', _ykVoiceCache.tr ? 'Sesli (TR)' : 'Sesli');
@@ -38278,11 +38288,10 @@ function _ykShowAudioUnlockButton(audioToPlay) {
              if (window._ykBargeDebug === true) {
                console.log('[barge-in] rms=' + rms.toFixed(4) + ' max=' + maxRmsSeen.toFixed(4) + ' spokeMs=' + spokeMs);
              }
-             // D300: Echo Alex'in kendi sesini mic'e gondermesi nedeniyle threshold YUKSEK.
-             // Default 0.05 (yuksek - sadece gercek konusma). Min 500ms (false trigger korumasi).
-             // D300: 0.05 -> 0.025 daha hassas, 500ms -> 250ms hizli tepki
-             var th = Number(window._ykBargeThreshold) || 0.025;
-             var minMs = Number(window._ykBargeMinMs) || 250;
+            // D300: Doktor sozunu keserse Alex hizli dursun; echo cancellation
+            // acik oldugu icin esik daha hassas tutulur.
+            var th = Number(window._ykBargeThreshold) || 0.018;
+            var minMs = Number(window._ykBargeMinMs) || 180;
              if (rms > th) {
                spokeMs += 100;
                if (spokeMs >= minMs) {
@@ -38528,9 +38537,9 @@ function _ykShowAudioUnlockButton(audioToPlay) {
              var sum=0;
              for (var i=0;i<buf.length;i++){var v=(buf[i]-128)/128;sum+=v*v;}
              var rms = Math.sqrt(sum/buf.length);
-             // D300: 0.05 -> 0.025 daha hassas, 500ms -> 250ms hizli tepki
-             var th = Number(window._ykBargeThreshold) || 0.025;
-             var minMs = Number(window._ykBargeMinMs) || 250;
+            // D300: 0.025 -> 0.018 daha hassas, 250ms -> 180ms hizli tepki
+            var th = Number(window._ykBargeThreshold) || 0.018;
+            var minMs = Number(window._ykBargeMinMs) || 180;
              if (rms > th) { spokeMs += 100; if (spokeMs >= minMs) { console.log('[barge-in/txt] INTERRUPT rms='+rms.toFixed(4)); cleanupBarge(); stopAll(); try { if(typeof scheduleAlex==='function') scheduleAlex(50); } catch(_){} } }
              else spokeMs = Math.max(0, spokeMs - 50);
            } catch(_){}
@@ -48114,6 +48123,16 @@ _AI_PHONE_LIVE_ASR_EMPTY_GUARD = {}
 
 
 AI_PHONE_TTS_VOICES = OrderedDict([
+    ("tr_lokal_piper", {
+        "label": "Lokal Turkce Net - Piper DFKI",
+        "engine": "piper",
+        "voice": "tr_TR-dfki-medium",
+        "rate": "1.00",
+        "pitch": "+0Hz",
+        "volume": "+0%",
+        "desc": "Aksansiz Turkce icin lokal, hizli ve internet bagimsiz ses.",
+        "recommended": True,
+    }),
     ("tr_premium_kadin", {
         "label": "Premium Türkçe Kadın - Emel sakin",
         "engine": "edge",
@@ -48122,7 +48141,6 @@ AI_PHONE_TTS_VOICES = OrderedDict([
         "pitch": "+2Hz",
         "volume": "+0%",
         "desc": "En doğal varsayılan klinik sesi; yumuşak ve anlaşılır.",
-        "recommended": True,
     }),
     ("tr_premium_erkek", {
         "label": "Premium Türkçe Erkek - Ahmet net",
@@ -48187,6 +48205,12 @@ AI_PHONE_TTS_LEGACY_PROFILE_MAP = {
     "kadin": "tr_premium_kadin",
     "dogal": "tr_premium_kadin",
     "emel": "tr_premium_kadin",
+    "piper": "tr_lokal_piper",
+    "dfki": "tr_lokal_piper",
+    "lokal": "tr_lokal_piper",
+    "yerel": "tr_lokal_piper",
+    "aksansiz": "tr_lokal_piper",
+    "turkce net": "tr_lokal_piper",
     "tr-tr-emelneural": "tr_premium_kadin",
     "erkek": "tr_premium_erkek",
     "male_tr": "tr_premium_erkek",
@@ -48294,11 +48318,11 @@ def _ai_phone_settings():
             "canlÄ± destek,doktorla gorus,doktorla gÃ¶rÃ¼ÅŸ,beni arayin,beni arayÄ±n,"
             "geri arayin,geri arayÄ±n,bagla,baÄŸla,insana bagla,insana baÄŸla"),
         "ai_phone_webhook_secret": "yazklinik-phone-2026",
-        "ai_phone_voice_profile": "tr_premium_kadin",
+        "ai_phone_voice_profile": "tr_lokal_piper",
         "ai_phone_work_hours": "09:00-18:00",
         "ai_phone_voice_auto_speak": "1",
         "ai_phone_voice_auto_listen": "0",
-        "ai_phone_voice_rate": "0.94",
+        "ai_phone_voice_rate": "1.00",
     }
     return {key: _db_get_setting(key, defaults[key]) for key in AI_PHONE_SETTING_KEYS}
 
@@ -48337,7 +48361,7 @@ def _ai_phone_handoff_reply(settings=None, caller="", transcript=""):
 
 def _ai_phone_tts_profile_key(profile=None):
     raw = str(profile or _ai_phone_settings().get("ai_phone_voice_profile")
-              or "tr_premium_kadin").strip()
+              or "tr_lokal_piper").strip()
     folded = _fold_search_text(raw)
     mapped = AI_PHONE_TTS_LEGACY_PROFILE_MAP.get(raw) or AI_PHONE_TTS_LEGACY_PROFILE_MAP.get(folded)
     if mapped:
@@ -48349,9 +48373,11 @@ def _ai_phone_tts_profile_key(profile=None):
             return key
     if "ahmet" in folded or "erkek" in folded:
         return "tr_premium_erkek"
+    if "piper" in folded or "dfki" in folded or "aksansiz" in folded:
+        return "tr_lokal_piper"
     if "emel" in folded or "kadin" in folded or "dogal" in folded:
         return "tr_premium_kadin"
-    return "tr_premium_kadin"
+    return "tr_lokal_piper"
 
 
 def _ai_phone_tts_rate_percent(rate_value):
@@ -55347,8 +55373,12 @@ def api_phone_voice_turn_text():
     voice_param = (data.get("voice") or "").strip().lower()
     profile_param = data.get("profile") or ""
     voice = ""
+    profile_key = "tr_lokal_piper"
+    voice_info = AI_PHONE_TTS_VOICES.get(profile_key) or {}
+    tts_engine = "piper"
     if voice_param in ("emel", "ahmet"):
         voice = voice_param
+        tts_engine = "xtts"
     else:
         try:
             if profile_param:
@@ -55358,12 +55388,16 @@ def api_phone_voice_turn_text():
                 profile_key = _ai_phone_tts_profile_key(
                     settings.get("ai_phone_voice_profile"))
             voice_info = AI_PHONE_TTS_VOICES.get(profile_key) or {}
+            tts_engine = str(voice_info.get("engine") or "edge").lower()
             edge_voice = voice_info.get("voice") or "tr-TR-EmelNeural"
             voice = _ai_phone_xtts_voice_from_profile(profile_key, edge_voice)
         except Exception:
             voice = "emel"
+            tts_engine = "xtts"
     if voice not in ("emel", "ahmet"):
         voice = "emel"
+    if tts_engine == "piper":
+        voice = "piper"
 
     def _stream():
         import re as _re
@@ -55772,7 +55806,13 @@ def api_phone_voice_turn_text():
 
             def _produce(idx, sentence, holder, evt):
                 try:
-                    holder["audio"] = _ai_phone_xtts_tts_bytes(sentence, voice=voice)
+                    if tts_engine == "piper":
+                        holder["audio"] = _ai_phone_piper_tts_bytes(sentence)
+                    else:
+                        holder["audio"] = _ai_phone_xtts_tts_bytes(
+                            sentence, voice=voice)
+                    if not holder.get("audio"):
+                        holder["audio"] = _ai_phone_piper_tts_bytes(sentence)
                     holder["t_done"] = _t.time()
                 except Exception as exc:
                     holder["audio"] = None
@@ -56307,7 +56347,13 @@ def api_phone_voice_turn():
 
             def _produce_tts(idx, sentence, holder, evt):
                 try:
-                    holder["audio"] = _ai_phone_xtts_tts_bytes(sentence, voice=voice)
+                    if tts_engine == "piper":
+                        holder["audio"] = _ai_phone_piper_tts_bytes(sentence)
+                    else:
+                        holder["audio"] = _ai_phone_xtts_tts_bytes(
+                            sentence, voice=voice)
+                    if not holder.get("audio"):
+                        holder["audio"] = _ai_phone_piper_tts_bytes(sentence)
                     holder["t_done"] = _t.time()
                 except Exception as exc:
                     holder["audio"] = None
@@ -56467,6 +56513,13 @@ def api_phone_tts_stream():
     if voice_info.get("engine") == "browser":
         return jsonify({"ok": False, "error": "Bu profil tarayici sesini kullanir",
                         "fallback": "browser"}), 424
+    if voice_info.get("engine") == "piper":
+        audio = _ai_phone_piper_tts_bytes(text)
+        if audio:
+            resp = Response(audio, mimetype="audio/wav")
+            resp.headers["Cache-Control"] = "no-store"
+            resp.headers["X-TTS-Engine"] = "piper"
+            return resp
     edge_voice = voice_info.get("voice") or "tr-TR-EmelNeural"
     profile_rate = voice_info.get("rate") or "0.94"
     profile_pitch = voice_info.get("pitch") or "+0Hz"
@@ -56539,7 +56592,8 @@ def api_phone_tts():
         # Include engine generation so old Edge/Piper fallback cache never masks
         # a recovered local XTTS service.
         cache_key = _hash.sha256(
-            f"xtts-first-v2|{profile_key}|{voice}|{rate_percent}|"
+            f"tts-profile-v3|{profile_key}|{voice_info.get('engine')}|"
+            f"{voice}|{rate_percent}|"
             f"{profile_pitch}|{profile_volume}|{text}".encode("utf-8")
         ).hexdigest()
         cached = _ai_phone_tts_cache_get(cache_key)
@@ -56550,20 +56604,34 @@ def api_phone_tts():
             mime = "audio/wav" if audio[:4] == b"RIFF" else "audio/mpeg"
             download = "yazklinik_turkce_ses.wav" if mime == "audio/wav" else "yazklinik_turkce_ses.mp3"
         else:
-            # D300 RTX 5090: 1) Lokal XTTS-v2 (port 9002, Emel/Ahmet cloned, ~1200ms, internet
-            # bagimsiz). 2) Edge TTS Emel cloud (~1400ms). 3) Piper lokal (~100ms robotic).
+            # D300: Aksan onceligi. Piper profili aksansiz lokal Turkce icin
+            # ilk sirada; Edge/XTTS profilleri eski secenek olarak kalir.
             # Voice: body'deki "voice" parametresi explicit; yoksa profile/voice_id'den map
+            audio = None
+            engine = ""
+            mime = "audio/wav"
+            download = "yazklinik_turkce_ses.wav"
             xtts_voice_param = (data.get("voice") or request.form.get("voice") or "").strip().lower()
-            if xtts_voice_param in ("emel", "ahmet"):
-                xtts_voice = xtts_voice_param
-            else:
-                xtts_voice = _ai_phone_xtts_voice_from_profile(profile_key, voice)
-            audio = _ai_phone_xtts_tts_bytes(text, voice=xtts_voice)
-            if audio:
-                engine = f"xtts_v2:{xtts_voice}"
+            if voice_info.get("engine") == "piper":
+                audio = _ai_phone_piper_tts_bytes(text)
+                engine = "piper"
                 mime = "audio/wav"
                 download = "yazklinik_turkce_ses.wav"
+            elif xtts_voice_param in ("emel", "ahmet"):
+                xtts_voice = xtts_voice_param
+                audio = _ai_phone_xtts_tts_bytes(text, voice=xtts_voice)
+                if audio:
+                    engine = f"xtts_v2:{xtts_voice}"
+                    mime = "audio/wav"
+                    download = "yazklinik_turkce_ses.wav"
             else:
+                xtts_voice = _ai_phone_xtts_voice_from_profile(profile_key, voice)
+                audio = _ai_phone_xtts_tts_bytes(text, voice=xtts_voice)
+                if audio:
+                    engine = f"xtts_v2:{xtts_voice}"
+                    mime = "audio/wav"
+                    download = "yazklinik_turkce_ses.wav"
+            if not audio:
                 audio = _ai_phone_edge_tts_bytes(
                     text, voice, rate_percent,
                     pitch=profile_pitch, volume=profile_volume)

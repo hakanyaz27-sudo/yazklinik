@@ -90,9 +90,13 @@ $configMap = [ordered]@{
     "YAZKLINIK_OLLAMA_MAX_LOADED_MODELS" = "1"
     "YAZKLINIK_OLLAMA_NUM_THREAD" = "16"
     "YAZKLINIK_ALEX_PREWARM" = "1"
+    "YAZKLINIK_ALEX_WAKE_RECORD_SECONDS" = "3.5"
+    "YAZKLINIK_ALEX_COMMAND_RECORD_SECONDS" = "5.5"
+    "YAZKLINIK_ALEX_TTS_PROFILE" = "tr_lokal_piper"
     "YAZKLINIK_WHISPER_DEVICE" = "cuda"
     "YAZKLINIK_WHISPER_COMPUTE_TYPE" = "float16"
     "YAZKLINIK_XTTS_DEVICE" = "cuda"
+    "YAZKLINIK_PIPER_CUDA" = "0"
 }
 foreach ($item in $configMap.GetEnumerator()) {
     Set-ConfigLine $ConfigPath $item.Key $item.Value
@@ -123,6 +127,10 @@ settings = {
  "sysparam_whisper_device":"cuda",
  "sysparam_whisper_compute_type":"float16",
  "sysparam_xtts_device":"cuda",
+ "ai_phone_voice_profile":"tr_lokal_piper",
+ "ai_phone_voice_rate":"1.00",
+ "ai_phone_voice_auto_speak":"1",
+ "ai_phone_voice_auto_listen":"0",
  "sysparam_media_ram_cache_gb":"128",
  "sysparam_media_ram_cache_max_file_mb":"2048",
  "sysparam_ram_reserve_gb":"16",
