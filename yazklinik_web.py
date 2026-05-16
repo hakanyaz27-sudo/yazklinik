@@ -41342,6 +41342,24 @@ def render(content, title=None):
                 html = html + inject
     except Exception:
         pass
+    # D300 2026-05-16: Alex bar positioner (surukle + preset menu + hafiza).
+    # Mevcut #ykVoiceAgent markup'ina dokunmaz; DOMContentLoaded sonrasi 2 ek
+    # dugme ve listener ekler. Klavye: Alt+A goster/gizle, Alt+M mini, Alt+C odak.
+    try:
+        if html and isinstance(html, str) and "yk-alex-positioner-script" not in html:
+            inject = (
+                '<script id="yk-alex-positioner-script" '
+                'src="/static/yk-alex-positioner.js?v=d300-alex-pos-2026-05-16" '
+                'defer></script>'
+            )
+            if "</body>" in html:
+                html = html.replace("</body>", inject + "</body>", 1)
+            elif "</head>" in html:
+                html = html.replace("</head>", inject + "</head>", 1)
+            else:
+                html = html + inject
+    except Exception:
+        pass
     # D300: Dark mode toggle KALDIRILDI (kullanicinin 27 temasi var,
     # sidebar'daki Midnight Pro / theme-picker-btn ile yapilir).
     # D300: Smart search hafifletildi - sadece input[list] varsa attach.
