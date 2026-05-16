@@ -41325,6 +41325,23 @@ def render(content, title=None):
                 html = html + inject
     except Exception:
         pass
+    # D300 2026-05-16: Medikal tema overlay (executive-polish uzerine biner).
+    # Additive-only: hicbir mevcut stil silinmedi, sadece daha kalite ve renk.
+    try:
+        if html and isinstance(html, str) and "yk-medical-theme-css" not in html:
+            inject = (
+                '<link rel="stylesheet" '
+                'href="/static/yk-medical-theme.css?v=d300-medical-2026-05-16" '
+                'id="yk-medical-theme-css">'
+            )
+            if "</head>" in html:
+                html = html.replace("</head>", inject + "</head>", 1)
+            elif "</body>" in html:
+                html = html.replace("</body>", inject + "</body>", 1)
+            else:
+                html = html + inject
+    except Exception:
+        pass
     # D300: Dark mode toggle KALDIRILDI (kullanicinin 27 temasi var,
     # sidebar'daki Midnight Pro / theme-picker-btn ile yapilir).
     # D300: Smart search hafifletildi - sadece input[list] varsa attach.
