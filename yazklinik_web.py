@@ -1469,10 +1469,10 @@ def _gzip_and_cache(response):
                     and "</head>" in body
                 ):
                     inj = (
-                        '<link rel="stylesheet" href="/yk-safari-compat.css?v=D128" id="yk-safari-compat-css">'
-                        '<script src="/yk-safari-compat.js?v=D128" id="yk-safari-compat-js" defer></script>'
-                        '<link rel="stylesheet" href="/yk-stability.css?v=D128" id="yk-stability-css">'
-                        '<script src="/yk-stability.js?v=D128" id="yk-stability-js" defer></script>'
+                        '<link rel="stylesheet" href="/yk-safari-compat.css?v=D300-safari-1" id="yk-safari-compat-css">'
+                        '<script src="/yk-safari-compat.js?v=D300-safari-1" id="yk-safari-compat-js" defer></script>'
+                        '<link rel="stylesheet" href="/yk-stability.css?v=D300-safari-1" id="yk-stability-css">'
+                        '<script src="/yk-stability.js?v=D300-safari-1" id="yk-stability-js" defer></script>'
                     )
                     body = body.replace("</head>", inj + "</head>", 1)
                     response.set_data(body)
@@ -158790,6 +158790,18 @@ document.documentElement.dataset.ykViewerDirectPrintA114 = '1';
 """
 
 _YK_SAFARI_COMPAT_CSS = """
+:root {
+  --yk-vh: 1vh;
+  --yk-visual-height: 100vh;
+  --yk-keyboard-offset: 0px;
+  --yk-safe-top: env(safe-area-inset-top, 0px);
+  --yk-safe-right: env(safe-area-inset-right, 0px);
+  --yk-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --yk-safe-left: env(safe-area-inset-left, 0px);
+}
+@supports (height: 100dvh) {
+  :root { --yk-visual-height: 100dvh; }
+}
 html.yk-safari,
 html.yk-ios {
   -webkit-text-size-adjust: 100%;
@@ -158802,7 +158814,14 @@ html.yk-ios * {
 }
 html.yk-ios body {
   min-height: -webkit-fill-available;
+  min-height: calc(var(--yk-vh, 1vh) * 100);
   overscroll-behavior-y: none;
+}
+html.yk-safari body,
+html.yk-ios body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 html.yk-ios input,
 html.yk-ios select,
@@ -158810,6 +158829,17 @@ html.yk-ios textarea,
 html.yk-ios [contenteditable="true"] {
   font-size: 16px !important;
   -webkit-user-select: text;
+}
+html.yk-ios input,
+html.yk-ios textarea,
+html.yk-ios select {
+  border-radius: 10px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+html.yk-ios select {
+  -webkit-appearance: menulist;
+  appearance: auto;
 }
 html.yk-ios button,
 html.yk-ios .btn,
@@ -158819,11 +158849,42 @@ html.yk-ios input[type="submit"] {
   touch-action: manipulation;
   -webkit-touch-callout: none;
 }
+html.yk-safari button,
+html.yk-safari .btn,
+html.yk-ios button,
+html.yk-ios .btn {
+  cursor: pointer;
+}
 html.yk-ios .app-shell,
+html.yk-ios .app-layout,
 html.yk-ios .main-container,
 html.yk-ios main,
+html.yk-ios .main-content,
 html.yk-ios .content-area {
   min-height: -webkit-fill-available;
+  min-height: calc(var(--yk-vh, 1vh) * 100);
+}
+html.yk-safari .app-layout,
+html.yk-safari .main-content,
+html.yk-safari .content-area {
+  min-height: var(--yk-visual-height, 100vh);
+}
+html.yk-safari .main-content,
+html.yk-safari .main-container,
+html.yk-ios .main-content,
+html.yk-ios .main-container {
+  max-width: 100vw;
+  overflow-x: clip;
+}
+html.yk-safari .table-responsive,
+html.yk-ios .table-responsive,
+html.yk-safari .yk-table-scroll,
+html.yk-ios .yk-table-scroll,
+html.yk-safari .yk-media-thumb-strip,
+html.yk-ios .yk-media-thumb-strip,
+html.yk-safari .sidebar,
+html.yk-ios .sidebar {
+  -webkit-overflow-scrolling: touch;
 }
 html.yk-safari.yk-safari-safe,
 html.yk-safari.yk-safari-safe * {
@@ -158856,6 +158917,41 @@ html.yk-ios .top-header,
 html.yk-ios .app-header {
   padding-top: max(0px, env(safe-area-inset-top)) !important;
 }
+html.yk-ios .top-header {
+  min-height: calc(var(--header-h, 76px) + env(safe-area-inset-top, 0px));
+}
+html.yk-ios .main-content {
+  padding-top: calc(var(--header-h, 76px) + env(safe-area-inset-top, 0px)) !important;
+}
+html.yk-ios .main-container {
+  padding-left: max(12px, env(safe-area-inset-left, 0px)) !important;
+  padding-right: max(12px, env(safe-area-inset-right, 0px)) !important;
+  padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)) !important;
+}
+html.yk-ios .mobile-bottom-nav {
+  bottom: max(8px, env(safe-area-inset-bottom, 0px)) !important;
+  left: max(10px, env(safe-area-inset-left, 0px)) !important;
+  right: max(10px, env(safe-area-inset-right, 0px)) !important;
+}
+html.yk-ios .theme-panel,
+html.yk-ios .yk-smart-guide-button,
+html.yk-ios .yk-floating-shortcuts,
+html.yk-ios .yk-voice-agent,
+html.yk-ios .yk-dictate-dock,
+html.yk-ios .yk-mic-chip,
+html.yk-ios .yk-speak-chip,
+html.yk-ios .yk-mic-log,
+html.yk-ios .yk-web-mic-help,
+html.yk-ios .yk-shortcut-control {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+html.yk-ios.yk-keyboard-open .mobile-bottom-nav,
+html.yk-ios.yk-keyboard-open .yk-smart-guide-button,
+html.yk-ios.yk-keyboard-open .yk-floating-shortcuts,
+html.yk-ios.yk-keyboard-open .yk-mic-chip,
+html.yk-ios.yk-keyboard-open .yk-speak-chip {
+  transform: translateY(calc(-1 * min(var(--yk-keyboard-offset, 0px), 280px))) translateZ(0);
+}
 html.yk-ios .modal,
 html.yk-ios .dropdown-menu,
 html.yk-ios .yk-mode-window,
@@ -158865,6 +158961,20 @@ html.yk-ios .yk-floating-shortcuts,
 html.yk-ios .yk-voice-dock {
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
+}
+html.yk-safari .modal,
+html.yk-safari .modal-dialog,
+html.yk-ios .modal,
+html.yk-ios .modal-dialog {
+  max-width: calc(100vw - max(20px, env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px))) !important;
+}
+html.yk-safari img,
+html.yk-ios img,
+html.yk-safari video,
+html.yk-ios video,
+html.yk-safari canvas,
+html.yk-ios canvas {
+  max-width: 100%;
 }
 @media (hover: none) and (pointer: coarse) {
   .yk-hd-send,
@@ -158880,23 +158990,153 @@ html.yk-ios .yk-voice-dock {
     transform: none !important;
   }
 }
+@media (max-width: 820px) {
+  html.yk-safari .top-header,
+  html.yk-ios .top-header {
+    left: 0 !important;
+    right: 0 !important;
+    width: auto !important;
+    max-width: 100vw !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  html.yk-safari .header-actions,
+  html.yk-ios .header-actions {
+    flex-wrap: nowrap !important;
+  }
+  html.yk-safari .main-content,
+  html.yk-ios .main-content {
+    margin-left: 0 !important;
+  }
+  html.yk-safari .main-container,
+  html.yk-ios .main-container,
+  html.yk-safari .container,
+  html.yk-ios .container,
+  html.yk-safari .container-fluid,
+  html.yk-ios .container-fluid {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  html.yk-safari .card,
+  html.yk-ios .card,
+  html.yk-safari .yk-service-agent-card,
+  html.yk-ios .yk-service-agent-card,
+  html.yk-safari .yk-know-card,
+  html.yk-ios .yk-know-card {
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
+  }
+  html.yk-safari table,
+  html.yk-ios table {
+    max-width: 100%;
+  }
+}
+@media (max-width: 480px) {
+  .yk-login-shell {
+    width: 100% !important;
+    max-width: calc(100vw - 24px) !important;
+    box-sizing: border-box !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  .yk-login-shell *,
+  .yk-login-shell *::before,
+  .yk-login-shell *::after {
+    box-sizing: border-box;
+  }
+  .yk-login-shell .card {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 22px !important;
+  }
+  .yk-login-shell .card-body {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+  .yk-login-shell .lede,
+  .yk-login-shell p,
+  .yk-login-shell div {
+    max-width: 100% !important;
+    overflow-wrap: anywhere;
+  }
+  .yk-login-shell h1 {
+    letter-spacing: 0 !important;
+    font-size: 34px !important;
+  }
+  .yk-login-shell .btn,
+  .yk-login-shell .form-control {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
 """
 
 _YK_SAFARI_COMPAT_JS = """
 (function(){
-  if (window.__YK_SAFARI_COMPAT_D95__) return;
+  if (window.__YK_SAFARI_COMPAT_D300__) return;
+  window.__YK_SAFARI_COMPAT_D300__ = true;
   window.__YK_SAFARI_COMPAT_D95__ = true;
   var ua = (navigator.userAgent || '').toLowerCase();
   var platform = navigator.platform || '';
   var isIOS = /iphone|ipad|ipod/.test(ua) || (platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var isSafari = /safari/.test(ua) && !/chrome|chromium|crios|fxios|android|edg[/]/.test(ua);
+  var isMac = /mac/.test(platform.toLowerCase()) && !isIOS;
+  var isMobileLike = isIOS || (navigator.maxTouchPoints > 1 && /mobile|tablet|ipad/.test(ua));
   var saveData = !!(navigator.connection && navigator.connection.saveData);
   var safe = isSafari || isIOS || saveData;
   var root = document.documentElement;
   if (isSafari) root.classList.add('yk-safari');
   if (isIOS) root.classList.add('yk-ios');
+  if (isMac) root.classList.add('yk-macos');
+  if (isMac && isSafari) root.classList.add('yk-mac-safari');
+  if (isMobileLike) root.classList.add('yk-mobile-web');
+  if (navigator.maxTouchPoints > 0) root.classList.add('yk-touch-web');
   if (safe) root.classList.add('yk-safari-safe');
   root.dataset.ykSafariCompat = safe ? '1' : '0';
+  root.dataset.ykBrowserEngine = isIOS ? 'ios-webkit' : (isSafari ? 'safari' : 'other');
+
+  function ensureViewportMeta() {
+    try {
+      var meta = document.querySelector('meta[name="viewport"]');
+      var value = 'width=device-width, initial-scale=1.0, viewport-fit=cover';
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.setAttribute('name', 'viewport');
+        meta.setAttribute('content', value);
+        (document.head || document.documentElement).appendChild(meta);
+        return;
+      }
+      var current = meta.getAttribute('content') || '';
+      if (current.indexOf('viewport-fit=cover') < 0) {
+        meta.setAttribute('content', current ? current + ', viewport-fit=cover' : value);
+      }
+    } catch(e) {}
+  }
+
+  function setViewportVars() {
+    try {
+      var vv = window.visualViewport || null;
+      var h = (vv && vv.height) || window.innerHeight || document.documentElement.clientHeight || 0;
+      var w = (vv && vv.width) || window.innerWidth || document.documentElement.clientWidth || 0;
+      if (h > 0) {
+        root.style.setProperty('--yk-vh', (h * 0.01) + 'px');
+        root.style.setProperty('--yk-visual-height', h + 'px');
+      }
+      if (w > 0) root.style.setProperty('--yk-visual-width', w + 'px');
+      var offsetTop = (vv && vv.offsetTop) || 0;
+      var keyboard = 0;
+      if (isIOS && vv && window.innerHeight) {
+        keyboard = Math.max(0, window.innerHeight - vv.height - offsetTop);
+      }
+      root.style.setProperty('--yk-keyboard-offset', keyboard + 'px');
+      if (document.body) {
+        document.body.classList.toggle('yk-keyboard-open', keyboard > 80);
+      }
+      root.classList.toggle('yk-keyboard-open', keyboard > 80);
+    } catch(e) {}
+  }
 
   function forceReadableInput(el) {
     if (!isIOS || !el) return;
@@ -158927,7 +159167,16 @@ _YK_SAFARI_COMPAT_JS = """
         if (!el.getAttribute('autocorrect')) el.setAttribute('autocorrect', 'off');
         if (!el.getAttribute('spellcheck')) el.setAttribute('spellcheck', 'false');
       }
-      el.addEventListener('focus', function(){ forceReadableInput(el); }, {passive:true});
+      el.addEventListener('focus', function(){
+        forceReadableInput(el);
+        setTimeout(setViewportVars, 60);
+        if (isIOS) {
+          setTimeout(function(){
+            try { el.scrollIntoView({block:'center', inline:'nearest', behavior:'auto'}); } catch(e) {}
+          }, 220);
+        }
+      }, {passive:true});
+      el.addEventListener('blur', function(){ setTimeout(setViewportVars, 120); }, {passive:true});
     });
   }
 
@@ -158951,6 +159200,8 @@ _YK_SAFARI_COMPAT_JS = """
 
   function onPageShow(ev) {
     clearBusyState();
+    ensureViewportMeta();
+    setViewportVars();
     setInputHints(document);
     releaseHeavyMedia();
     if (ev && ev.persisted) {
@@ -158958,8 +159209,12 @@ _YK_SAFARI_COMPAT_JS = """
     }
   }
 
+  ensureViewportMeta();
+  setViewportVars();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function(){
+      ensureViewportMeta();
+      setViewportVars();
       setInputHints(document);
       releaseHeavyMedia();
       clearBusyState();
@@ -158971,6 +159226,14 @@ _YK_SAFARI_COMPAT_JS = """
   }
 
   window.addEventListener('pageshow', onPageShow);
+  window.addEventListener('resize', function(){ setTimeout(setViewportVars, 40); }, {passive:true});
+  window.addEventListener('orientationchange', function(){ setTimeout(setViewportVars, 180); }, {passive:true});
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', function(){ setTimeout(setViewportVars, 20); }, {passive:true});
+    window.visualViewport.addEventListener('scroll', function(){ setTimeout(setViewportVars, 20); }, {passive:true});
+  }
+  document.addEventListener('focusin', function(){ setTimeout(setViewportVars, 80); }, true);
+  document.addEventListener('focusout', function(){ setTimeout(setViewportVars, 140); }, true);
   document.addEventListener('visibilitychange', function(){
     if (document.hidden) releaseHeavyMedia();
     else setTimeout(onPageShow, 40);
@@ -158987,6 +159250,17 @@ _YK_SAFARI_COMPAT_JS = """
     });
     mo.observe(document.documentElement, {childList:true, subtree:true});
   } catch(e) {}
+  window.ykSafariCompatStatus = function(){
+    return {
+      ok: true,
+      isIOS: !!isIOS,
+      isSafari: !!isSafari,
+      isMacSafari: !!(isMac && isSafari),
+      safe: !!safe,
+      visualHeight: getComputedStyle(root).getPropertyValue('--yk-visual-height'),
+      keyboardOffset: getComputedStyle(root).getPropertyValue('--yk-keyboard-offset')
+    };
+  };
 })();
 """
 
