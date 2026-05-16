@@ -4992,7 +4992,7 @@ def _recent_ai_anomaly_screenings_html(patient_key, limit=5):
 
 def call_ollama(prompt, model=None, temperature=None,
                   max_tokens=None, timeout=None, use_cache=True,
-                  system=None, images=None):
+                  system=None, images=None, force_ollama=False):
     """ğŸ¤– Ortak Ollama Ã§aÄŸrÄ± fonksiyonu.
 
  TÃ¼m YZ route'larÄ± bunu kullanmalÄ±. Cache, hata yÃ¶netimi,
@@ -5022,8 +5022,8 @@ def call_ollama(prompt, model=None, temperature=None,
     if not prompt:
         return (False, "âŒ BoÅŸ YZ istemi", 0)
 
-    chosen_provider = _ai_provider_value()
-    if not images and chosen_provider != "ollama":
+    chosen_provider = "ollama" if force_ollama else _ai_provider_value()
+    if not force_ollama and not images and chosen_provider != "ollama":
         tried_cloud = []
         cloud_model = model if chosen_provider in {
             "openai", "claude", "deepseek", "gemini"
@@ -5050,8 +5050,11 @@ def call_ollama(prompt, model=None, temperature=None,
     _refresh_ai_config()
     # Terminal PC'ler server YZ'yi kullanir. DB'de eski/yanlis Ollama URL
     # kaldiysa status kontrolu calisan server-localhost adresine dondurur.
-    if not _ollama_status().get("online"):
-        _ollama_status(force=True)
+    # Sesli Alex force_ollama yolunda local 127.0.0.1'e direkt gider; eski
+    # uzak URL health kontrolu burada bekleme yaratmasin.
+    if not force_ollama:
+        if not _ollama_status().get("online"):
+            _ollama_status(force=True)
     if model is None:
         model = _select_ollama_model(
             vision=bool(images), task=task_name, system=system)
@@ -5131,8 +5134,12 @@ def call_ollama(prompt, model=None, temperature=None,
             payload_obj["images"] = images
         payload = _json.dumps(payload_obj).encode("utf-8")
 
+        ollama_generate_url = (
+            "http://127.0.0.1:11434/api/generate"
+            if force_ollama else _AI_CONFIG["url"]
+        )
         req = _urllib_req.Request(
-            _AI_CONFIG["url"],
+            ollama_generate_url,
             data=payload,
             headers={"Content-Type": "application/json"})
 
@@ -5152,7 +5159,7 @@ def call_ollama(prompt, model=None, temperature=None,
                 retry_obj["options"] = retry_options
                 retry_payload = _json.dumps(retry_obj).encode("utf-8")
                 retry_req = _urllib_req.Request(
-                    _AI_CONFIG["url"],
+                    ollama_generate_url,
                     data=retry_payload,
                     headers={"Content-Type": "application/json"})
                 with _urllib_req.urlopen(retry_req, timeout=timeout) as resp:
@@ -5212,6 +5219,75 @@ def ollama_available():
 # ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â
 # ÃƒÆ’Ã¢â‚¬ÂÃƒâ€¦Ã‚Â¸ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂºÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ XSS KORUMASI ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â HTML escape yardÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±mcÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±larÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±
 # ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â
+
+def _smart_dialog_fast_local_ollama(prompt, model="llama3.1:8b", system="",
+                                    temperature=0.3, max_tokens=160,
+                                    max_seconds=7.0):
+    """Small local streaming call for voice Alex; returns fast or fails closed."""
+    import json as _json
+    import re as _re
+    import time as _t
+    import urllib.error as _urllib_err
+    import urllib.request as _urllib_req
+
+    prompt = str(prompt or "").strip()
+    if not prompt:
+        return (False, "bos istem", 0)
+    full_prompt = prompt
+    if system:
+        full_prompt = f"[SISTEM]\n{system}\n\n{prompt}"
+    start = _t.time()
+    try:
+        payload_obj = {
+            "model": _normalize_ollama_model_name(model or "llama3.1:8b"),
+            "prompt": full_prompt,
+            "stream": True,
+            "keep_alive": "8h",
+            "options": {
+                "temperature": temperature,
+                "num_predict": max(48, min(int(max_tokens or 160), 320)),
+                "num_ctx": 2048,
+                "num_gpu": 99,
+                "num_batch": 2048,
+                "num_thread": 16,
+            },
+        }
+        _apply_ollama_think_policy(payload_obj, payload_obj["model"])
+        payload = _json.dumps(payload_obj).encode("utf-8")
+        req = _urllib_req.Request(
+            "http://127.0.0.1:11434/api/generate",
+            data=payload,
+            headers={"Content-Type": "application/json"})
+        parts = []
+        read_timeout = max(2.0, min(float(max_seconds or 7.0), 4.0))
+        with _urllib_req.urlopen(req, timeout=read_timeout) as resp:
+            for raw in resp:
+                if (_t.time() - start) > float(max_seconds or 7.0):
+                    break
+                if not raw:
+                    continue
+                try:
+                    data = _json.loads(raw.decode("utf-8", errors="ignore"))
+                except Exception:
+                    continue
+                chunk = str(data.get("response") or "")
+                if chunk:
+                    parts.append(chunk)
+                text_now = "".join(parts).strip()
+                if data.get("done"):
+                    break
+                if len(text_now) >= 220 and _re.search(r"[.!?]\s*$", text_now):
+                    break
+        answer = _ollama_extract_final_answer({"response": "".join(parts)})
+        duration = int((_t.time() - start) * 1000)
+        if answer:
+            return (True, answer, duration)
+        return (False, "bos cevap", duration)
+    except (_urllib_err.URLError, TimeoutError) as ex:
+        return (False, str(ex), int((_t.time() - start) * 1000))
+    except Exception as ex:
+        return (False, str(ex), int((_t.time() - start) * 1000))
+
 
 def _doctor_display_name():
     """Current doctor name for AI prompts and UI greetings."""
@@ -35676,7 +35752,7 @@ background:#ecfdf5;color:#047857;font-size:11px;font-weight:800;
   const ALEX_BARGE_THRESHOLD = 0.018;
   const ALEX_BARGE_MIN_MS = 180;
  const VOICE_AGENT_ROUTE_TIMEOUT_MS = 3500;
- const VOICE_AGENT_DIALOG_TIMEOUT_MS = 12000;
+ const VOICE_AGENT_DIALOG_TIMEOUT_MS = 18000;
   const VOICE_AGENT_COMMAND_TIMEOUT_MS = 6500;
  const VOICE_AGENT_MAX_RESPONSE_MS = 26000;
   const VOICE_AGENT_USE_WEB_SPEECH = false;
@@ -57328,6 +57404,41 @@ def api_phone_voice_turn_text():
         yield ("event: stt\ndata: " +
                _json.dumps({"text": user_text, "ms": 0}) + "\n\n")
 
+        quick_reply = ""
+        try:
+            quick_reply = _smart_dialog_live_companion_reply(
+                user_text, {"alex_mode": True, "voice": True})
+        except Exception:
+            quick_reply = ""
+        if quick_reply:
+            audio = None
+            try:
+                if tts_engine == "piper":
+                    audio = _ai_phone_piper_tts_bytes(quick_reply)
+                else:
+                    audio = _ai_phone_xtts_tts_bytes(quick_reply, voice=voice)
+                if not audio:
+                    audio = _ai_phone_piper_tts_bytes(quick_reply)
+            except Exception:
+                audio = None
+            if audio:
+                yield ("event: chunk\ndata: " + _json.dumps({
+                    "idx": 1,
+                    "text": quick_reply,
+                    "audio_b64": _b64.b64encode(audio).decode("ascii"),
+                    "tts_ms": 0,
+                }) + "\n\n")
+            yield ("event: done\ndata: " + _json.dumps({
+                "full": quick_reply,
+                "llm_first_token_ms": 0,
+                "llm_total_ms": 0,
+                "sentences": 1 if audio else 0,
+                "voice": voice,
+                "model": "alex-fast-rule",
+                "history_turns": 0,
+            }) + "\n\n")
+            return
+
         # LLM secimi (phone task)
         try:
             manual_model = _ollama_manual_model_for_task("phone")
@@ -57688,6 +57799,8 @@ def api_phone_voice_turn_text():
         prompt = "\n\n".join(prompt_parts)
         has_long_ctx = bool(research_context or url_context or patient_usg_context
                             or news_context or rag_context)
+        if not has_long_ctx:
+            model = "llama3.1:8b"
         # D300 FIX: gpt-oss/deepseek-r1/o1/qwq reasoning modelleri thinking
         # field'inde gizli token harciyorlar - response gelmesi icin extra
         # budget gerekir. Yoksa done_reason=length, full=''.
@@ -61742,6 +61855,19 @@ def _smart_dialog_system_prompt(active_patient_summary: str = "",
     return prompt
 
 
+def _smart_dialog_voice_fast_system_prompt(active_patient_summary: str = "") -> str:
+    sections = [
+        "Sen Alex'sin. YazKlinik icinde Dr. Hakan'a yardim eden Turkce klinik asistansin.",
+        "Cevap 1-3 cumle olsun. Dogal, sicak, net ve profesyonel konus.",
+        "Kullanici doktordur; ona hasta gibi hitap etme. 'doktorum' veya 'hocam' kullanabilirsin.",
+        "Komut varsa isi yap veya ACTION JSON hazirla. Kesin tani koyma; klinik karar hekime aittir.",
+        "Sesli modda uzun aciklama, madde listesi ve gereksiz kapanis cumlesi kullanma.",
+    ]
+    if active_patient_summary:
+        sections.append("AKTIF HASTA BAGLAMI:\n" + str(active_patient_summary)[:1200])
+    return "\n\n".join(sections)
+
+
 def _smart_dialog_live_companion_reply(message, client_context=None):
     folded = _fold_search_text(message)
     if not folded:
@@ -61749,6 +61875,38 @@ def _smart_dialog_live_companion_reply(message, client_context=None):
     context = client_context if isinstance(client_context, dict) else {}
     alex_mode = bool(context.get("alex_mode") or context.get("voice"))
     tokens = folded.split()
+    if re.fullmatch(
+            r"(alex|aleks|aleksa|alex merhaba|aleks merhaba|aleksa merhaba|hey alex|merhaba alex|selam alex)",
+            folded):
+        return "Buradayim doktorum, sesini aliyorum. Ne yapalim?"
+    if any(k in folded for k in (
+            "beni duyuyor musun", "sesimi aliyor musun", "oradasin",
+            "oradamisin", "burada misin", "hazir misin",
+            "sistem test", "alex test", "test cevap", "calisiyor musun",
+            "calisiyor mu", "alex calisiyor")):
+        return "Sistem hazir doktorum. Ses, komut ve sohbet hattindayim."
+    if any(k in folded for k in (
+            "kisa ve sakin", "sakin bir cevap", "kisa cevap ver",
+            "sakin cevap ver")):
+        return (
+            "Buradayim doktorum. Kisa ve sakin gidelim; ne lazimsa adim adim "
+            "toparlayalim."
+        )
+    if any(k in folded for k in (
+            "motivasyon", "motive et", "moral ver", "cesaret ver",
+            "gaza getir", "bugun motive", "kisa moral")):
+        return (
+            "Doktorum, bugun tek hedef secip ilk adimi atalim. Ben buradayim; "
+            "hasta, not veya ekran isini soyle, hizlica toparlayalim."
+        )
+    if any(k in folded for k in (
+            "isleri nasil daha hizli", "isleri hizli toparla",
+            "is akisini hizlandir", "daha hizli toparlarim")):
+        return (
+            "Once acil isi secip digerlerini siraya alalim doktorum. "
+            "Hasta, not veya recete isini soyle; ben ekrani ve metni hizlica "
+            "toparlarim."
+        )
     if _smart_dialog_is_action_request(message):
         return ""
 
@@ -61758,6 +61916,10 @@ def _smart_dialog_live_companion_reply(message, client_context=None):
             "beni duyuyor musun", "sesimi aliyor musun", "oradasin",
             "oradamisin", "burada misin", "hazir misin")):
         return "Buradayım doktorum, seni duyuyorum. Söyle, beraber toparlayalım."
+    if any(k in folded for k in (
+            "sistem test", "alex test", "test cevap", "calisiyor musun",
+            "calisiyor mu", "alex calisiyor")):
+        return "Sistem hazir doktorum. Ses, komut ve sohbet hattindayim."
     if any(k in folded for k in (
             "nasilsin", "naber", "iyi misin", "keyfin nasil")):
         return "İyiyim doktorum, buradayım. Bugün işi hızlı ve sakin götürelim."
@@ -63256,8 +63418,8 @@ def _smart_dialog_ai_reply(message, action_result=None, history=None,
     is_voice_mode = bool(
         isinstance(client_context, dict)
         and (client_context.get("alex_mode") or client_context.get("voice")))
-    history_window = 12 if is_voice_mode else 16
-    char_per_turn = 380 if is_voice_mode else 600
+    history_window = 6 if is_voice_mode else 16
+    char_per_turn = 240 if is_voice_mode else 600
     compact_history = []
     for row in history[-history_window:]:
         compact_history.append(
@@ -63339,13 +63501,16 @@ def _smart_dialog_ai_reply(message, action_result=None, history=None,
         "ACTION:{...} JSON'u ekle (route haritasini kullan)."
     )
     dialog_model = _smart_dialog_pick_chat_model()
-    sys_prompt = _smart_dialog_system_prompt(
-        active_patient_summary, voice_mode=is_voice_mode)
+    sys_prompt = (
+        _smart_dialog_voice_fast_system_prompt(active_patient_summary)
+        if is_voice_mode
+        else _smart_dialog_system_prompt(active_patient_summary, voice_mode=False)
+    )
 
     # D121: voice modda kisa+hizli, normal modda kapsamli klinik konsult.
     # Klinik konsultant kalitesi icin temperature 0.3 (daha tutarli).
-    voice_max_tokens = 340 if is_voice_mode else 600
-    voice_timeout = 24 if is_voice_mode else 40
+    voice_max_tokens = 220 if is_voice_mode else 600
+    voice_timeout = 12 if is_voice_mode else 40
     voice_temperature = 0.3
 
     # D300 RTX 5090: auto modda yerel Ollama/RTX once gelsin. Sadece doktor
@@ -63356,8 +63521,11 @@ def _smart_dialog_ai_reply(message, action_result=None, history=None,
         provider_choice in {"cloud_first", "online", "cloud"}
         or _ai_provider_is_cloud(provider_choice)
     )
-    strategy = _ai_strategy_available_order(
-        images=False, prefer_cloud=prefer_cloud)
+    if is_voice_mode:
+        strategy = [("ollama", None)]
+    else:
+        strategy = _ai_strategy_available_order(
+            images=False, prefer_cloud=prefer_cloud)
     for kind, provider in strategy:
         if kind == "cloud":
             ok, answer, duration = _b301_call_cloud_ai(
@@ -63371,16 +63539,37 @@ def _smart_dialog_ai_reply(message, action_result=None, history=None,
                 return _smart_dialog_polish_reply(answer, is_voice_mode), f"ai:{provider}", duration
             continue
         if kind == "ollama":
-            ok, answer, duration = call_ollama(
-                prompt,
-                model=dialog_model,
-                temperature=voice_temperature,
-                max_tokens=voice_max_tokens,
-                timeout=voice_timeout,
-                use_cache=True,
-                system=sys_prompt)
+            attempt_model = dialog_model
+            if is_voice_mode:
+                for cand in ("llama3.1:8b", "llama3.1:latest", "yaz:latest",
+                             dialog_model, DEFAULT_OLLAMA_MODEL):
+                    if not cand:
+                        continue
+                    attempt_model = cand
+                    break
+            if is_voice_mode:
+                ok, answer, duration = _smart_dialog_fast_local_ollama(
+                    prompt,
+                    model=attempt_model,
+                    temperature=voice_temperature,
+                    max_tokens=voice_max_tokens,
+                    max_seconds=7.0,
+                    system=sys_prompt)
+            else:
+                ok, answer, duration = call_ollama(
+                    prompt,
+                    model=attempt_model,
+                    temperature=voice_temperature,
+                    max_tokens=voice_max_tokens,
+                    timeout=voice_timeout,
+                    use_cache=True,
+                    system=sys_prompt,
+                    force_ollama=False)
             if ok and answer:
-                return _smart_dialog_polish_reply(answer, is_voice_mode), "ai:ollama", duration
+                source_model = "ai:ollama"
+                if attempt_model != dialog_model:
+                    source_model += f":{attempt_model}"
+                return _smart_dialog_polish_reply(answer, is_voice_mode), source_model, duration
             continue
     # B111: Eskiden raw action_result.result fallback olarak donerdi (JSON/HTML
     # parcasi). Doktor "saÃ§ma/aptal cevap" goruyordu. Artik kibar Turkce sarmal:
@@ -63392,6 +63581,13 @@ def _smart_dialog_ai_reply(message, action_result=None, history=None,
         return (
             f"Komut tamamlandi. Sonuc ozeti: {snippet}",
             "action_fallback",
+            duration,
+        )
+    if is_voice_mode:
+        return (
+            "Duydum doktorum. YZ cevabi gecikti ama sesli komut hattim acik; "
+            "hangi ekran, hasta veya not isi lazimsa kisa soyle, hemen yapayim.",
+            "voice_fallback",
             duration,
         )
     return (
@@ -63769,6 +63965,74 @@ def _smart_dialog_handle(message, confirmed=False, speak=True, selected_patient=
         "user", message,
         meta={"client_context": client_context or {}},
         dialog_id=dialog_id)
+
+    voice_ctx = bool(
+        isinstance(client_context, dict)
+        and (client_context.get("alex_mode") or client_context.get("voice")))
+    if voice_ctx:
+        folded_voice = _fold_search_text(message)
+        domain_action = any(k in folded_voice for k in (
+            "hasta", "recete", "randevu", "dosya", "voluson", "bulut",
+            "dicom", "whatsapp", "pdf", "yazdir", "ekran ac", "sayfa ac",
+            "not ekle", "sistem durum", "ayar", "backup", "yedek",
+            "akilli dialog", "akilli sohbet", "sessiz alex", "sesli recete"))
+        if not domain_action:
+            companion_reply = _smart_dialog_live_companion_reply(
+                message, client_context=client_context)
+            source = "live_companion"
+            duration = 0
+            answer_text = companion_reply
+            if not answer_text:
+                sys_prompt = (
+                    "Sen Alex'sin. Dr. Hakan icin Turkce, dogal ve kisa "
+                    "konusan klinik asistansin. Kullanici doktordur. "
+                    "Cevap 1-3 cumle olsun. ACTION JSON, kod, teknik format "
+                    "ve madde listesi yazma."
+                )
+                fast_prompt = (
+                    "Kullanici: " + str(message or "") +
+                    "\nAlex: Kisa, akici ve Turkce cevap ver."
+                )
+                ok, generated, duration = _smart_dialog_fast_local_ollama(
+                    fast_prompt,
+                    model="llama3.1:8b",
+                    temperature=0.35,
+                    max_tokens=120,
+                    max_seconds=6.0,
+                    system=sys_prompt)
+                if ok and generated:
+                    answer_text = _smart_dialog_polish_reply(generated, True)
+                    answer_text = re.sub(
+                        r"(?is)^\s*doktorun\s+sorusu\s*:.*?\bcevap\s*:\s*",
+                        "",
+                        answer_text).strip()
+                    answer_text = re.sub(r"\s*\n+\s*", " ", answer_text).strip()
+                    source = "voice_local_fast"
+                else:
+                    answer_text = (
+                        "Duydum doktorum. Kisa cevap vereyim: bir isi secip "
+                        "hemen ilk adimi atalim; kalanini birlikte toparlayalim."
+                    )
+                    source = "voice_fallback"
+            meta = {
+                "source": source,
+                "duration_ms": duration,
+                "action": None,
+                "status": "voice_chat",
+            }
+            _smart_dialog_save("assistant", answer_text, meta=meta, dialog_id=dialog_id)
+            return {
+                "ok": True,
+                "dialog_id": dialog_id,
+                "answer": answer_text,
+                "source": source,
+                "duration_ms": duration,
+                "action_result": None,
+                "action": None,
+                "needs_confirm": False,
+                "speak": bool(speak),
+                "status": {"voice_chat": True},
+            }
 
     action = _command_center_parse(message)
     if action.get("key") == "blocked_shell":
@@ -74077,8 +74341,17 @@ def api_smart_dialog_say():
             or ""
         ).strip()
     )
-    current_path = str(data.get("current_path") or "").strip()
-    page_title = str(data.get("page_title") or "").strip()
+    incoming_context = (
+        data.get("client_context")
+        if isinstance(data, dict) and isinstance(data.get("client_context"), dict)
+        else {}
+    )
+    current_path = str(
+        data.get("current_path") or incoming_context.get("current_path") or ""
+    ).strip()
+    page_title = str(
+        data.get("page_title") or incoming_context.get("page_title") or ""
+    ).strip()
     if not selected_patient and current_path:
         try:
             path_patient = _voice_command_patient_from_path(current_path)
@@ -74096,8 +74369,12 @@ def api_smart_dialog_say():
         client_context={
             "current_path": current_path,
             "page_title": page_title,
-            "voice": bool(data.get("voice") or data.get("speak")),
-            "alex_mode": bool(data.get("alex_mode")),
+            "voice": bool(
+                data.get("voice") or data.get("speak")
+                or incoming_context.get("voice")
+                or incoming_context.get("alex_mode")),
+            "alex_mode": bool(
+                data.get("alex_mode") or incoming_context.get("alex_mode")),
         })
     return jsonify(result)
 
