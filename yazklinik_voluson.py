@@ -322,6 +322,261 @@ def _db_conn(db_path=None):
     return con
 
 
+def _now_iso():
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _table_columns(con, table_name):
+    try:
+        return [r[1] for r in con.execute(
+            f"PRAGMA table_info({table_name})").fetchall()]
+    except Exception:
+        return []
+
+
+def _table_exists(con, name):
+    try:
+        r = con.execute(
+            "SELECT name FROM sqlite_master "
+            "WHERE type='table' AND name=?", (name,)).fetchone()
+        return bool(r)
+    except Exception:
+        return False
+
+
+def _build_voluson_examination_summary(data):
+    """Visit ekrani icin kisa, okunur ozet metni uret (Gelisler sayfasinda gosterilir)."""
+    bits = []
+    ga = data.get("ga_aua") or data.get("ga_lmp")
+    if ga:
+        bits.append(f"GA: {ga}")
+    if data.get("efw_g"):
+        suffix = ""
+        if data.get("efw_percentile") is not None:
+            suffix = f" (%{data['efw_percentile']:.0f}p)"
+        bits.append(f"EFW: {data['efw_g']}g{suffix}")
+    for key, label in (("bpd_mm","BPD"), ("hc_mm","HC"),
+                       ("ac_mm","AC"), ("fl_mm","FL")):
+        v = data.get(key)
+        if v is not None:
+            bits.append(f"{label}: {v:.1f}mm")
+    if data.get("fetal_hr"):
+        bits.append(f"FHR: {data['fetal_hr']}/dk")
+    flags = data.get("clinical_flags") or []
+    if flags:
+        bits.append("FLAG: " + ", ".join(flags))
+    return "USG (Voluson) - " + " | ".join(bits) if bits else "USG (Voluson) raporu"
+
+
+def _build_voluson_visit_notes(data):
+    """Notlar alani icin tum demografik+vital+olcum dokumu (uzun, hasta kartinda goruntulenir)."""
+    lines = []
+    lines.append("Voluson USG raporu (otomatik import)")
+    pdf_fn = data.get("pdf_filename") or ""
+    if pdf_fn:
+        lines.append(f"Kaynak PDF: {pdf_fn}")
+    # Demografik / vital
+    dem = []
+    if data.get("age"):       dem.append(f"Yas: {data['age']}")
+    if data.get("dob"):       dem.append(f"DOB: {data['dob']}")
+    if data.get("height_cm"): dem.append(f"Boy: {data['height_cm']} cm")
+    if data.get("weight_kg"): dem.append(f"Kilo: {data['weight_kg']} kg")
+    if data.get("bmi"):       dem.append(f"BMI: {data['bmi']}")
+    if data.get("systolic_bp") and data.get("diastolic_bp"):
+        dem.append(f"TA: {data['systolic_bp']}/{data['diastolic_bp']} mmHg")
+    if dem:
+        lines.append("Demografik / vital: " + " | ".join(dem))
+    # Gebelik
+    g = []
+    if data.get("gravida"):   g.append(f"G: {data['gravida']}")
+    if data.get("para"):      g.append(f"P: {data['para']}")
+    if data.get("lmp"):       g.append(f"LMP: {data['lmp']}")
+    if data.get("ga_lmp"):    g.append(f"GA(LMP): {data['ga_lmp']}")
+    if data.get("ga_aua"):    g.append(f"GA(AUA): {data['ga_aua']}")
+    if data.get("edd_lmp"):   g.append(f"EDD(LMP): {data['edd_lmp']}")
+    if g:
+        lines.append("Gebelik: " + " | ".join(g))
+    # Biyometri tek satir
+    bio = []
+    for key, label in (("bpd_mm","BPD"), ("hc_mm","HC"),
+                       ("ac_mm","AC"), ("fl_mm","FL"),
+                       ("ofd_mm","OFD"), ("tcd_mm","TCD"),
+                       ("nt_mm","NT"), ("crl_mm","CRL")):
+        v = data.get(key)
+        if v is not None:
+            pct = data.get(key.replace("_mm","_percentile"))
+            bio.append(f"{label} {v:.1f}mm" + (f" (%{pct:.0f}p)" if pct else ""))
+    if bio:
+        lines.append("Biyometri: " + " | ".join(bio))
+    if data.get("efw_g"):
+        s = f"EFW: {data['efw_g']}g"
+        if data.get("efw_percentile") is not None:
+            s += f" (%{data['efw_percentile']:.1f}p)"
+        lines.append(s)
+    # Doppler
+    dop = []
+    for key, label in (("umb_pi","Umb PI"), ("umb_ri","Umb RI"),
+                       ("umb_sd","Umb S/D"), ("fetal_hr","FHR")):
+        v = data.get(key)
+        if v is not None:
+            dop.append(f"{label}: {v}")
+    if dop:
+        lines.append("Doppler: " + " | ".join(dop))
+    flags = data.get("clinical_flags") or []
+    if flags:
+        lines.append("Klinik flag'ler: " + "; ".join(flags))
+    return "\n".join(lines)
+
+
+def _sync_to_patient_records(con, data, patient_key, pdf_path):
+    """Voluson PDF verisini visits + patient_demographics tablolarina kopru.
+
+    Sadece patient_key eslesmis ise calisir; tablolarin var olup olmadigini
+    defansif olarak kontrol eder. Tum is tek transaction icinde.
+
+    Returns: {"visit_written": bool, "demographics_updated": bool, "reason": str}
+    """
+    out = {"visit_written": False, "demographics_updated": False, "reason": ""}
+    if not patient_key:
+        out["reason"] = "patient_key bos (hasta eslesmemis)"
+        return out
+
+    # --- 1) VISITS tablosu - ayni PDF'ten ikinci visit acmamak icin idempotent ---
+    if _table_exists(con, "visits"):
+        try:
+            import hashlib as _hash
+            visit_key = "voluson-" + _hash.md5(
+                (pdf_path or "").encode("utf-8", "replace")).hexdigest()[:14]
+
+            vcols = _table_columns(con, "visits")
+            has_visit_key = "visit_key" in vcols
+            has_source    = "source" in vcols
+            has_visit_type = "visit_type" in vcols
+            has_examination = "examination" in vcols
+
+            # Daha once import edilmis mi?
+            already = None
+            if has_visit_key:
+                r = con.execute(
+                    "SELECT id FROM visits WHERE visit_key = ?",
+                    (visit_key,)).fetchone()
+                if r:
+                    already = r[0]
+
+            if not already:
+                examination = _build_voluson_examination_summary(data)
+                notes = _build_voluson_visit_notes(data)
+                # exam_date varsa onu kullan, yoksa simdi
+                visit_date = data.get("exam_date") or _now_iso()
+                # Kolonlari dinamik kur
+                col_names = ["patient_folder_key", "visit_date", "notes", "created_at"]
+                values    = [patient_key, visit_date, notes, _now_iso()]
+                if has_visit_type:
+                    col_names.append("visit_type"); values.append("usg")
+                if has_examination:
+                    col_names.append("examination"); values.append(examination)
+                if has_source:
+                    col_names.append("source"); values.append("voluson:auto")
+                if has_visit_key:
+                    col_names.append("visit_key"); values.append(visit_key)
+                placeholders = ",".join("?" * len(values))
+                con.execute(
+                    f"INSERT INTO visits ({','.join(col_names)}) "
+                    f"VALUES ({placeholders})", values)
+                out["visit_written"] = True
+        except Exception as exc:
+            out["reason"] = f"visits hata: {exc}"
+
+    # --- 2) PATIENT_DEMOGRAPHICS - JSON merge, mevcudu ezme ---
+    if _table_exists(con, "patient_demographics"):
+        try:
+            dcols = _table_columns(con, "patient_demographics")
+            existing = {}
+            if "data_json" in dcols:
+                r = con.execute(
+                    "SELECT data_json FROM patient_demographics "
+                    "WHERE patient_key = ?", (patient_key,)).fetchone()
+                if r and r[0]:
+                    try:
+                        existing = json.loads(r[0])
+                        if not isinstance(existing, dict):
+                            existing = {}
+                    except Exception:
+                        existing = {}
+
+            def _set_if_empty(target, key, value):
+                if value is None or value == "":
+                    return
+                # Mevcut bossa veya gercek bir deger degilse, yenisini koy
+                cur = target.get(key)
+                if cur in (None, "", 0):
+                    target[key] = value
+
+            _set_if_empty(existing, "age", data.get("age"))
+            _set_if_empty(existing, "birth_date", data.get("dob"))
+            _set_if_empty(existing, "height", data.get("height_cm"))
+            _set_if_empty(existing, "height_cm", data.get("height_cm"))
+            _set_if_empty(existing, "weight", data.get("weight_kg"))
+            _set_if_empty(existing, "weight_kg", data.get("weight_kg"))
+            _set_if_empty(existing, "bmi", data.get("bmi"))
+
+            # Kan basinci nested olarak da, duz olarak da yazilsin (farkli sayfalar farkli okuyor)
+            if data.get("systolic_bp"):
+                _set_if_empty(existing, "systolic_bp", data["systolic_bp"])
+                _set_if_empty(existing, "systolic", data["systolic_bp"])
+            if data.get("diastolic_bp"):
+                _set_if_empty(existing, "diastolic_bp", data["diastolic_bp"])
+                _set_if_empty(existing, "diastolic", data["diastolic_bp"])
+            if data.get("systolic_bp") and data.get("diastolic_bp"):
+                bp = existing.get("blood_pressure")
+                if not isinstance(bp, dict):
+                    bp = {}
+                bp.setdefault("systolic", data["systolic_bp"])
+                bp.setdefault("diastolic", data["diastolic_bp"])
+                bp.setdefault("recorded_at", data.get("exam_date") or _now_iso())
+                bp.setdefault("source", "voluson")
+                existing["blood_pressure"] = bp
+                # Duz string fallback (eski sayfa)
+                _set_if_empty(existing, "ta",
+                              f"{data['systolic_bp']}/{data['diastolic_bp']}")
+
+            # Gebelik bilgileri
+            if data.get("lmp"):
+                _set_if_empty(existing, "last_menstrual_period", data["lmp"])
+                _set_if_empty(existing, "lmp", data["lmp"])
+            if data.get("gravida"):
+                _set_if_empty(existing, "gravida", data["gravida"])
+            if data.get("para"):
+                _set_if_empty(existing, "para", data["para"])
+
+            existing["_last_voluson_sync"] = _now_iso()
+
+            data_json = json.dumps(existing, ensure_ascii=False, default=str)
+            if "data_json" in dcols and "updated_at" in dcols:
+                con.execute(
+                    "INSERT INTO patient_demographics (patient_key, data_json, updated_at) "
+                    "VALUES (?, ?, ?) "
+                    "ON CONFLICT(patient_key) DO UPDATE SET "
+                    "  data_json = excluded.data_json, "
+                    "  updated_at = excluded.updated_at",
+                    (patient_key, data_json, _now_iso()))
+                out["demographics_updated"] = True
+            elif "data_json" in dcols:
+                con.execute(
+                    "INSERT INTO patient_demographics (patient_key, data_json) "
+                    "VALUES (?, ?) "
+                    "ON CONFLICT(patient_key) DO UPDATE SET "
+                    "  data_json = excluded.data_json",
+                    (patient_key, data_json))
+                out["demographics_updated"] = True
+        except Exception as exc:
+            if out["reason"]:
+                out["reason"] += " | "
+            out["reason"] += f"demographics hata: {exc}"
+
+    return out
+
+
 def init_db(db_path=None):
     """voluson_reports tablosunu olustur (idempotent)."""
     con = _db_conn(db_path)
@@ -537,13 +792,28 @@ def import_pdf(pdf_path, db_path=None, force=False):
         cur = con.execute(
             f"INSERT INTO voluson_reports ({cols}) VALUES ({placeholders})",
             list(cols_vals.values()))
+
+        # === D300 2026-05-16: Hasta dosyasi kopru ===
+        # voluson_reports'a yaziyoruz; ayni transactionda visits ve
+        # patient_demographics'a da yaz ki "Gelisler" sayfasinda ve
+        # hasta demografiklerinde yas/kilo/boy/TA gozuksun.
+        sync_info = {}
+        try:
+            sync_info = _sync_to_patient_records(
+                con, data, patient_key, pdf_path)
+        except Exception as exc:
+            sync_info = {"reason": f"sync hata: {exc}"}
+
         con.commit()
         return {"imported": True, "id": cur.lastrowid,
                 "matched_patient_key": patient_key,
                 "patient_name": data.get("name"),
                 "ga_aua": data.get("ga_aua"),
                 "efw_g": data.get("efw_g"),
-                "flags": data.get("clinical_flags")}
+                "flags": data.get("clinical_flags"),
+                "visit_written": sync_info.get("visit_written"),
+                "demographics_updated": sync_info.get("demographics_updated"),
+                "sync_reason": sync_info.get("reason") or ""}
     finally:
         con.close()
 
