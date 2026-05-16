@@ -68,6 +68,7 @@ mojibake_mod = _safe_import("yazklinik_mojibake_bekci_agent")
 pr_mod = _safe_import("yazklinik_pr_reviewer_agent")
 instagram_mod = _safe_import("yazklinik_instagram_agent")
 ceviri_mod = _safe_import("yazklinik_ceviri_agent")
+konsult_mod = _safe_import("yazklinik_konsult_agent")
 
 # Registry (opsiyonel)
 try:
@@ -166,6 +167,7 @@ def api_agents_manifest():
         "pr_reviewer": pr_mod is not None,
         "instagram": instagram_mod is not None,
         "ceviri": ceviri_mod is not None,
+        "konsult": konsult_mod is not None,
     }
     return jsonify(payload)
 
@@ -1469,6 +1471,458 @@ document.getElementById('sendAlexBtn').addEventListener('click', () => {
     document.getElementById('mainStatus').className = 'status fail';
   }
 });
+
+checkHealth();
+</script>
+</body></html>
+"""
+
+
+# === YZ Konsultasyon Ajani ================================================
+
+@agents_bp.route("/api/agents/konsult/health", methods=["GET"])
+def konsult_health():
+    auth = _require_session()
+    if auth:
+        return auth
+    err = _agent_or_503(konsult_mod, "konsult")
+    if err:
+        return err
+    try:
+        return jsonify({"ok": True, "agent": "konsult", "result": konsult_mod.health_check()})
+    except Exception as e:  # noqa: BLE001
+        return jsonify({"ok": False, "agent": "konsult", "error": str(e)}), 500
+
+
+@agents_bp.route("/api/agents/konsult/extract", methods=["POST"])
+def konsult_extract():
+    auth = _require_session()
+    if auth:
+        return auth
+    err = _agent_or_503(konsult_mod, "konsult")
+    if err:
+        return err
+    p = _payload()
+    text = str(p.get("text") or "").strip()
+    if not text:
+        return jsonify({"ok": False, "agent": "konsult", "error": "text gerekli"}), 400
+    try:
+        case, trace = konsult_mod.extract_case(text, prefer=str(p.get("prefer") or "ollama"))
+    except Exception as e:  # noqa: BLE001
+        return jsonify({"ok": False, "agent": "konsult", "error": str(e)}), 500
+    return jsonify({"ok": True, "agent": "konsult",
+                     "result": {"case": asdict(case), "trace": trace}})
+
+
+@agents_bp.route("/api/agents/konsult/full", methods=["POST"])
+def konsult_full():
+    auth = _require_session()
+    if auth:
+        return auth
+    err = _agent_or_503(konsult_mod, "konsult")
+    if err:
+        return err
+    p = _payload()
+    text = str(p.get("text") or "").strip()
+    prefer = str(p.get("prefer") or "ollama")
+    skip = p.get("skip_steps") or []
+    if not isinstance(skip, list):
+        skip = []
+    if not text:
+        return jsonify({"ok": False, "agent": "konsult", "error": "text gerekli"}), 400
+    try:
+        res = konsult_mod.full_consultation(text, prefer=prefer, skip_steps=[str(s) for s in skip])
+        md = konsult_mod.format_as_markdown(res, include_trace=bool(p.get("include_trace")))
+    except Exception as e:  # noqa: BLE001
+        import traceback as _tb
+        return jsonify({"ok": False, "agent": "konsult", "error": str(e),
+                         "trace": _tb.format_exc(limit=3)}), 500
+    _safe_audit("agents:konsult_full", {"chars": len(text), "confidence": res.confidence,
+                                          "ddx_count": len(res.differentials)})
+    payload = asdict(res)
+    payload["markdown"] = md
+    return jsonify({"ok": True, "agent": "konsult", "result": payload})
+
+
+@agents_bp.route("/yz-konsultasyon", methods=["GET"])
+def konsult_page():
+    auth = _require_session()
+    if auth:
+        return auth
+    return render_template_string(_KONSULT_PAGE)
+
+
+_KONSULT_PAGE = r"""<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<title>YZ Konsultasyon - YazKlinik</title>
+<style>
+  :root { --med-blue: #1769aa; --med-teal: #0c7488; --med-rose: #c2185b;
+          --med-green: #16815f; --med-amber: #b8821f; --med-red: #b3261e;
+          --med-violet: #6f4cb8;
+          --ink: #122236; --muted: #5e7185; --line: rgba(94,113,133,0.18);
+          --surface: #ffffff; --bg: #f5f8fb; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+         background: var(--bg); color: var(--ink); margin: 0; padding: 18px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  .lead { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+  .warn { background: #fff8e1; border: 1px solid #f0c14b; padding: 8px 12px;
+          border-radius: 8px; color: #7a5612; font-size: 12px; margin-bottom: 14px; }
+  .layout { display: grid; grid-template-columns: 380px 1fr; gap: 14px; align-items: start; }
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+  .panel { background: var(--surface); border: 1px solid var(--line);
+           border-radius: 12px; padding: 14px; }
+  .panel h3 { margin: 0 0 10px; font-size: 13px; color: var(--med-blue);
+              text-transform: uppercase; letter-spacing: 0.6px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 3px; }
+  textarea, input[type=text], select { width: 100%; padding: 8px 10px;
+    border: 1px solid var(--line); border-radius: 8px; background: #fafbfd;
+    color: var(--ink); font-size: 13px; box-sizing: border-box; font-family: inherit; }
+  textarea { resize: vertical; min-height: 180px; }
+  button { display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border: 0; border-radius: 8px; cursor: pointer;
+    font-size: 13px; font-weight: 600; }
+  .btn-primary { background: linear-gradient(135deg, var(--med-blue), var(--med-teal)); color: #fff; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(23,105,170,0.25); }
+  .btn-ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+  .btn-ghost:hover { background: rgba(23,105,170,0.08); color: var(--med-blue); }
+  .status { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .status.ok { color: var(--med-green); } .status.fail { color: var(--med-red); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .b-high { background: #fbe6e4; color: var(--med-red); }
+  .b-med  { background: #fdf2db; color: var(--med-amber); }
+  .b-low  { background: #e2f3eb; color: var(--med-green); }
+  .b-urg  { background: var(--med-red); color: #fff; }
+  .b-pri  { background: var(--med-amber); color: #fff; }
+  .b-rou  { background: var(--med-teal); color: #fff; }
+  .b-cat  { background: rgba(111,76,184,0.16); color: var(--med-violet); }
+  .red-flag-box { background: #fbe6e4; border-left: 4px solid var(--med-red);
+    padding: 10px 14px; border-radius: 8px; margin-bottom: 12px; }
+  .red-flag-box h4 { margin: 0 0 6px; color: var(--med-red); font-size: 13px; }
+  .ddx-card { background: #fff; border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 10px; }
+  .ddx-card h4 { margin: 0; font-size: 14px; display: flex;
+    align-items: center; justify-content: space-between; gap: 8px; }
+  .ddx-card .reasoning { margin-top: 8px; font-size: 12px; color: var(--ink); }
+  .ddx-card ul { margin: 4px 0; padding-left: 20px; font-size: 12px; }
+  .ddx-card .meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .workup-item, .tx-item, .fu-item { padding: 8px 12px; border-left: 3px solid var(--line);
+    background: #fafbfd; border-radius: 6px; margin-bottom: 6px; font-size: 13px; }
+  .workup-item.urgent { border-left-color: var(--med-red); }
+  .workup-item.priority { border-left-color: var(--med-amber); }
+  .workup-item .extra { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .tx-item { border-left-color: var(--med-teal); }
+  .tx-item .dose { color: var(--med-blue); font-weight: 600; }
+  .case-card { background: #f4f8fc; border-radius: 8px; padding: 10px 12px;
+    font-size: 12px; margin-bottom: 10px; }
+  .case-card div { margin: 2px 0; }
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  pre.md-export { background: #0d1117; color: #c9d1d9; padding: 12px; border-radius: 8px;
+    font-size: 11px; max-height: 300px; overflow: auto; white-space: pre-wrap;
+    font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace; }
+  .skeleton { background: #e2eaf2; height: 14px; border-radius: 4px; margin: 4px 0;
+    animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+  .examples { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .examples button { font-size: 11px; padding: 4px 8px; background: #eef4fa;
+    color: var(--med-blue); border: 0; border-radius: 999px; cursor: pointer; }
+  .examples button:hover { background: rgba(23,105,170,0.18); }
+  details { background: #fafbfd; border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 12px; margin-top: 12px; font-size: 12px; }
+  details summary { cursor: pointer; font-weight: 600; color: var(--med-blue); }
+</style></head>
+<body>
+  <h1>YZ Konsultasyon (Multi-Step OB-GYN)</h1>
+  <p class="lead">5 adimli akilli zincir: vaka ayriklastir → kirmizi alarm + DDx → tetkik → tedavi → takip. Yerel Ollama (qwen2.5:32b) yi kullanir; OpenAI varsa fallback.
+     <span id="healthPill" class="badge b-med">saglik kontrol...</span></p>
+  <div class="warn"><strong>UYARI:</strong> Bu sistemin ciktilari klinik karar destek niteligindedir; KESINLIKLE klinik karar yerine gecmez. Tum oneriler yetkili hekim tarafindan dogrulanmadan uygulanmamalidir.</div>
+
+  <div class="layout">
+    <!-- SOL: Vaka girisi -->
+    <div class="panel">
+      <h3>Vaka</h3>
+      <label>Vaka tarifi (serbest metin, hasta adi/TC YAZMAYIN)</label>
+      <textarea id="caseText" placeholder="Ornek: 32 yas, G2P1, 34 hafta gebe. 2 gundur basagrisi, gorme bulaniklasti. TA 158/102, idrar testinde ++ proteinuri. Onceki gebelikte gestasyonel diyabet vardi."></textarea>
+      <div class="examples">
+        <button onclick="loadExample(1)">Preeklampsi suphesi</button>
+        <button onclick="loadExample(2)">Acil PPH</button>
+        <button onclick="loadExample(3)">PCOS infertilite</button>
+        <button onclick="loadExample(4)">PID</button>
+      </div>
+      <label style="margin-top:10px;">LLM tercih</label>
+      <select id="prefer">
+        <option value="ollama">Ollama (yerel, qwen2.5:32b)</option>
+        <option value="openai">OpenAI</option>
+      </select>
+      <div class="actions">
+        <button class="btn-primary" id="runFullBtn">Tam Konsultasyon</button>
+        <button class="btn-ghost" id="runExtractBtn">Sadece Vaka Yapilandir</button>
+      </div>
+      <div class="status" id="runStatus"></div>
+    </div>
+
+    <!-- SAG: Sonuc -->
+    <div class="panel" id="resultPanel">
+      <h3>Sonuc</h3>
+      <div id="resultArea" style="font-size:13px;color:var(--muted);">
+        Sol panele vaka yazip "Tam Konsultasyon" tikla.
+      </div>
+    </div>
+  </div>
+
+<script>
+const EXAMPLES = {
+  1: '32 yas, G2P1, 34 hafta gebe. Son 2 gundur frontal basagrisi var, bugun gorme bulaniklasti. TA: 158/102, nabiz 92, ates 36.8. Spot idrar +++ protein. Bacaklarda 2+ odem. Onceki gebelikte gestasyonel diyabet vardi.',
+  2: '28 yas, G1P1, normal vaginal dogum yapali 30 dakika oldu. Dogum sonrasi devam eden parlak kirmizi vajinal kanama, su ana kadar 800 cc. TA 100/60, nabiz 110, uterus gevsek hissediliyor. Plasenta cikti.',
+  3: '26 yas, evli 3 yildir cocuk yok. Adetler duzensiz (40-90 gun arasi), kilo problemi var (BMI 32). Yuzde tuylenme, akne. Onceki HSG normal, esinin spermiyogrami normal. AMH yuksek.',
+  4: '24 yas, cinsel aktif, 2 partner. Son 5 gundur alt karin agrisi, kotu kokulu vajinal akinti, ates 38.4. Adet gecikmesi yok, son adet 10 gun once. Servikal hareket hassasiyeti var.'
+};
+
+function loadExample(i) {
+  document.getElementById('caseText').value = EXAMPLES[i] || '';
+}
+
+async function checkHealth() {
+  try {
+    const r = await fetch('/api/agents/konsult/health', {credentials: 'same-origin'});
+    const d = await r.json();
+    const h = d.result || {};
+    const llm = (h.llm || {});
+    const pill = document.getElementById('healthPill');
+    if (llm.ollama_available) {
+      pill.textContent = 'Ollama OK (' + (llm.ollama_model || '?') + ')';
+      pill.className = 'badge b-low';
+    } else if (llm.openai_available) {
+      pill.textContent = 'OpenAI OK';
+      pill.className = 'badge b-low';
+    } else {
+      pill.textContent = 'LLM erisilemez';
+      pill.className = 'badge b-high';
+    }
+  } catch (e) {
+    document.getElementById('healthPill').textContent = 'saglik bilinmiyor';
+  }
+}
+
+function escapeHtml(s) {
+  return String(s||'').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+function probBadge(p) {
+  if (p === 'high') return '<span class="badge b-high">yuksek</span>';
+  if (p === 'low') return '<span class="badge b-low">dusuk</span>';
+  return '<span class="badge b-med">orta</span>';
+}
+function priBadge(p) {
+  if (p === 'urgent') return '<span class="badge b-urg">acil</span>';
+  if (p === 'priority') return '<span class="badge b-pri">oncelikli</span>';
+  return '<span class="badge b-rou">rutin</span>';
+}
+
+async function runFull() {
+  const text = document.getElementById('caseText').value.trim();
+  if (!text) { alert('Once vaka yaz'); return; }
+  const prefer = document.getElementById('prefer').value;
+  const status = document.getElementById('runStatus');
+  const out = document.getElementById('resultArea');
+  status.textContent = 'YZ dusunuyor (10-30 sn surebilir)...';
+  status.className = 'status';
+  out.innerHTML = '<div class="skeleton" style="width:60%"></div><div class="skeleton" style="width:90%"></div><div class="skeleton" style="width:75%"></div><div class="skeleton" style="width:85%"></div>';
+  try {
+    const r = await fetch('/api/agents/konsult/full', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({text, prefer, include_trace: false}),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || r.status);
+    renderResult(d.result);
+    status.textContent = 'Tamamlandi. Guven: ' + d.result.confidence
+      + ' | yontem: ' + (d.result.used_methods||[]).join(', ');
+    status.className = 'status ok';
+  } catch (e) {
+    status.textContent = 'Hata: ' + e.message;
+    status.className = 'status fail';
+    out.innerHTML = '<div style="color:var(--med-red);font-size:12px;">' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+async function runExtract() {
+  const text = document.getElementById('caseText').value.trim();
+  if (!text) { alert('Once vaka yaz'); return; }
+  const status = document.getElementById('runStatus');
+  status.textContent = 'Vaka yapilandiriliyor...';
+  try {
+    const r = await fetch('/api/agents/konsult/extract', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      credentials: 'same-origin',
+      body: JSON.stringify({text, prefer: document.getElementById('prefer').value}),
+    });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || r.status);
+    const c = d.result.case;
+    document.getElementById('resultArea').innerHTML = `
+      <h3 style="font-size:14px;color:var(--med-blue);margin:0 0 8px;">Yapilandirilmis Vaka</h3>
+      <div class="case-card">
+        ${c.yas ? '<div>Yas: <b>' + c.yas + '</b></div>' : ''}
+        ${c.gravide ? '<div>Gravide: <b>' + c.gravide + '</b></div>' : ''}
+        ${c.parite ? '<div>Parite: <b>' + escapeHtml(c.parite) + '</b></div>' : ''}
+        ${c.gebelik_haftasi ? '<div>Gebelik haftasi: <b>' + c.gebelik_haftasi + '</b></div>' : ''}
+        ${c.presenting_complaint ? '<div>Sikayet: <b>' + escapeHtml(c.presenting_complaint) + '</b></div>' : ''}
+        ${(c.associated_symptoms||[]).length ? '<div>Eslik eden: ' + c.associated_symptoms.map(escapeHtml).join(', ') + '</div>' : ''}
+        ${Object.keys(c.vitals||{}).length ? '<div>Vitaller: ' + Object.entries(c.vitals).map(([k,v]) => k+': '+v).join(' | ') + '</div>' : ''}
+        ${(c.risk_factors||[]).length ? '<div>Risk: ' + c.risk_factors.map(escapeHtml).join(', ') + '</div>' : ''}
+      </div>
+      ${(c.missing_critical_info||[]).length ? `
+        <div class="red-flag-box"><h4>Eksik Kritik Bilgi</h4>
+          <ul style="margin:0;padding-left:20px;">
+            ${c.missing_critical_info.map(m => '<li>' + escapeHtml(m) + '</li>').join('')}
+          </ul>
+        </div>` : ''}`;
+    status.textContent = 'Yapilandirma tamam'; status.className = 'status ok';
+  } catch (e) {
+    status.textContent = 'Hata: ' + e.message; status.className = 'status fail';
+  }
+}
+
+function renderResult(r) {
+  const c = r.case || {};
+  const html = [];
+
+  // Kirmizi alarm
+  if ((r.red_flags||[]).length) {
+    html.push(`<div class="red-flag-box"><h4>KIRMIZI ALARMLAR (${r.red_flags.length})</h4>
+      <ul style="margin:0;padding-left:20px;">
+        ${r.red_flags.map(x => '<li>' + escapeHtml(x) + '</li>').join('')}
+      </ul></div>`);
+  }
+
+  // Vaka ozeti
+  html.push('<h3 style="font-size:14px;color:var(--med-blue);margin:14px 0 6px;">Yapilandirilmis Vaka</h3>');
+  const meta = [];
+  if (c.yas) meta.push('Yas: <b>'+c.yas+'</b>');
+  if (c.gravide) meta.push('G: <b>'+c.gravide+'</b>');
+  if (c.parite) meta.push('Parite: <b>'+escapeHtml(c.parite)+'</b>');
+  if (c.gebelik_haftasi) meta.push('Gebelik: <b>'+c.gebelik_haftasi+'h</b>');
+  html.push('<div class="case-card">' + meta.join(' · '));
+  if (c.presenting_complaint) html.push('<div>Sikayet: '+escapeHtml(c.presenting_complaint)+'</div>');
+  if ((c.risk_factors||[]).length) html.push('<div>Risk: '+c.risk_factors.map(escapeHtml).join(', ')+'</div>');
+  html.push('</div>');
+
+  // Most likely
+  if (r.most_likely) {
+    html.push('<div style="font-size:13px;margin:10px 0;">En muhtemel: <b style="color:var(--med-violet);">'+escapeHtml(r.most_likely)+'</b></div>');
+  }
+
+  // DDx
+  if ((r.differentials||[]).length) {
+    html.push('<h3 style="font-size:14px;color:var(--med-blue);margin:14px 0 6px;">Ayirici Tanilar ('+r.differentials.length+')</h3>');
+    r.differentials.forEach((d, i) => {
+      const sup = (d.supporting_findings||[]).map(escapeHtml);
+      const ag  = (d.against_findings||[]).map(escapeHtml);
+      const urgPill = d.severity === 'urgent' ? ' <span class="badge b-urg">ACIL</span>' : '';
+      html.push(`<div class="ddx-card">
+        <h4><span>${i+1}. ${escapeHtml(d.diagnosis)} ${urgPill}</span>${probBadge(d.probability)}</h4>
+        <div class="meta">${d.icd10 ? 'ICD-10: <code>'+escapeHtml(d.icd10)+'</code> · ' : ''}${d.next_step_to_confirm ? 'Dogrulamak icin: '+escapeHtml(d.next_step_to_confirm) : ''}</div>
+        ${sup.length ? '<div class="reasoning">Lehine:<ul>'+sup.map(x=>'<li>'+x+'</li>').join('')+'</ul></div>' : ''}
+        ${ag.length ? '<div class="reasoning">Aleyhine:<ul>'+ag.map(x=>'<li>'+x+'</li>').join('')+'</ul></div>' : ''}
+        ${d.notes ? '<div class="meta">Not: '+escapeHtml(d.notes)+'</div>' : ''}
+      </div>`);
+    });
+  }
+
+  // Workup
+  if ((r.workup||[]).length) {
+    html.push('<h3 style="font-size:14px;color:var(--med-blue);margin:14px 0 6px;">Onerilen Tetkik (' + r.workup.length + ')</h3>');
+    const order = {'urgent':0,'priority':1,'routine':2};
+    const sorted = r.workup.slice().sort((a,b) => (order[a.priority]||9) - (order[b.priority]||9));
+    sorted.forEach(w => {
+      html.push(`<div class="workup-item ${w.priority||'routine'}">
+        ${priBadge(w.priority)} <b>${escapeHtml(w.name)}</b> <span class="badge b-cat">${escapeHtml(w.category)}</span>
+        ${w.rationale ? '<div class="extra">Sebep: '+escapeHtml(w.rationale)+'</div>' : ''}
+        ${w.expected_finding ? '<div class="extra">Beklenen: '+escapeHtml(w.expected_finding)+'</div>' : ''}
+      </div>`);
+    });
+  }
+
+  // Treatment
+  if ((r.treatment||[]).length) {
+    html.push('<h3 style="font-size:14px;color:var(--med-blue);margin:14px 0 6px;">Tedavi Plani ('+r.treatment.length+')</h3>');
+    r.treatment.forEach(tx => {
+      const preg = tx.pregnancy_category ? ' <span class="badge b-cat">Gebe kat: '+escapeHtml(tx.pregnancy_category)+'</span>' : '';
+      html.push(`<div class="tx-item">
+        <b>${escapeHtml(tx.line || '')} - ${escapeHtml(tx.name)}</b> ${preg}
+        ${tx.dose ? '<div class="dose">'+escapeHtml(tx.dose)+'</div>' : ''}
+        ${tx.duration ? '<div class="extra">Sure: '+escapeHtml(tx.duration)+'</div>' : ''}
+        ${(tx.contraindications||[]).length ? '<div class="extra" style="color:var(--med-red);">Kontrendike: '+tx.contraindications.map(escapeHtml).join(', ')+'</div>' : ''}
+        ${tx.notes ? '<div class="extra">Not: '+escapeHtml(tx.notes)+'</div>' : ''}
+      </div>`);
+    });
+  }
+
+  // Follow-up
+  const fu = r.follow_up || {};
+  if (fu.interval || (fu.what_to_watch||[]).length || (fu.patient_counseling||[]).length) {
+    html.push('<h3 style="font-size:14px;color:var(--med-blue);margin:14px 0 6px;">Takip Plani</h3>');
+    if (fu.interval) html.push('<div class="fu-item"><b>Aralik:</b> '+escapeHtml(fu.interval)+'</div>');
+    if ((fu.what_to_watch||[]).length) html.push('<div class="fu-item"><b>Izlenecek:</b> '+fu.what_to_watch.map(escapeHtml).join(', ')+'</div>');
+    if ((fu.red_flags_to_return||[]).length) html.push('<div class="fu-item" style="border-left-color:var(--med-red);"><b>Acilen donmesi gereken durumlar:</b><ul style="margin:4px 0;padding-left:20px;">'+fu.red_flags_to_return.map(x => '<li>'+escapeHtml(x)+'</li>').join('')+'</ul></div>');
+    if ((fu.patient_counseling||[]).length) html.push('<div class="fu-item"><b>Hasta egitimi:</b><ul style="margin:4px 0;padding-left:20px;">'+fu.patient_counseling.map(x => '<li>'+escapeHtml(x)+'</li>').join('')+'</ul></div>');
+  }
+
+  if (r.patient_summary_tr) {
+    html.push('<details open><summary>Hastaya soylenecek (taslak)</summary><p style="margin:8px 0 0;">'+escapeHtml(r.patient_summary_tr)+'</p></details>');
+  }
+
+  // Aksiyonlar
+  html.push(`<div class="actions">
+    <button class="btn-ghost" onclick="copyMarkdown()">Markdown Kopyala</button>
+    <button class="btn-ghost" onclick="downloadMd()">Markdown Indir</button>
+    <button class="btn-ghost" onclick="sendToAlex()">Alex'e Gonder</button>
+    <button class="btn-ghost" onclick="document.getElementById('mdBox').classList.toggle('hidden')">Markdown Goster</button>
+  </div>`);
+  html.push('<pre class="md-export hidden" id="mdBox">' + escapeHtml(r.markdown || '') + '</pre>');
+
+  if (r.confidence === 'low' || (r.errors||[]).length) {
+    html.push('<div class="warn" style="margin-top:12px;">Guven dusuk veya LLM hatasi var. Sonuclari ekstra dikkatle gozden gecirin. ' + (r.errors||[]).map(escapeHtml).join(' | ') + '</div>');
+  }
+
+  document.getElementById('resultArea').innerHTML = html.join('\n');
+  document.getElementById('mdBox').classList.add('hidden');
+  window._lastResult = r;
+}
+
+function copyMarkdown() {
+  const md = (window._lastResult && window._lastResult.markdown) || '';
+  if (md) navigator.clipboard.writeText(md);
+}
+function downloadMd() {
+  const md = (window._lastResult && window._lastResult.markdown) || '';
+  if (!md) return;
+  const blob = new Blob([md], {type: 'text/markdown;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'konsult_' + Date.now() + '.md';
+  a.click();
+}
+function sendToAlex() {
+  const r = window._lastResult; if (!r) return;
+  const inp = document.getElementById('ykVoiceQuickText');
+  if (inp) {
+    inp.value = 'Bu konsultasyon raporu hakkinda yorumun nedir?\\n\\n' + (r.most_likely || '') + '\\n\\n' + (r.markdown || '').slice(0, 2000);
+    inp.focus();
+  } else {
+    alert('Alex bar bu sayfada bulunamadi.');
+  }
+}
+
+document.getElementById('runFullBtn').addEventListener('click', runFull);
+document.getElementById('runExtractBtn').addEventListener('click', runExtract);
+
+const style = document.createElement('style');
+style.textContent = '.hidden { display: none !important; }';
+document.head.appendChild(style);
 
 checkHealth();
 </script>

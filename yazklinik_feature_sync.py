@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from typing import Iterable
 
 
-MANIFEST_VERSION = "2026.05.16-D300-AGENTS-IG-CEVIRI"
+MANIFEST_VERSION = "2026.05.16-D300-AGENTS-IG-CEVIRI-KONSULT"
 
 SURFACES = ("web", "desktop_hybrid", "webshell")
 DESKTOP_MODES = ("shell", "hybrid", "mirror")
@@ -439,8 +439,10 @@ FEATURE_GROUPS = (
         _r("/cikis", "Cikis", "Oturumu kapat", "system", "[X]", simple=True),
     )),
     ("AJANLAR", (
-        _r("/ajanlar", "Klinik Ajanlari", "12 ajan dashboard + manifest", "ai", "[AJ]",
+        _r("/ajanlar", "Klinik Ajanlari", "13 ajan dashboard + manifest", "ai", "[AJ]",
            simple=True, aliases=("agents", "ajan paneli", "ajan merkezi")),
+        _r("/yz-konsultasyon", "YZ Konsultasyon (5-step)", "Vaka -> kirmizi alarm + DDx + tedavi + takip", "ai", "[YK]",
+           simple=True, aliases=("konsultasyon", "yz hekim", "tani plani", "konsult", "tani tedavi", "konsultan hekim", "vakaya bakis", "ai konsult", "yapay zeka hekim")),
         _r("/instagram-hazirla", "Instagram Hazirla", "USG arsivinden Instagram draft (KVKK)", "ai", "[IG]",
            simple=True, aliases=("instagram", "ig", "sosyal medya", "post hazirla")),
         _r("/ceviri-merkezi", "Tibbi Ceviri (PubMed)", "Ingilizce makale -> TR ceviri + ozet", "ai", "[TR]",

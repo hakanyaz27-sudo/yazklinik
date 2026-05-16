@@ -12,7 +12,7 @@ from copy import deepcopy
 from datetime import datetime
 
 
-AGENT_VERSION = "2026.05.16-integration-agents-ig-ceviri"
+AGENT_VERSION = "2026.05.16-integration-agents-ig-ceviri-konsult"
 
 
 INTEGRATION_AGENTS = [
@@ -449,6 +449,44 @@ INTEGRATION_AGENTS = [
             "Caption sablonu uretir, hashtag setini secer, manuel rafine eder",
             "KVKK kontrol listesini madde madde isaretler",
             "Instagram'a manuel olarak yukler (ajan otomatik yapmaz)",
+        ],
+    },
+    {
+        "id": "konsult",
+        "name": "YZ Konsultasyon Ajani (OB-GYN, 5-step)",
+        "short": "Vaka -> kirmizi alarm + ayirici tani + tetkik + tedavi + takip. Multi-step LLM zinciri (qwen2.5:32b yerel). Klinik karar destek.",
+        "status": "ready_internal",
+        "risk": "high",
+        "directions": ["Doktorun yazdigi vaka -> yapilandirilmis konsultasyon raporu"],
+        "module": "yazklinik_konsult_agent",
+        "entry_function": "full_consultation",
+        "panel_route": "/yz-konsultasyon",
+        "api_endpoints": [
+            "GET  /api/agents/konsult/health",
+            "POST /api/agents/konsult/extract  (sadece vaka yapilandir)",
+            "POST /api/agents/konsult/full     (5 adimli tam zincir)",
+        ],
+        "safe_methods": [
+            "Multi-step prompt: extract -> ddx -> workup -> treatment -> followup",
+            "Her adim ayri JSON-only LLM cagrisi (parse failsafe ile)",
+            "OB-GYN persona prompt + ACOG/RCOG/TJOD referansi",
+            "Gebelik FDA kategorisi (A/B/C/D/X) zorunlu",
+            "Kirmizi alarm ilk gosterilir",
+            "Sonuc markdown export, panoya, Alex'e gonder",
+            "Yerel Ollama varsayilan (hasta verisi PC'den cikmaz)",
+        ],
+        "blocked_methods": [
+            "Otomatik recete yazma (sadece taslak / oneri)",
+            "Hasta dosyasina otomatik kayit",
+            "X-kategori ilac onerme (gebede)",
+            "Klinik direktif tonu (her cikti 'oneri' olarak isaretli)",
+        ],
+        "doctor_actions": [
+            "/yz-konsultasyon sayfasinda vaka tarifini yazar",
+            "5 adimli rapor uretilir: kirmizi alarm + DDx + tetkik + tedavi + takip",
+            "Her oneri 'doktor onayi bekler' etiketli",
+            "Markdown indirir / kopyalar / Alex'e gonderir",
+            "Hasta dosyasina manuel ekler (otomatik degil)",
         ],
     },
     {
