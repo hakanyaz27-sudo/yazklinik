@@ -156,6 +156,23 @@ set "PIPER_LOG=%~dp0D300_piper_service.log"
 start "" /B /HIGH "%VENV_PATH%\Scripts\python.exe" -u "%~dp0yazklinik_piper_service.py" 1>"%PIPER_LOG%" 2>&1
 echo      Piper service baslatildi (log: D300_piper_service.log)
 
+REM 5f) Alex SIP dahili client (opsiyonel) - PBX 19 numara
+if "%YAZKLINIK_SIP_ENABLED%"=="1" (
+  echo  [+] Alex SIP dahili client...
+  if not defined YAZKLINIK_SIP_CONTROL_PORT set "YAZKLINIK_SIP_CONTROL_PORT=9019"
+  if not defined YAZKLINIK_SIP_LOCAL_PORT set "YAZKLINIK_SIP_LOCAL_PORT=5079"
+  set "SIP_ALEX_OLD_PID="
+  for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":%YAZKLINIK_SIP_CONTROL_PORT% " ^| findstr "LISTENING"') do set "SIP_ALEX_OLD_PID=%%a"
+  if defined SIP_ALEX_OLD_PID (
+    echo      Eski Alex SIP PID !SIP_ALEX_OLD_PID! durduruluyor...
+    taskkill /PID !SIP_ALEX_OLD_PID! /F >nul 2>&1
+    timeout /t 1 /nobreak >nul
+  )
+  set "SIP_ALEX_LOG=%~dp0D300_sip_alex.log"
+  start "" /B /HIGH "%VENV_PATH%\Scripts\python.exe" -u "%~dp0yazklinik_sip_alex_client.py" 1>"%SIP_ALEX_LOG%" 2>&1
+  echo      Alex SIP client baslatildi (log: D300_sip_alex.log)
+)
+
 REM 6) Server BASLAT (arka planda)
 echo  ============================================================
 echo                  Server BASLIYOR
