@@ -21133,6 +21133,60 @@ def _service_agents_payload(force=False):
         icon="bi-mortarboard",
         score=76))
 
+    try:
+        uk = "alex_" + str(session.get("user") or "doktor")
+        know_stats = _yaz_knowledge_stats(uk)
+    except Exception:
+        know_stats = {"total": 0, "strong": 0, "recent_24h": 0,
+                      "facts": 0, "last_ts": 0}
+    try:
+        last_ts = int(know_stats.get("last_ts") or 0)
+        if last_ts:
+            last_knowledge = datetime.fromtimestamp(last_ts / 1000).strftime(
+                "%d.%m.%Y %H:%M")
+        else:
+            last_knowledge = "Henuz yok"
+    except Exception:
+        last_knowledge = "Henuz yok"
+    bilgi_status = _service_agent_status_from(
+        watch=int(know_stats.get("recent_24h") or 0) == 0)
+    agents.append(_service_agent_card(
+        "yaz_bilgi",
+        "YAZ Bilgi Ajani",
+        "PubMed ve guvenilir web kaynaklarini kaynakli hafizaya cevirir.",
+        bilgi_status,
+        ("YAZ bilgi nobetcileri guncelleme bekliyor" if
+         bilgi_status == "watch" else "YAZ kaynakli bilgi hafizasi aktif"),
+        (f"{int(know_stats.get('total') or 0)} kaynakli bilgi kaydi, "
+         f"{int(know_stats.get('facts') or 0)} kalici YAZ hafiza girdisi var."),
+        metrics=[
+            _service_agent_metric("Kaynakli bilgi", int(know_stats.get("total") or 0)),
+            _service_agent_metric("Guclu kaynak", int(know_stats.get("strong") or 0)),
+            _service_agent_metric("Son 24 saat", int(know_stats.get("recent_24h") or 0)),
+            _service_agent_metric("Hafizaya islenen", int(know_stats.get("facts") or 0),
+                                  hint=last_knowledge),
+        ],
+        items=[
+            _service_agent_item(
+                "Kaynak filtresi aktif",
+                "PubMed/NCBI, ACOG, SMFM, RCOG, NICE, WHO, CDC/NIH/FDA/EMA, Saglik Bakanligi ve TITCK oncelikli.",
+                "/bilgi-ajanlari"),
+            _service_agent_item(
+                "Hekim onayi guardrail",
+                "Ozetler karar destegidir; tani/tedavi/recete otomatik uygulanmaz.",
+                "/alex-egitim"),
+        ],
+        actions=[
+            _service_agent_action("Bilgi ajanlari", "/bilgi-ajanlari",
+                                  "primary", "bi-broadcast"),
+            _service_agent_action("Alex arastirma", "/alex-arastirma",
+                                  "outline-primary", "bi-search-heart"),
+            _service_agent_action("Alex egitim", "/alex-egitim",
+                                  "outline-secondary", "bi-mortarboard"),
+        ],
+        icon="bi-broadcast",
+        score=82))
+
     status_rank = {"high": 3, "warn": 2, "watch": 1, "ok": 0}
     agents = sorted(
         agents,
@@ -50506,6 +50560,360 @@ def _alex_url_fetch_and_summarize(url, user_key=None, timeout=20):
         return {"ok": False, "error": str(exc)}
 
 
+# ============================================================================
+# D300 YAZ BILGI AJANLARI: guvenilir kaynak -> YAZ LLM hafizasi
+# ----------------------------------------------------------------------------
+# Rastgele web bilgisini dogrudan "dogru" kabul etmez. Kaynak puani, link/PMID
+# izi ve hekim onayi guardrail'i ile Alex/YAZ kalici hafizasina isler.
+# ============================================================================
+
+_YAZ_TRUSTED_SOURCE_RULES = (
+    ("pubmed.ncbi.nlm.nih.gov", "PubMed", "strong", 100),
+    ("ncbi.nlm.nih.gov", "NCBI", "strong", 95),
+    ("acog.org", "ACOG", "strong", 92),
+    ("smfm.org", "SMFM", "strong", 90),
+    ("rcog.org.uk", "RCOG", "strong", 90),
+    ("nice.org.uk", "NICE", "strong", 90),
+    ("who.int", "WHO", "strong", 88),
+    ("cdc.gov", "CDC", "strong", 86),
+    ("nih.gov", "NIH", "strong", 86),
+    ("fda.gov", "FDA", "strong", 84),
+    ("ema.europa.eu", "EMA", "strong", 84),
+    ("saglik.gov.tr", "Saglik Bakanligi", "strong", 82),
+    ("titck.gov.tr", "TITCK", "strong", 82),
+    ("uptodate.com", "UpToDate", "medium", 70),
+    ("msdmanuals.com", "MSD Manuals", "medium", 62),
+)
+
+
+def _yaz_source_profile(value, source=""):
+    """URL/source icin guven puani dondurur."""
+    src = str(source or "").lower()
+    raw = str(value or "").strip()
+    if src == "pubmed" or "pubmed" in raw.lower():
+        return {"label": "PubMed", "tier": "strong", "score": 100}
+    try:
+        host = (urlsplit(raw if "://" in raw else "https://" + raw).hostname
+                or "").lower().strip(".")
+    except Exception:
+        host = ""
+    for domain, label, tier, score in _YAZ_TRUSTED_SOURCE_RULES:
+        if host == domain or host.endswith("." + domain):
+            return {"label": label, "tier": tier, "score": int(score)}
+    return {"label": host or "unknown", "tier": "unknown", "score": 20}
+
+
+def _yaz_info_agent_templates():
+    """YAZ icin hazir bilgi nobetcileri."""
+    return [
+        {
+            "id": "literatur_nobetcisi",
+            "name": "Literatur Nobetcisi",
+            "source": "pubmed",
+            "topic": "obstetrics gynecology pregnancy fetal ultrasound anomaly screening recent review guideline",
+            "mission": "PubMed literaturunu tarar ve YAZ hafizasina kaynakli ozet ekler.",
+            "icon": "bi-journal-medical",
+        },
+        {
+            "id": "rehber_nobetcisi",
+            "name": "Rehber Nobetcisi",
+            "source": "trusted_web",
+            "topic": "ACOG SMFM RCOG NICE obstetrics gynecology pregnancy guideline update",
+            "mission": "Resmi/kurumsal kilavuz kaynaklarini izler.",
+            "icon": "bi-signpost-split",
+        },
+        {
+            "id": "ilac_guvenlik_nobetcisi",
+            "name": "Ilac Guvenlik Nobetcisi",
+            "source": "trusted_web",
+            "topic": "pregnancy lactation drug safety FDA EMA TITCK obstetrics medication warning",
+            "mission": "Gebelik ve ilac guvenligi kaynaklarini kaynak linkiyle izler.",
+            "icon": "bi-capsule-pill",
+        },
+        {
+            "id": "gebelik_usg_nobetcisi",
+            "name": "Gebelik USG Nobetcisi",
+            "source": "pubmed",
+            "topic": "fetal anomaly ultrasound screening obstetric ultrasound AI image quality review",
+            "mission": "Fetal USG, anomali tarama ve goruntu kalitesi literaturunu tarar.",
+            "icon": "bi-bounding-box",
+        },
+        {
+            "id": "turkiye_resmi_nobetcisi",
+            "name": "Turkiye Resmi Kaynak Nobetcisi",
+            "source": "trusted_web",
+            "topic": "site:saglik.gov.tr OR site:titck.gov.tr kadin dogum gebelik ilac duyuru",
+            "mission": "Saglik Bakanligi ve TITCK kaynaklarinda duyuru/sinyal arar.",
+            "icon": "bi-bank",
+        },
+    ]
+
+
+def _yaz_info_agent_by_id(agent_id):
+    wanted = str(agent_id or "").strip()
+    for item in _yaz_info_agent_templates():
+        if item.get("id") == wanted:
+            return dict(item)
+    return None
+
+
+def _yaz_knowledge_init():
+    try:
+        con = _alex_db_conn()
+        try:
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS yaz_llm_knowledge_feed (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_key TEXT NOT NULL,
+                    agent_id TEXT NOT NULL,
+                    topic TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    source_quality TEXT DEFAULT '',
+                    summary TEXT DEFAULT '',
+                    details_json TEXT DEFAULT '[]',
+                    result_count INTEGER DEFAULT 0,
+                    learned_fact_id TEXT DEFAULT '',
+                    status TEXT DEFAULT 'learned',
+                    created_ts INTEGER NOT NULL
+                )
+            """)
+            con.execute("""
+                CREATE INDEX IF NOT EXISTS idx_yaz_knowledge_user
+                ON yaz_llm_knowledge_feed(user_key, created_ts DESC)
+            """)
+            con.execute("""
+                CREATE INDEX IF NOT EXISTS idx_yaz_knowledge_agent
+                ON yaz_llm_knowledge_feed(agent_id, created_ts DESC)
+            """)
+            con.commit()
+        finally:
+            con.close()
+    except Exception as exc:
+        try:
+            print(f"[YAZ-KNOW] init HATA: {exc}", flush=True)
+        except Exception:
+            pass
+
+
+def _yaz_knowledge_save(user_key, agent_id, topic, source, source_quality,
+                        summary, results, fact_id="", status="learned"):
+    _yaz_knowledge_init()
+    try:
+        import json as _json
+        con = _alex_db_conn()
+        try:
+            cur = con.execute(
+                "INSERT INTO yaz_llm_knowledge_feed "
+                "(user_key, agent_id, topic, source, source_quality, summary, "
+                "details_json, result_count, learned_fact_id, status, created_ts) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (str(user_key or "anon"), str(agent_id or "manual"),
+                 str(topic or ""), str(source or ""), str(source_quality or ""),
+                 str(summary or ""), _json.dumps(results or [], ensure_ascii=False),
+                 int(len(results or [])), str(fact_id or ""), str(status or "learned"),
+                 int(time.time() * 1000)))
+            con.commit()
+            return int(cur.lastrowid or 0)
+        finally:
+            con.close()
+    except Exception as exc:
+        try:
+            print(f"[YAZ-KNOW] save HATA: {exc}", flush=True)
+        except Exception:
+            pass
+        return 0
+
+
+def _yaz_knowledge_recent(user_key, limit=25):
+    _yaz_knowledge_init()
+    try:
+        con = _alex_db_conn()
+        try:
+            cur = con.execute(
+                "SELECT id, agent_id, topic, source, source_quality, summary, "
+                "result_count, learned_fact_id, status, created_ts "
+                "FROM yaz_llm_knowledge_feed WHERE user_key = ? "
+                "ORDER BY created_ts DESC LIMIT ?",
+                (str(user_key or "anon"), int(limit)))
+            rows = list(cur.fetchall())
+        finally:
+            con.close()
+        cols = ("id", "agent_id", "topic", "source", "source_quality",
+                "summary", "result_count", "learned_fact_id", "status",
+                "created_ts")
+        return [dict(zip(cols, r)) for r in rows]
+    except Exception:
+        return []
+
+
+def _yaz_knowledge_stats(user_key=None):
+    _yaz_knowledge_init()
+    out = {"total": 0, "strong": 0, "recent_24h": 0, "facts": 0,
+           "last_ts": 0}
+    try:
+        day_ago = int((time.time() - 86400) * 1000)
+        where = "WHERE user_key = ?" if user_key else ""
+        args = (str(user_key),) if user_key else ()
+        con = _alex_db_conn()
+        try:
+            row = con.execute(
+                "SELECT COUNT(*), "
+                "SUM(CASE WHEN source_quality='strong' THEN 1 ELSE 0 END), "
+                "SUM(CASE WHEN created_ts >= ? THEN 1 ELSE 0 END), "
+                "SUM(CASE WHEN COALESCE(learned_fact_id,'')<>'' THEN 1 ELSE 0 END), "
+                "MAX(created_ts) FROM yaz_llm_knowledge_feed " + where,
+                ((day_ago,) + args) if args else (day_ago,)).fetchone()
+        finally:
+            con.close()
+        if row:
+            out.update({
+                "total": int(row[0] or 0),
+                "strong": int(row[1] or 0),
+                "recent_24h": int(row[2] or 0),
+                "facts": int(row[3] or 0),
+                "last_ts": int(row[4] or 0),
+            })
+    except Exception:
+        pass
+    return out
+
+
+def _yaz_result_quality(results, source):
+    if (source or "").lower() == "pubmed":
+        return {"tier": "strong", "score": 100, "label": "PubMed"}
+    scores = []
+    labels = []
+    for r in results or []:
+        prof = _yaz_source_profile(r.get("url") or "", source=source)
+        r["source_profile"] = prof
+        scores.append(int(prof.get("score") or 0))
+        if prof.get("label"):
+            labels.append(str(prof.get("label")))
+    if not scores:
+        return {"tier": "unknown", "score": 0, "label": "Kaynak yok"}
+    avg = sum(scores) / max(len(scores), 1)
+    tier = "strong" if avg >= 80 else ("medium" if avg >= 55 else "unknown")
+    return {"tier": tier, "score": int(avg),
+            "label": ", ".join(sorted(set(labels))[:4])}
+
+
+def _yaz_trusted_web_results(query, max_results=6):
+    terms = str(query or "").strip()
+    trusted_query = (
+        terms + " (site:acog.org OR site:smfm.org OR site:rcog.org.uk "
+        "OR site:nice.org.uk OR site:who.int OR site:cdc.gov OR site:nih.gov "
+        "OR site:fda.gov OR site:ema.europa.eu OR site:saglik.gov.tr "
+        "OR site:titck.gov.tr)"
+    )
+    raw = _alex_research_web(trusted_query, max_results=max_results + 8)
+    filtered = []
+    for item in raw:
+        prof = _yaz_source_profile(item.get("url") or "", source="trusted_web")
+        item["source_profile"] = prof
+        if int(prof.get("score") or 0) >= 70:
+            filtered.append(item)
+    return filtered[:max_results]
+
+
+def _yaz_run_info_agent(user_key, agent_id, topic_override="", promote=True,
+                        max_results=5):
+    agent = _yaz_info_agent_by_id(agent_id)
+    if not agent:
+        return {"ok": False, "error": "ajan bulunamadi"}
+    topic = (str(topic_override or "").strip() or agent.get("topic") or "")
+    source = str(agent.get("source") or "pubmed").lower()
+    if source == "pubmed":
+        results = _alex_research_pubmed(topic, max_results=max_results)
+        synth_source = "pubmed"
+    else:
+        results = _yaz_trusted_web_results(topic, max_results=max_results)
+        synth_source = "web"
+    if not results:
+        return {
+            "ok": False,
+            "agent": agent,
+            "source": source,
+            "query": topic,
+            "error": "guvenilir kaynak sonucu bulunamadi",
+            "results": [],
+        }
+    quality = _yaz_result_quality(results, "pubmed" if source == "pubmed"
+                                  else "trusted_web")
+    synth = _alex_research_synthesize(topic, results, source=synth_source)
+    summary = str(synth.get("summary") or "").strip()
+    if not synth.get("ok") or not summary:
+        return {
+            "ok": False,
+            "agent": agent,
+            "source": source,
+            "query": topic,
+            "error": summary or "LLM sentezi basarisiz",
+            "results": results,
+            "source_quality": quality,
+        }
+    try:
+        _alex_research_save(
+            user_key, "pubmed" if source == "pubmed" else "trusted_web",
+            topic, summary, results, len(results))
+    except Exception:
+        pass
+    fact_id = ""
+    if promote:
+        src_refs = []
+        for i, r in enumerate(results[:5], 1):
+            if source == "pubmed":
+                src_refs.append(f"{i}) PMID {r.get('pmid','')}: {r.get('url','')}")
+            else:
+                prof = r.get("source_profile") or {}
+                src_refs.append(f"{i}) {prof.get('label','web')}: {r.get('url','')}")
+        fact_text = (
+            f"[YAZ kaynakli bilgi / {agent.get('name')} / "
+            f"{quality.get('tier')} kaynak] Konu: {topic}. "
+            f"Ozet: {summary[:1400]} Kaynaklar: " + " | ".join(src_refs)
+        )
+        fact_id = _alex_fact_add(user_key, fact_text,
+                                 category="kaynakli_bilgi") or ""
+    feed_id = _yaz_knowledge_save(
+        user_key, agent.get("id"), topic,
+        "pubmed" if source == "pubmed" else "trusted_web",
+        quality.get("tier"), summary, results, fact_id=fact_id,
+        status="learned" if fact_id else "researched")
+    return {
+        "ok": True,
+        "id": feed_id,
+        "agent": agent,
+        "source": source,
+        "query": topic,
+        "summary": summary,
+        "detailed": synth.get("detailed") or "",
+        "model": synth.get("model") or "",
+        "results": results,
+        "result_count": len(results),
+        "source_quality": quality,
+        "fact_id": fact_id,
+    }
+
+
+def _yaz_info_agents_payload(user_key):
+    stats = _yaz_knowledge_stats(user_key)
+    recent = _yaz_knowledge_recent(user_key, limit=20)
+    agents = _yaz_info_agent_templates()
+    return {
+        "ok": True,
+        "agents": agents,
+        "stats": stats,
+        "recent": recent,
+        "trusted_sources": [
+            {"domain": d, "label": label, "tier": tier, "score": score}
+            for d, label, tier, score in _YAZ_TRUSTED_SOURCE_RULES
+        ],
+        "guardrail": (
+            "YAZ bilgi ajanlari sadece kaynakli ozet uretir. Tani, tedavi, "
+            "recete ve hasta karari hekim onayi olmadan otomatik uygulanmaz."
+        ),
+    }
+
+
 def _alex_detect_url_intent(text):
     """Kullanici 'su linki oku' / 'bu URL'i ozetle' dedi mi? URL cikar."""
     if not text:
@@ -54983,6 +55391,263 @@ def api_alex_url_summary():
     if not out.get("ok"):
         return jsonify(out), 400
     return jsonify(out)
+
+
+@app.route("/api/bilgi-ajanlari", methods=["GET"])
+@login_required
+def api_yaz_info_agents():
+    user_key = "alex_" + str(session.get("user") or "doktor")
+    return jsonify(_yaz_info_agents_payload(user_key))
+
+
+@app.route("/api/bilgi-ajanlari/run", methods=["POST"])
+@login_required
+def api_yaz_info_agent_run():
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+    except Exception:
+        data = {}
+    agent_id = (data.get("agent_id") or "").strip()
+    topic = (data.get("topic") or "").strip()
+    promote = bool(data.get("promote", True))
+    try:
+        max_results = int(data.get("max_results") or 5)
+    except Exception:
+        max_results = 5
+    max_results = max(1, min(max_results, 10))
+    if not agent_id:
+        return jsonify({"ok": False, "error": "agent_id bos"}), 400
+    user_key = "alex_" + str(session.get("user") or "doktor")
+    out = _yaz_run_info_agent(
+        user_key, agent_id, topic_override=topic,
+        promote=promote, max_results=max_results)
+    status = 200 if out.get("ok") else 400
+    return jsonify(out), status
+
+
+@app.route("/bilgi-ajanlari", methods=["GET"])
+@login_required
+def yaz_info_agents_page():
+    user_key = "alex_" + str(session.get("user") or "doktor")
+    payload = _yaz_info_agents_payload(user_key)
+    stats = payload.get("stats") or {}
+    agents = payload.get("agents") or []
+    recent = payload.get("recent") or []
+
+    def _fmt_ts(ms):
+        try:
+            import datetime as _dt
+            return _dt.datetime.fromtimestamp(int(ms) / 1000).strftime(
+                "%d.%m.%Y %H:%M")
+        except Exception:
+            return ""
+
+    metric_html = "".join(
+        f'<div class="yk-know-metric"><b>{safe_html(stats.get(key))}</b>'
+        f'<span>{safe_html(label)}</span></div>'
+        for key, label in [
+            ("total", "Kayit"),
+            ("strong", "Guclu kaynak"),
+            ("recent_24h", "Son 24 saat"),
+            ("facts", "YAZ hafizasi"),
+        ])
+
+    cards_html = ""
+    for agent in agents:
+        aid = str(agent.get("id") or "")
+        cards_html += f"""
+        <article class="yk-know-card">
+          <div class="yk-know-card-head">
+            <div class="yk-know-icon"><i class="bi {safe_attr(agent.get('icon') or 'bi-robot')}"></i></div>
+            <div>
+              <h3>{safe_html(agent.get('name'))}</h3>
+              <p>{safe_html(agent.get('mission'))}</p>
+            </div>
+          </div>
+          <div class="yk-know-source">
+            <span class="badge text-bg-primary">{safe_html(agent.get('source'))}</span>
+            <small>{safe_html(agent.get('topic'))}</small>
+          </div>
+          <textarea id="ykKnowTopic_{safe_attr(aid)}" class="form-control"
+            rows="2" placeholder="Istersen bu ajan icin ozel konu yaz">{safe_html(agent.get('topic'))}</textarea>
+          <div class="d-flex gap-2 mt-3 flex-wrap">
+            <button class="btn btn-primary" onclick="ykKnowRun('{safe_attr(aid)}')">
+              <i class="bi bi-play-fill"></i> Guncelle + YAZ'a ogret
+            </button>
+            <button class="btn btn-outline-secondary" onclick="ykKnowRun('{safe_attr(aid)}', false)">
+              Sadece arastir
+            </button>
+          </div>
+        </article>
+        """
+
+    rows_html = ""
+    for item in recent:
+        tier = str(item.get("source_quality") or "unknown")
+        tone = "success" if tier == "strong" else ("warning" if tier == "medium" else "secondary")
+        rows_html += f"""
+        <tr>
+          <td><span class="badge text-bg-{tone}">{safe_html(tier)}</span></td>
+          <td>
+            <b>{safe_html(item.get('topic'))}</b><br>
+            <small class="text-muted">{safe_html(item.get('agent_id'))} / {safe_html(item.get('source'))}</small>
+          </td>
+          <td>{safe_html((item.get('summary') or '')[:260])}</td>
+          <td class="text-nowrap small">{int(item.get('result_count') or 0)} kaynak<br>{safe_html(_fmt_ts(item.get('created_ts')))}</td>
+        </tr>
+        """
+    if not rows_html:
+        rows_html = '<tr><td colspan="4" class="text-center text-muted py-4">Henuz kaynakli bilgi kaydi yok.</td></tr>'
+
+    sources_html = "".join(
+        f'<span class="yk-source-pill">{safe_html(x.get("label"))} '
+        f'<small>{safe_html(x.get("domain"))}</small></span>'
+        for x in (payload.get("trusted_sources") or [])[:14])
+
+    content = f"""
+    <style>
+      .yk-know-shell {{ display:grid; gap:16px; }}
+      .yk-know-hero {{
+        border:1px solid rgba(11,91,132,.18);
+        border-radius:16px; padding:20px;
+        background:linear-gradient(135deg,#f8fcff,#effaf4);
+        box-shadow:0 14px 34px rgba(12,37,62,.08);
+      }}
+      .yk-know-hero h2 {{ margin:0 0 8px; color:#14213a; }}
+      .yk-know-hero p {{ margin:0; color:#5d6f86; max-width:980px; }}
+      .yk-know-metrics {{
+        display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+        gap:10px; margin-top:14px;
+      }}
+      .yk-know-metric {{
+        background:#fff; border:1px solid #dce8f2; border-radius:10px;
+        padding:10px 12px;
+      }}
+      .yk-know-metric b {{ display:block; font-size:24px; color:#0b63b6; }}
+      .yk-know-metric span {{ color:#65758a; font-size:12px; }}
+      .yk-know-grid {{
+        display:grid; grid-template-columns:repeat(auto-fit,minmax(330px,1fr));
+        gap:14px;
+      }}
+      .yk-know-card {{
+        background:#fff; border:1px solid #dbe6f0; border-radius:14px;
+        padding:16px; box-shadow:0 10px 26px rgba(12,37,62,.06);
+      }}
+      .yk-know-card-head {{ display:flex; gap:12px; align-items:flex-start; }}
+      .yk-know-icon {{
+        width:42px; height:42px; display:grid; place-items:center;
+        border-radius:10px; background:#eef6ff; color:#0b63b6; font-size:22px;
+        flex:0 0 auto;
+      }}
+      .yk-know-card h3 {{ margin:0 0 4px; font-size:20px; color:#14213a; }}
+      .yk-know-card p {{ margin:0; color:#64748b; }}
+      .yk-know-source {{
+        margin:12px 0; display:flex; gap:8px; align-items:center;
+      }}
+      .yk-know-source small {{ color:#64748b; line-height:1.35; }}
+      .yk-source-pills {{ display:flex; gap:8px; flex-wrap:wrap; }}
+      .yk-source-pill {{
+        border:1px solid #dbe6f0; background:#fff; border-radius:999px;
+        padding:6px 10px; color:#1d3557; font-weight:700; font-size:12px;
+      }}
+      .yk-source-pill small {{ color:#64748b; font-weight:500; }}
+      #ykKnowStatus {{ min-height:32px; }}
+      @media (max-width:720px) {{ .yk-know-grid {{ grid-template-columns:1fr; }} }}
+    </style>
+    <div class="yk-know-shell">
+      <section class="yk-know-hero">
+        <div class="d-flex justify-content-between gap-3 flex-wrap">
+          <div>
+            <h2><i class="bi bi-broadcast"></i> YAZ Bilgi Ajanlari</h2>
+            <p>
+              Bu ajanlar PubMed ve guvenilir resmi/kurumsal web kaynaklarini
+              tarar, YAZ LLM icin kaynakli Turkce ozet uretir ve istersen
+              Alex/YAZ kalici hafizasina ekler.
+            </p>
+          </div>
+          <div class="d-flex gap-2 flex-wrap align-items-start">
+            <a class="btn btn-outline-primary" href="/alex-arastirma">
+              <i class="bi bi-search-heart"></i> Alex Arastirma
+            </a>
+            <a class="btn btn-outline-secondary" target="_blank" href="/api/bilgi-ajanlari">
+              JSON
+            </a>
+          </div>
+        </div>
+        <div class="yk-know-metrics">{metric_html}</div>
+        <div class="alert alert-warning mt-3 mb-0">
+          {safe_html(payload.get('guardrail'))}
+        </div>
+      </section>
+
+      <section class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between gap-2 flex-wrap align-items-center mb-2">
+            <h5 class="mb-0">Guvenilir kaynak filtresi</h5>
+            <label class="form-check">
+              <input id="ykKnowPromote" class="form-check-input" type="checkbox" checked>
+              <span class="form-check-label">Sonucu YAZ hafizasina da ogret</span>
+            </label>
+          </div>
+          <div class="yk-source-pills">{sources_html}</div>
+          <div id="ykKnowStatus" class="small text-muted mt-3"></div>
+        </div>
+      </section>
+
+      <section class="yk-know-grid">{cards_html}</section>
+
+      <section class="card">
+        <div class="card-header"><b>Son kaynakli YAZ bilgileri</b></div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr><th>Kalite</th><th>Konu</th><th>Ozet</th><th>Kaynak/Tarih</th></tr>
+            </thead>
+            <tbody>{rows_html}</tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+    <script>
+    function ykKnowEsc(s) {{
+      return String(s||'').replace(/[&<>"']/g, c => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c]));
+    }}
+    async function ykKnowRun(agentId, forcePromote) {{
+      const st = document.getElementById('ykKnowStatus');
+      const topicEl = document.getElementById('ykKnowTopic_' + agentId);
+      const promoteBox = document.getElementById('ykKnowPromote');
+      const promote = (forcePromote === false) ? false : !!promoteBox.checked;
+      st.innerHTML = '<i class="spinner-border spinner-border-sm"></i> Ajan calisiyor; guvenilir kaynaklar taraniyor...';
+      try {{
+        const res = await fetch('/api/bilgi-ajanlari/run', {{
+          method:'POST',
+          credentials:'same-origin',
+          headers:{{'Content-Type':'application/json'}},
+          body:JSON.stringify({{
+            agent_id:agentId,
+            topic:(topicEl ? topicEl.value.trim() : ''),
+            promote:promote,
+            max_results:5
+          }})
+        }});
+        const data = await res.json();
+        if (!data.ok) {{
+          st.innerHTML = '<span class="text-danger">Hata: ' + ykKnowEsc(data.error || 'ajan calismadi') + '</span>';
+          return;
+        }}
+        st.innerHTML = '<span class="text-success">Tamam: ' + ykKnowEsc(data.agent.name) +
+          ' | ' + data.result_count + ' kaynak | kalite: ' +
+          ykKnowEsc((data.source_quality||{{}}).tier || '') +
+          (data.fact_id ? ' | YAZ hafizasi #' + ykKnowEsc(data.fact_id) : '') +
+          '</span><div class="mt-2"><b>Ozet:</b> ' + ykKnowEsc(data.summary) + '</div>';
+        setTimeout(() => location.reload(), 1400);
+      }} catch(e) {{
+        st.innerHTML = '<span class="text-danger">Istek hatasi: ' + ykKnowEsc(e.message) + '</span>';
+      }}
+    }}
+    </script>
+    """
+    return render(content, title="YAZ Bilgi Ajanlari")
 
 
 # ============================================================================
