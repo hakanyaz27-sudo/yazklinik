@@ -5002,7 +5002,7 @@ def _recent_ai_anomaly_screenings_html(patient_key, limit=5):
 
 def call_ollama(prompt, model=None, temperature=None,
                   max_tokens=None, timeout=None, use_cache=True,
-                  system=None, images=None):
+                  system=None, images=None, force_ollama=False):
     """ğŸ¤– Ortak Ollama Ã§aÄŸrÄ± fonksiyonu.
 
  TÃ¼m YZ route'larÄ± bunu kullanmalÄ±. Cache, hata yÃ¶netimi,
@@ -5032,8 +5032,8 @@ def call_ollama(prompt, model=None, temperature=None,
     if not prompt:
         return (False, "âŒ BoÅŸ YZ istemi", 0)
 
-    chosen_provider = _ai_provider_value()
-    if not images and chosen_provider != "ollama":
+    chosen_provider = "ollama" if force_ollama else _ai_provider_value()
+    if not force_ollama and not images and chosen_provider != "ollama":
         tried_cloud = []
         cloud_model = model if chosen_provider in {
             "openai", "claude", "deepseek", "gemini"
@@ -5060,8 +5060,11 @@ def call_ollama(prompt, model=None, temperature=None,
     _refresh_ai_config()
     # Terminal PC'ler server YZ'yi kullanir. DB'de eski/yanlis Ollama URL
     # kaldiysa status kontrolu calisan server-localhost adresine dondurur.
-    if not _ollama_status().get("online"):
-        _ollama_status(force=True)
+    # Sesli Alex force_ollama yolunda local 127.0.0.1'e direkt gider; eski
+    # uzak URL health kontrolu burada bekleme yaratmasin.
+    if not force_ollama:
+        if not _ollama_status().get("online"):
+            _ollama_status(force=True)
     if model is None:
         model = _select_ollama_model(
             vision=bool(images), task=task_name, system=system)
@@ -5141,8 +5144,12 @@ def call_ollama(prompt, model=None, temperature=None,
             payload_obj["images"] = images
         payload = _json.dumps(payload_obj).encode("utf-8")
 
+        ollama_generate_url = (
+            "http://127.0.0.1:11434/api/generate"
+            if force_ollama else _AI_CONFIG["url"]
+        )
         req = _urllib_req.Request(
-            _AI_CONFIG["url"],
+            ollama_generate_url,
             data=payload,
             headers={"Content-Type": "application/json"})
 
@@ -5162,7 +5169,7 @@ def call_ollama(prompt, model=None, temperature=None,
                 retry_obj["options"] = retry_options
                 retry_payload = _json.dumps(retry_obj).encode("utf-8")
                 retry_req = _urllib_req.Request(
-                    _AI_CONFIG["url"],
+                    ollama_generate_url,
                     data=retry_payload,
                     headers={"Content-Type": "application/json"})
                 with _urllib_req.urlopen(retry_req, timeout=timeout) as resp:
@@ -5222,6 +5229,75 @@ def ollama_available():
 # ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â
 # ÃƒÆ’Ã¢â‚¬ÂÃƒâ€¦Ã‚Â¸ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚ÂºÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ XSS KORUMASI ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â HTML escape yardÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±mcÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±larÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â±
 # ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚ÂÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â
+
+def _smart_dialog_fast_local_ollama(prompt, model="llama3.1:8b", system="",
+                                    temperature=0.3, max_tokens=160,
+                                    max_seconds=7.0):
+    """Small local streaming call for voice Alex; returns fast or fails closed."""
+    import json as _json
+    import re as _re
+    import time as _t
+    import urllib.error as _urllib_err
+    import urllib.request as _urllib_req
+
+    prompt = str(prompt or "").strip()
+    if not prompt:
+        return (False, "bos istem", 0)
+    full_prompt = prompt
+    if system:
+        full_prompt = f"[SISTEM]\n{system}\n\n{prompt}"
+    start = _t.time()
+    try:
+        payload_obj = {
+            "model": _normalize_ollama_model_name(model or "llama3.1:8b"),
+            "prompt": full_prompt,
+            "stream": True,
+            "keep_alive": "8h",
+            "options": {
+                "temperature": temperature,
+                "num_predict": max(48, min(int(max_tokens or 160), 320)),
+                "num_ctx": 2048,
+                "num_gpu": 99,
+                "num_batch": 2048,
+                "num_thread": 16,
+            },
+        }
+        _apply_ollama_think_policy(payload_obj, payload_obj["model"])
+        payload = _json.dumps(payload_obj).encode("utf-8")
+        req = _urllib_req.Request(
+            "http://127.0.0.1:11434/api/generate",
+            data=payload,
+            headers={"Content-Type": "application/json"})
+        parts = []
+        read_timeout = max(2.0, min(float(max_seconds or 7.0), 4.0))
+        with _urllib_req.urlopen(req, timeout=read_timeout) as resp:
+            for raw in resp:
+                if (_t.time() - start) > float(max_seconds or 7.0):
+                    break
+                if not raw:
+                    continue
+                try:
+                    data = _json.loads(raw.decode("utf-8", errors="ignore"))
+                except Exception:
+                    continue
+                chunk = str(data.get("response") or "")
+                if chunk:
+                    parts.append(chunk)
+                text_now = "".join(parts).strip()
+                if data.get("done"):
+                    break
+                if len(text_now) >= 220 and _re.search(r"[.!?]\s*$", text_now):
+                    break
+        answer = _ollama_extract_final_answer({"response": "".join(parts)})
+        duration = int((_t.time() - start) * 1000)
+        if answer:
+            return (True, answer, duration)
+        return (False, "bos cevap", duration)
+    except (_urllib_err.URLError, TimeoutError) as ex:
+        return (False, str(ex), int((_t.time() - start) * 1000))
+    except Exception as ex:
+        return (False, str(ex), int((_t.time() - start) * 1000))
+
 
 def _doctor_display_name():
     """Current doctor name for AI prompts and UI greetings."""
@@ -15125,6 +15201,7 @@ def _date_iso_from_text(value):
         return ""
     patterns = (
         r"(?<!\d)(?P<yyyy>20\d{2})[-_.]?(?P<mm>\d{2})[-_.]?(?P<dd>\d{2})(?!\d)",
+        r"(?<!\d)(?P<dd>\d{2})[-_.\/](?P<mm>\d{2})[-_.\/](?P<yyyy>20\d{2})(?!\d)",
         r"(?<!\d)(?P<yy>\d{2})[-_.](?P<mm>\d{2})[-_.](?P<dd>\d{2})(?:[-_.]\d+)?(?!\d)",
     )
     for pattern in patterns:
@@ -15680,8 +15757,9 @@ def _load_patient_listing(limit=200, include_full_path=False):
     limit = max(1, min(int(limit or 200), max_limit))
     query_limit = max(limit, min(max_limit, limit * 3))
     # D300 2026-05-16: cache versionunu artirdik; hasta listesi artik
-    # en yeni gelis/kayit sinyali en ustte olacak sekilde sabitlenir.
-    cache_key = f"terminal_patients_v4_latest_{limit}_{int(bool(include_full_path))}"
+    # once Voluson/manuel kaynak, sonra son muayene/kontrol gelisine gore
+    # siralanir. BulutKlinik DB-only mirror kayitlari kaynak onceliginde arkada.
+    cache_key = f"terminal_patients_v6_source_visit_order_{limit}_{int(bool(include_full_path))}"
     ttl_key = "terminal_patient_listing" if include_full_path else "web_patient_listing"
     cached = cache_get(cache_key)
     if cached is not None:
@@ -15693,14 +15771,77 @@ def _load_patient_listing(limit=200, include_full_path=False):
         con.row_factory = lambda cur, row: {
             d[0]: row[i] for i, d in enumerate(cur.description)}
         rows = con.execute(f"""
-            WITH visit_stats AS (
+            WITH visit_source AS (
               SELECT
+                v.rowid AS visit_rowid,
                 v.patient_folder_key AS patient_key,
-                MAX(COALESCE(NULLIF(v.visit_date, ''),
-                             datetime(v.folder_mtime, 'unixepoch'))) AS last_visit
+                TRIM(COALESCE(v.visit_date, '')) AS visit_date_raw,
+                LOWER(TRIM(COALESCE(v.visit_type, ''))) AS visit_type_norm,
+                v.created_at,
+                v.first_seen_at,
+                v.folder_mtime
               FROM visits v
               WHERE COALESCE(v.archived_at, '') = ''
-              GROUP BY v.patient_folder_key
+                AND COALESCE(v.patient_folder_key, '') <> ''
+                AND (
+                  LOWER(TRIM(COALESCE(v.visit_type, ''))) = ''
+                  OR LOWER(TRIM(COALESCE(v.visit_type, ''))) LIKE '%muayene%'
+                  OR LOWER(TRIM(COALESCE(v.visit_type, ''))) LIKE '%kontrol%'
+                  OR LOWER(TRIM(COALESCE(v.visit_type, ''))) IN (
+                    'exam', 'examination', 'control', 'followup', 'follow-up'
+                  )
+                )
+            ),
+            visit_base AS (
+              SELECT
+                patient_key,
+                visit_rowid,
+                created_at,
+                first_seen_at,
+                CASE
+                  WHEN visit_date_raw GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*'
+                  THEN REPLACE(SUBSTR(visit_date_raw, 1, 19), 'T', ' ')
+                  WHEN visit_date_raw GLOB '[0-9][0-9].[0-9][0-9].[0-9][0-9][0-9][0-9]*'
+                  THEN SUBSTR(visit_date_raw, 7, 4) || '-' ||
+                       SUBSTR(visit_date_raw, 4, 2) || '-' ||
+                       SUBSTR(visit_date_raw, 1, 2)
+                  WHEN visit_date_raw GLOB '[0-9][0-9]/[0-9][0-9]/[0-9][0-9][0-9][0-9]*'
+                  THEN SUBSTR(visit_date_raw, 7, 4) || '-' ||
+                       SUBSTR(visit_date_raw, 4, 2) || '-' ||
+                       SUBSTR(visit_date_raw, 1, 2)
+                  WHEN visit_date_raw GLOB '[0-9][0-9]-[0-9][0-9]-[0-9][0-9]*'
+                  THEN '20' || SUBSTR(visit_date_raw, 1, 2) || '-' ||
+                       SUBSTR(visit_date_raw, 4, 2) || '-' ||
+                       SUBSTR(visit_date_raw, 7, 2)
+                  WHEN folder_mtime IS NOT NULL
+                  THEN datetime(folder_mtime, 'unixepoch')
+                  ELSE COALESCE(NULLIF(created_at, ''), NULLIF(first_seen_at, ''))
+                END AS visit_sort
+              FROM visit_source
+            ),
+            visit_ranked AS (
+              SELECT
+                patient_key,
+                visit_sort,
+                visit_rowid,
+                ROW_NUMBER() OVER (
+                  PARTITION BY patient_key
+                  ORDER BY visit_sort DESC,
+                           COALESCE(NULLIF(created_at, ''),
+                                    NULLIF(first_seen_at, '')) DESC,
+                           visit_rowid DESC
+                ) AS rn
+              FROM visit_base
+              WHERE COALESCE(visit_sort, '') <> ''
+            ),
+            visit_stats AS (
+              SELECT
+                patient_key,
+                SUBSTR(visit_sort, 1, 10) AS last_visit,
+                visit_sort AS last_visit_sort,
+                visit_rowid AS last_visit_rowid
+              FROM visit_ranked
+              WHERE rn = 1
             ),
             pdf_stats AS (
               SELECT
@@ -15785,12 +15926,30 @@ def _load_patient_listing(limit=200, include_full_path=False):
                    p.folder_mtime,
                    {("p.full_path," if include_full_path else "")}
                    COALESCE(vs.last_visit, '') AS last_visit,
+                   COALESCE(vs.last_visit_sort, '') AS last_visit_sort,
+                   COALESCE(vs.last_visit_rowid, 0) AS last_visit_rowid,
                    COALESCE(ps.last_pdf_visit, '') AS last_pdf_visit,
                    COALESCE(fs.flag_count, 0) AS flag_count,
                    COALESCE(ds.has_delivered, 0) AS has_delivered,
                    COALESCE(pts.has_pdf_obstetric, 0) AS has_pdf_obstetric,
                    COALESCE(pts.has_pdf_gynecologic, 0) AS has_pdf_gynecologic,
-                   COALESCE(ohs.has_obstetric_hint, 0) AS has_obstetric_hint
+                   COALESCE(ohs.has_obstetric_hint, 0) AS has_obstetric_hint,
+                   CASE
+                     WHEN COALESCE(pt.is_manual, 0) = 1 THEN 2
+                     WHEN COALESCE(p.folder_key, '') LIKE 'BK_%'
+                       OR LOWER(COALESCE(p.full_path, '')) LIKE '%_bk_imported%'
+                     THEN 0
+                     WHEN COALESCE(p.full_path, '') <> '' THEN 2
+                     ELSE 1
+                   END AS source_priority,
+                   CASE
+                     WHEN COALESCE(pt.is_manual, 0) = 1 THEN 'manual'
+                     WHEN COALESCE(p.folder_key, '') LIKE 'BK_%'
+                       OR LOWER(COALESCE(p.full_path, '')) LIKE '%_bk_imported%'
+                     THEN 'bulutklinik'
+                     WHEN COALESCE(p.full_path, '') <> '' THEN 'voluson'
+                     ELSE 'local'
+                   END AS source_bucket
             FROM patients p
             LEFT JOIN patient_type pt
               ON pt.patient_key = p.folder_key
@@ -15810,21 +15969,15 @@ def _load_patient_listing(limit=200, include_full_path=False):
               ON ohs.patient_key = p.folder_key
             WHERE COALESCE(p.archived_at, '') = ''
             ORDER BY
+              source_priority DESC,
               CASE
-                WHEN MAX(
-                  COALESCE(vs.last_visit, ''),
-                  COALESCE(ps.last_pdf_visit, ''),
-                  COALESCE(datetime(p.folder_mtime, 'unixepoch'), ''),
-                  COALESCE(p.first_seen_at, '')
-                ) = ''
+                WHEN COALESCE(vs.last_visit_sort, '') = ''
+                 AND COALESCE(ps.last_pdf_visit, '') = ''
                 THEN 1 ELSE 0
               END,
-              MAX(
-                COALESCE(vs.last_visit, ''),
-                COALESCE(ps.last_pdf_visit, ''),
-                COALESCE(datetime(p.folder_mtime, 'unixepoch'), ''),
-                COALESCE(p.first_seen_at, '')
-              ) DESC,
+              COALESCE(vs.last_visit_sort, '') DESC,
+              COALESCE(vs.last_visit_rowid, 0) DESC,
+              COALESCE(ps.last_pdf_visit, '') DESC,
               COALESCE(p.display_name, p.folder_key) COLLATE NOCASE
             LIMIT ?
         """, (query_limit,)).fetchall()
@@ -15898,34 +16051,48 @@ def _load_patient_listing(limit=200, include_full_path=False):
         last_visit = str(item.get("last_visit") or "").strip()
         last_visit_date = last_visit[:10] if last_visit else ""
         first_seen_raw = str(item.get("first_seen_at") or "").strip()
-        first_seen_date = first_seen_raw[:10]
         folder_mtime_sort = _listing_mtime_sort_text(item.get("folder_mtime"))
-        last_visit_sort = _listing_sort_text(last_visit)
+        last_visit_sort = _listing_sort_text(
+            item.get("last_visit_sort") or last_visit)
         last_pdf_sort = _listing_sort_text(last_pdf_raw)
         first_seen_sort = _listing_sort_text(first_seen_raw)
         folder_visit_sort = (
             f"{folder_visit_iso} 00:00:00" if folder_visit_iso else "")
         sort_candidates = [
             v for v in (
-                last_pdf_date, last_visit_date, folder_visit_iso, first_seen_date
+                last_visit_date, last_pdf_date
             ) if v
         ]
         effective_visit_date = max(sort_candidates) if sort_candidates else ""
+        try:
+            last_visit_rowid = int(item.get("last_visit_rowid") or 0)
+        except Exception:
+            last_visit_rowid = 0
         sort_arrival_candidates = [
             v for v in (
-                last_visit_sort, folder_mtime_sort, folder_visit_sort,
-                first_seen_sort, last_pdf_sort
+                last_visit_sort, last_pdf_sort
             ) if v
         ]
         if effective_visit_date and (
                 not last_visit_date or effective_visit_date > last_visit_date):
             item["last_visit"] = effective_visit_date
+        fallback_arrival_candidates = [
+            v for v in (folder_visit_sort, folder_mtime_sort, first_seen_sort) if v
+        ]
         item["_sort_pdf_date"] = last_pdf_date
         item["_sort_visit_date"] = effective_visit_date
-        # En son gelen hasta en ustte: ziyaret, PDF, klasor tarihi ve ilk kayit
-        # sinyallerinden en yenisini tek siralama anahtari olarak kullan.
+        item["_sort_visit_rowid"] = last_visit_rowid
+        item["_sort_has_visit"] = 1 if sort_arrival_candidates else 0
+        try:
+            item["_sort_source_priority"] = int(item.get("source_priority") or 0)
+        except Exception:
+            item["_sort_source_priority"] = 0
+        # En son gelen hasta en ustte: once gercek muayene/kontrol gelisi,
+        # sonra PDF gelisi; hasta klasor/ilk import tarihleri yalniz yedektir.
         item["_sort_arrival"] = (
-            max(sort_arrival_candidates) if sort_arrival_candidates else "")
+            max(sort_arrival_candidates)
+            if sort_arrival_candidates
+            else (max(fallback_arrival_candidates) if fallback_arrival_candidates else ""))
         if not include_full_path:
             item.pop("full_path", None)
         item.pop("_full_path_for_filter", None)
@@ -15934,10 +16101,12 @@ def _load_patient_listing(limit=200, include_full_path=False):
         x.get("display_label") or x.get("display_name") or "").casefold())
     patients.sort(
         key=lambda x: (
+            int(x.get("_sort_source_priority") or 0),
+            int(x.get("_sort_has_visit") or 0),
             str(x.get("_sort_arrival") or ""),
+            int(x.get("_sort_visit_rowid") or 0),
             str(x.get("_sort_visit_date") or ""),
             str(x.get("_sort_pdf_date") or ""),
-            str(x.get("first_seen_at") or ""),
         ),
         reverse=True,
     )
@@ -31284,7 +31453,7 @@ E&#351;le&#351;en men&uuml; yok. Enter ile genel arama yap.
  </a>
  </div>
  </details>
-<a href="/ses-ve-alex" class="sidebar-link {% if request.path in ['/ses-ve-alex', '/akilli-dialog', '/yz-akilli-dialog', '/sessiz-alex', '/sesli-recete', '/yz-ses-cevir', '/ses-profilleri', '/mikrofon-tani', '/alex-arastirma', '/alex-egitim'] %}active{% endif %}">
+<a href="/ses-ve-alex" class="sidebar-link {% if request.path in ['/ses-ve-alex', '/akilli-dialog', '/yz-akilli-dialog', '/sessiz-alex', '/sesli-recete', '/yz-ses-cevir', '/ses-profilleri', '/mikrofon-tani', '/alex-arastirma', '/alex-hafiza', '/alex-egitim'] %}active{% endif %}">
 <span class="sidebar-link-icon"><i class="bi bi-mic-fill"></i></span><span>Ses ve Alex</span>
 </a>
 <details class="sidebar-fold sidebar-subgroup yk-primary-fold" data-sidebar-group="ai-voice-bar" open>
@@ -31319,7 +31488,7 @@ E&#351;le&#351;en men&uuml; yok. Enter ile genel arama yap.
  </div>
  </details>
  <details class="sidebar-fold sidebar-subgroup yk-primary-fold" data-sidebar-group="ai-voice" open>
- <summary><span><i class="bi bi-mic"></i> Ses ve Diyalog</span><small>10</small></summary>
+ <summary><span><i class="bi bi-mic"></i> Ses ve Diyalog</span><small>11</small></summary>
  <div class="sidebar-fold-body">
  <a href="/akilli-dialog" class="sidebar-link {% if ('/akilli-dialog' in request.path or '/yz-akilli-dialog' in request.path) and not request.args.get('sessiz') %}active{% endif %}">
  <span class="sidebar-link-icon"><i class="bi bi-chat-dots"></i></span><span>Akıllı Diyalog</span>
@@ -31329,6 +31498,9 @@ E&#351;le&#351;en men&uuml; yok. Enter ile genel arama yap.
  </a>
  <a href="/alex-arastirma" class="sidebar-link {% if '/alex-arastirma' in request.path %}active{% endif %}">
  <span class="sidebar-link-icon"><i class="bi bi-search-heart"></i></span><span>Alex Araştırma</span>
+ </a>
+ <a href="/alex-hafiza" class="sidebar-link {% if '/alex-hafiza' in request.path %}active{% endif %}">
+ <span class="sidebar-link-icon"><i class="bi bi-journal-text"></i></span><span>Alex Hafizasi</span>
  </a>
  <a href="/alex-egitim-merkezi" class="sidebar-link {% if '/alex-egitim-merkezi' in request.path %}active{% endif %}">
  <span class="sidebar-link-icon"><i class="bi bi-mortarboard-fill"></i></span><span>Alex LLM Eğitim</span>
@@ -31726,7 +31898,7 @@ E&#351;le&#351;en men&uuml; yok. Enter ile genel arama yap.
 </a>
 </div>
 </details>
-<a href="/ses-ve-alex" class="sidebar-link {% if request.path in ['/ses-ve-alex', '/akilli-dialog', '/yz-akilli-dialog', '/sessiz-alex', '/sesli-recete', '/yz-ses-cevir', '/ses-profilleri', '/mikrofon-tani', '/alex-arastirma', '/alex-egitim'] %}active{% endif %}">
+<a href="/ses-ve-alex" class="sidebar-link {% if request.path in ['/ses-ve-alex', '/akilli-dialog', '/yz-akilli-dialog', '/sessiz-alex', '/sesli-recete', '/yz-ses-cevir', '/ses-profilleri', '/mikrofon-tani', '/alex-arastirma', '/alex-hafiza', '/alex-egitim'] %}active{% endif %}">
 <span class="sidebar-link-icon"><i class="bi bi-mic-fill"></i></span>
 <span>Ses ve Alex</span>
  </a>
@@ -35167,6 +35339,7 @@ const tag = document.activeElement.tagName;
  { icon: '<i class="bi bi-activity"></i>', label: 'YZ Server Durum', url: '/yz-server-durum' },
  { icon: '<i class="bi bi-mic-fill"></i>', label: 'Ses ve Alex Merkezi', url: '/ses-ve-alex' },
  { icon: '<i class="bi bi-search-heart"></i>', label: 'Alex Araştırma (PubMed+Web)', url: '/alex-arastirma' },
+ { icon: '<i class="bi bi-journal-text"></i>', label: 'Alex Hafizasi', url: '/alex-hafiza' },
  { icon: '<i class="bi bi-mortarboard-fill"></i>', label: 'Alex Eğitim', url: '/alex-egitim' },
  { icon: '<i class="bi bi-volume-up"></i>', label: 'Alex Ses Seçimi', url: '/ses-profilleri' },
  { icon: '<i class="bi bi-shield-check"></i>', label: 'Sistem Durumu', url: '/sistem-durumu' },
@@ -35686,7 +35859,7 @@ background:#ecfdf5;color:#047857;font-size:11px;font-weight:800;
   const ALEX_BARGE_THRESHOLD = 0.018;
   const ALEX_BARGE_MIN_MS = 180;
  const VOICE_AGENT_ROUTE_TIMEOUT_MS = 3500;
- const VOICE_AGENT_DIALOG_TIMEOUT_MS = 12000;
+ const VOICE_AGENT_DIALOG_TIMEOUT_MS = 18000;
   const VOICE_AGENT_COMMAND_TIMEOUT_MS = 6500;
  const VOICE_AGENT_MAX_RESPONSE_MS = 26000;
   const VOICE_AGENT_USE_WEB_SPEECH = false;
@@ -49908,6 +50081,442 @@ def _alex_facts_format_for_prompt(facts):
     return "\n".join(lines)
 
 
+# === ALEX UZUN HAFIZA: konusmadan ogrenilen kalici ozetler ===
+
+_ALEX_LEARNED_READY = False
+
+
+def _alex_session_user_key():
+    try:
+        return "alex_" + str(session.get("user") or "doktor")
+    except Exception:
+        return "alex_doktor"
+
+
+def _alex_learned_init():
+    """Konusma/egitimden cikarilan kalici ogrenimleri tutar."""
+    global _ALEX_LEARNED_READY
+    if _ALEX_LEARNED_READY:
+        return
+    try:
+        con = _alex_db_conn()
+        try:
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS alex_learned_summaries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_key TEXT NOT NULL,
+                    source TEXT DEFAULT 'dialog',
+                    summary TEXT NOT NULL,
+                    evidence_json TEXT DEFAULT '[]',
+                    confidence REAL DEFAULT 0.7,
+                    created_ts INTEGER NOT NULL,
+                    updated_ts INTEGER NOT NULL,
+                    last_used_ts INTEGER DEFAULT 0
+                )
+            """)
+            con.execute("""
+                CREATE INDEX IF NOT EXISTS idx_alex_learned_user_ts
+                ON alex_learned_summaries(user_key, updated_ts DESC)
+            """)
+            con.commit()
+        finally:
+            con.close()
+        _ALEX_LEARNED_READY = True
+    except Exception as exc:
+        try:
+            print(f"[ALEX-LEARNED] init HATA: {exc}", flush=True)
+        except Exception:
+            pass
+
+
+def _alex_memory_count(user_key):
+    _alex_memory_init()
+    try:
+        row = _alex_exec(
+            "SELECT COUNT(*) FROM alex_memory WHERE user_key = ?",
+            (str(user_key or "anon"),), fetch='one')
+        return int(row[0] if row else 0)
+    except Exception:
+        return 0
+
+
+def _alex_learning_text_is_sensitive(text):
+    raw = str(text or "")
+    if not raw.strip():
+        return False
+    folded = _fold_search_text(raw)
+    risky_words = (
+        "sifre", "password", "parola", "token", "cookie", "secret",
+        "api key", "apikey", "session", "tc kimlik", "kimlik no",
+        "kredi kart", "iban", "bulutklinik_session")
+    if any(w in folded for w in risky_words):
+        return True
+    if re.search(r"\b\d{11}\b", raw):
+        return True
+    if re.search(r"\bsk-[A-Za-z0-9_-]{12,}\b", raw):
+        return True
+    patient_markers = (
+        "protokol", "gebelik haftasi", "recete", "ilac", "muayene",
+        "sikayet", "tani", "sonuc", "rapor", "gelis", "kontrol")
+    if "hasta" in folded and any(w in folded for w in patient_markers):
+        return True
+    return False
+
+
+def _alex_should_learn_from_text(user_text):
+    text = str(user_text or "").strip()
+    if len(text) < 12 or _alex_learning_text_is_sensitive(text):
+        return False
+    folded = _fold_search_text(text)
+    triggers = (
+        "unutma", "hatirla", "hatirlat", "ogren", "bunu ogren",
+        "ben ", "benim ", "bana ", "severim", "sevmem", "tercih",
+        "istemiyorum", "istiyorum", "hep", "genelde", "aliskanligim",
+        "klinigim", "programda", "alex", "yaz llm", "ollama")
+    return any(t in folded for t in triggers)
+
+
+def _alex_yaz_memory_model():
+    """Ogrenme cikarma isinde Yaz LLM'i oncele."""
+    try:
+        status = _ollama_status(fast=True) or {}
+        installed = status.get("models") or []
+    except Exception:
+        installed = []
+    by_lower = {
+        str(m).strip().lower(): str(m).strip()
+        for m in installed if str(m).strip()
+    }
+    for cand in ("yaz:latest", "yaz", "yaz-llm:latest", "yazllm:latest"):
+        if cand in by_lower:
+            return by_lower[cand]
+    try:
+        picked = _smart_dialog_pick_chat_model()
+        if picked:
+            return picked
+    except Exception:
+        pass
+    return DEFAULT_OLLAMA_MODEL
+
+
+def _alex_parse_learning_json(raw_text):
+    import json as _json
+    raw = str(raw_text or "").strip()
+    if not raw:
+        return []
+    raw = re.sub(r"^```(?:json)?\s*", "", raw, flags=re.IGNORECASE).strip()
+    raw = re.sub(r"\s*```$", "", raw).strip()
+    candidates = [raw]
+    m = re.search(r"\{.*\}", raw, flags=re.DOTALL)
+    if m:
+        candidates.insert(0, m.group(0))
+    for cand in candidates:
+        try:
+            obj = _json.loads(cand)
+        except Exception:
+            continue
+        items = obj.get("items") if isinstance(obj, dict) else obj
+        if not isinstance(items, list):
+            continue
+        out = []
+        for item in items:
+            if isinstance(item, dict):
+                summary = str(item.get("summary") or item.get("text") or "").strip()
+                category = str(item.get("category") or "konusma").strip()
+                try:
+                    confidence = float(item.get("confidence", 0.7))
+                except Exception:
+                    confidence = 0.7
+            else:
+                summary = str(item or "").strip()
+                category = "konusma"
+                confidence = 0.6
+            if summary:
+                out.append({
+                    "summary": summary,
+                    "category": category[:40],
+                    "confidence": max(0.0, min(confidence, 1.0)),
+                })
+        return out
+    return []
+
+
+def _alex_explicit_learning_fallback(user_text):
+    text = str(user_text or "").strip()
+    if not text:
+        return []
+    patterns = (
+        r"(?:bunu\s+unutma|unutma|hatirla|bunu\s+ogren|ogren)[:\s,;-]+(.+)$",
+        r"(ben(?:im)?\s+.+)$",
+        r"(bana\s+.+)$",
+    )
+    for pat in patterns:
+        m = re.search(pat, text, flags=re.IGNORECASE)
+        if not m:
+            continue
+        summary = re.sub(r"\s+", " ", m.group(1)).strip(" .,:;-")
+        if 8 <= len(summary) <= 500:
+            return [{"summary": summary, "category": "konusma",
+                     "confidence": 0.55}]
+    return []
+
+
+def _alex_learned_add(user_key, summary, source="dialog", evidence=None,
+                      confidence=0.7, category="konusma",
+                      promote_fact=True):
+    _alex_learned_init()
+    import json as _json
+    summary = re.sub(r"\s+", " ", str(summary or "")).strip()
+    if not summary or len(summary) < 8:
+        return False
+    if _alex_learning_text_is_sensitive(summary):
+        return False
+    if len(summary) > 900:
+        summary = summary[:900].rsplit(" ", 1)[0] + "..."
+    user_key = str(user_key or "anon")
+    now = int(time.time() * 1000)
+    try:
+        row = _alex_exec(
+            "SELECT id FROM alex_learned_summaries "
+            "WHERE user_key = ? AND lower(summary) = lower(?) LIMIT 1",
+            (user_key, summary), fetch='one')
+        if row:
+            _alex_exec(
+                "UPDATE alex_learned_summaries SET updated_ts = ?, "
+                "source = ?, confidence = max(confidence, ?) WHERE id = ?",
+                (now, str(source or "dialog")[:60], float(confidence or 0.7),
+                 int(row[0])), commit=True)
+            return int(row[0])
+    except Exception:
+        pass
+    try:
+        rid = _alex_exec(
+            "INSERT INTO alex_learned_summaries "
+            "(user_key, source, summary, evidence_json, confidence, "
+            "created_ts, updated_ts) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (user_key, str(source or "dialog")[:60], summary,
+             _json.dumps(evidence or {}, ensure_ascii=False)[:3000],
+             float(confidence or 0.7), now, now), commit=True)
+        if promote_fact:
+            try:
+                fact_text = f"[konusmadan ogrenildi] {summary}"
+                _alex_fact_add(user_key, fact_text,
+                               category=str(category or "konusma")[:40])
+            except Exception:
+                pass
+        return rid or True
+    except Exception as exc:
+        try:
+            print(f"[ALEX-LEARNED] add HATA: {exc}", flush=True)
+        except Exception:
+            pass
+        return False
+
+
+def _alex_learned_list(user_key, limit=50):
+    _alex_learned_init()
+    try:
+        rows = _alex_exec(
+            "SELECT id, source, summary, confidence, created_ts, updated_ts "
+            "FROM alex_learned_summaries WHERE user_key = ? "
+            "ORDER BY updated_ts DESC LIMIT ?",
+            (str(user_key or "anon"), int(limit)), fetch='all') or []
+        return [{
+            "id": r[0], "source": r[1] or "", "summary": r[2] or "",
+            "confidence": r[3] or 0, "created_ts": r[4], "updated_ts": r[5],
+        } for r in rows]
+    except Exception:
+        return []
+
+
+def _alex_learned_format_for_prompt(user_key, limit=20, max_chars_each=260):
+    rows = _alex_learned_list(user_key, limit=limit)
+    if not rows:
+        return ""
+    lines = []
+    used_ids = []
+    for row in rows:
+        text = str(row.get("summary") or "").strip()
+        if not text:
+            continue
+        if len(text) > max_chars_each:
+            text = text[:max_chars_each].rsplit(" ", 1)[0] + "..."
+        lines.append(f"- [{row.get('source') or 'hafiza'}] {text}")
+        try:
+            used_ids.append(int(row.get("id")))
+        except Exception:
+            pass
+    if used_ids:
+        try:
+            now = int(time.time() * 1000)
+            qmarks = ",".join("?" for _ in used_ids)
+            _alex_exec(
+                f"UPDATE alex_learned_summaries SET last_used_ts = ? "
+                f"WHERE id IN ({qmarks})",
+                tuple([now] + used_ids), commit=True)
+        except Exception:
+            pass
+    return "\n".join(lines)
+
+
+def _alex_extract_and_store_learnings(user_key, user_text, alex_response="",
+                                      source="dialog", model=None,
+                                      force=False):
+    if not force and not _alex_should_learn_from_text(user_text):
+        return 0
+    if _alex_learning_text_is_sensitive(user_text):
+        return 0
+    user_text = str(user_text or "").strip()
+    alex_response = str(alex_response or "").strip()
+    model = model or _alex_yaz_memory_model()
+    system = (
+        "Sen YazKlinik Alex uzun hafiza motorusun. Gorevin doktorun "
+        "konusmasindan kalici ve tekrar kullanilabilir tercih, talimat, "
+        "alisma sekli veya klinik is akisi bilgisini cikarmaktir. "
+        "Hasta verisi, sifre, token, cookie, tek seferlik gorev ve gecici "
+        "randevu bilgisini kaydetme. Sadece JSON dondur.")
+    prompt = (
+        "Asagidaki sohbetten 0-5 kalici ogrenim cikar.\n"
+        "JSON formati: {\"items\":[{\"summary\":\"...\","
+        "\"category\":\"tercih|is_akisi|kisisel|model|klinik\","
+        "\"confidence\":0.0}]}\n\n"
+        f"KULLANICI:\n{user_text[:1800]}\n\n"
+        f"ALEX CEVABI:\n{alex_response[:1200]}\n\n"
+        "Sadece dayanagi olan, gelecekte Alex'in kullanacagi bilgileri yaz.")
+    items = []
+    try:
+        ok, answer, _duration = call_ollama(
+            prompt, model=model, temperature=0.1, max_tokens=450,
+            timeout=30, use_cache=False, system=system, force_ollama=True)
+        if ok and answer:
+            items = _alex_parse_learning_json(answer)
+    except Exception as exc:
+        try:
+            print(f"[ALEX-LEARNED] ollama HATA: {exc}", flush=True)
+        except Exception:
+            pass
+    if not items:
+        items = _alex_explicit_learning_fallback(user_text)
+    saved = 0
+    evidence = {
+        "user_text": user_text[:900],
+        "alex_response": alex_response[:500],
+        "model": model or "",
+    }
+    for item in items[:5]:
+        summary = str(item.get("summary") or "").strip()
+        if not summary or _alex_learning_text_is_sensitive(summary):
+            continue
+        rid = _alex_learned_add(
+            user_key, summary, source=source, evidence=evidence,
+            confidence=item.get("confidence", 0.7),
+            category=item.get("category") or "konusma",
+            promote_fact=True)
+        if rid:
+            saved += 1
+    return saved
+
+
+def _alex_maybe_learn_from_turn(user_key, user_text, alex_response="",
+                                source="dialog", model=None,
+                                async_extract=True, force=False):
+    if not force and not _alex_should_learn_from_text(user_text):
+        return False
+    try:
+        if async_extract:
+            import threading as _thr
+            _thr.Thread(
+                target=_alex_extract_and_store_learnings,
+                args=(user_key, user_text, alex_response, source, model, force),
+                daemon=True).start()
+            return True
+        return _alex_extract_and_store_learnings(
+            user_key, user_text, alex_response, source=source,
+            model=model, force=force)
+    except Exception as exc:
+        try:
+            print(f"[ALEX-LEARNED] async HATA: {exc}", flush=True)
+        except Exception:
+            pass
+        return False
+
+
+def _alex_record_dialog_turn(user_key, user_text, alex_response, model="",
+                             category="chat", side_effects=None,
+                             source="smart_dialog", learn=True,
+                             async_extract=True):
+    try:
+        if user_text:
+            _alex_memory_append(user_key, "user", user_text)
+        if alex_response:
+            _alex_memory_append(user_key, "assistant", alex_response)
+        try:
+            _alex_training_log(
+                user_key, user_text, alex_response, model=model,
+                category=category, side_effects=side_effects or [])
+        except Exception:
+            pass
+        if learn:
+            _alex_maybe_learn_from_turn(
+                user_key, user_text, alex_response, source=source,
+                model=model, async_extract=async_extract)
+        return True
+    except Exception as exc:
+        try:
+            print(f"[ALEX-RECORD] HATA: {exc}", flush=True)
+        except Exception:
+            pass
+        return False
+
+
+def _alex_detect_learned_question_intent(text):
+    folded = _fold_search_text(text or "")
+    phrases = (
+        "benden ne ogrendin", "hakkimda ne biliyorsun",
+        "benim hakkimda ne biliyorsun", "hafizanda ne var",
+        "ne ogrendin", "ogrenilenleri soyle", "bana ogrendiklerini soyle",
+        "beni taniyor musun", "beni hatirliyor musun")
+    return any(p in folded for p in phrases)
+
+
+def _alex_learned_answer(user_key, limit=12):
+    learned = _alex_learned_list(user_key, limit=limit)
+    facts = _alex_facts_list(user_key, limit=limit)
+    lines = []
+    for row in learned[:limit]:
+        s = str(row.get("summary") or "").strip()
+        if s and s not in lines:
+            lines.append(s)
+    for fact in facts:
+        s = str(fact.get("fact") or "").strip()
+        s = re.sub(r"^\[konusmadan ogrenildi\]\s*", "", s,
+                   flags=re.IGNORECASE)
+        if s and s not in lines:
+            lines.append(s)
+        if len(lines) >= limit:
+            break
+    if not lines:
+        return (
+            "Doktorum, su an kalici hafizamda henuz kayitli bir ogrenim yok. "
+            "Bana 'bunu unutma' veya 'bunu ogren' diye soylersen Yaz LLM ile "
+            "isleyip saklayacagim.")
+    bullets = "\n".join(f"- {x}" for x in lines[:limit])
+    return "Doktorum, su ana kadar senden sunlari ogrendim:\n" + bullets
+
+
+def _alex_refresh_learned_from_recent(user_key, limit=40):
+    rows = _alex_memory_get(user_key, limit=limit)
+    if not rows:
+        return 0
+    parts = []
+    for role, content in rows[-(int(limit) * 2):]:
+        speaker = "Kullanici" if role == "user" else "Alex"
+        parts.append(f"{speaker}: {str(content or '')[:700]}")
+    combined = "\n".join(parts)
+    return _alex_extract_and_store_learnings(
+        user_key, combined, "", source="memory_refresh", force=True)
+
+
 # ============================================================================
 # D300 ARASTIRMA: PubMed + Web + LLM Sentez
 # ----------------------------------------------------------------------------
@@ -55748,7 +56357,8 @@ def _bk_voluson_context_panel_html(patient_key=""):
                     "bk_patients", "bk_protocols", "bk_voluson_links",
                     "bk_patient_changes", "visits", "prescriptions",
                     "bk_obstetri_visits", "bk_gynecology_resume",
-                    "bk_gynecology_tracking", "bk_services",
+                    "bk_gynecology_tracking", "obstetric_form",
+                    "gynec_form", "bk_services",
                     "bk_appointments")
             }
             if has["bk_patients"]:
@@ -55812,6 +56422,41 @@ def _bk_voluson_context_panel_html(patient_key=""):
                         ORDER BY COALESCE(tarih,'') DESC
                         LIMIT 3
                     """, (bk_no,)) if has["bk_gynecology_resume"] else []
+                    gyn_track_rows = _rows(con, """
+                        SELECT tarih, usg_age, efw, sikayet
+                        FROM bk_gynecology_tracking
+                        WHERE bk_hasta_no=?
+                        ORDER BY COALESCE(tarih,'') DESC
+                        LIMIT 3
+                    """, (bk_no,)) if has["bk_gynecology_tracking"] else []
+                    form_badges = []
+                    for table, label in (
+                            ("obstetric_form", "Obstetri forma aktarildi"),
+                            ("gynec_form", "Jinekoloji forma aktarildi")):
+                        if not has.get(table):
+                            continue
+                        form_rows = _rows(
+                            con,
+                            f"SELECT data_json, updated_at FROM {table} "
+                            "WHERE patient_key=?",
+                            (patient_key,))
+                        if not form_rows:
+                            continue
+                        try:
+                            import json as _bk_panel_json
+                            form_data = _bk_panel_json.loads(
+                                form_rows[0].get("data_json") or "{}")
+                            bk_form = form_data.get("bulutklinik") or {}
+                            summary = bk_form.get("summary") or {}
+                            count = int(summary.get("count") or 0)
+                            last_date = str(summary.get("last_date") or "")
+                            if count:
+                                form_badges.append(
+                                    f"<span class='yk-bk-v-sync'>{sh(label)}: "
+                                    f"<b>{count}</b> kayit"
+                                    f"{(' / son ' + sh(last_date)) if last_date else ''}</span>")
+                        except Exception:
+                            continue
                     protos = "".join(
                         f"<li><b>{sh(r.get('protokol_tarihi') or '-')}</b> "
                         f"{sh(r.get('gelis_nedeni') or r.get('brans') or '-')}"
@@ -55823,11 +56468,34 @@ def _bk_voluson_context_panel_html(patient_key=""):
                         f"EFW {sh(r.get('efw') or '-')} "
                         f"<small>{sh(r.get('sikayet') or '')}</small></li>"
                         for r in obs_rows)
+                    gyn_items = []
+                    for r in gyn_rows:
+                        gyn_items.append({
+                            "date": r.get("tarih") or "",
+                            "main": r.get("tani") or r.get("sikayet_oyku") or "-",
+                            "small": r.get("recete") or r.get("tedavi_plani") or "",
+                        })
+                    for r in gyn_track_rows:
+                        gyn_items.append({
+                            "date": r.get("tarih") or "",
+                            "main": r.get("sikayet") or "Jinekoloji takip",
+                            "small": " ".join(x for x in (
+                                ("USG " + str(r.get("usg_age"))) if r.get("usg_age") else "",
+                                ("EFW " + str(r.get("efw"))) if r.get("efw") else "",
+                            ) if x),
+                        })
+                    gyn_items = sorted(
+                        gyn_items, key=lambda x: str(x.get("date") or ""),
+                        reverse=True)[:4]
                     gyn = "".join(
-                        f"<li><b>{sh(r.get('tarih') or '-')}</b> "
-                        f"{sh(r.get('tani') or r.get('sikayet_oyku') or '-')}"
-                        f"<small>{sh(r.get('recete') or r.get('tedavi_plani') or '')}</small></li>"
-                        for r in gyn_rows)
+                        f"<li><b>{sh(r.get('date') or '-')}</b> "
+                        f"{sh(r.get('main') or '-')}"
+                        f"<small>{sh(r.get('small') or '')}</small></li>"
+                        for r in gyn_items)
+                    form_badges_html = (
+                        "<div class='yk-bk-v-sync-row'>"
+                        + "".join(form_badges) + "</div>"
+                        if form_badges else "")
                     patient_html = f"""
                       <div class="yk-bk-v-panel-patient">
                         <div>
@@ -55841,6 +56509,7 @@ def _bk_voluson_context_panel_html(patient_key=""):
                           <a class="btn btn-sm btn-outline-primary" href="/api/bk-hastalar/{quote(bk_no, safe='')}/voluson-export-suggest" target="_blank" rel="noopener">BK -> Voluson oner</a>
                         </div>
                       </div>
+                      {form_badges_html}
                       <div class="yk-bk-v-lists">
                         <div><b>Protokoller</b><ul>{protos or '<li>Kayit yok</li>'}</ul></div>
                         <div><b>Obstetri</b><ul>{obs or '<li>Kayit yok</li>'}</ul></div>
@@ -55918,6 +56587,8 @@ def _bk_voluson_context_panel_html(patient_key=""):
       .yk-bk-v-panel-patient p{{margin:0;color:#657991;font-size:13px}}
       .yk-bk-v-warn{{border-color:#f1d28b;background:#fff9e8}}
       .yk-bk-v-tag{{display:inline-block;font-size:11px;font-weight:900;text-transform:uppercase;color:#176b55;background:#e8f8ef;border-radius:999px;padding:4px 8px}}
+      .yk-bk-v-sync-row{{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}}
+      .yk-bk-v-sync{{display:inline-flex;align-items:center;gap:4px;background:#eef8ff;border:1px solid #cfe4f8;color:#17304f;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800}}
       .yk-bk-v-lists{{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}}
       .yk-bk-v-lists>div{{background:#fff;border:1px solid #dceaf6;border-radius:14px;padding:11px}}
       .yk-bk-v-lists b{{color:#17304f}}
@@ -56586,6 +57257,212 @@ def api_alex_modelfile_create():
     ok, msg = _alex_ollama_create_custom_model(
         name=name, base_model=base, system_prompt=sys_p)
     return jsonify({"ok": ok, "message": msg})
+
+
+@app.route("/api/alex/learned/list", methods=["GET"])
+@login_required
+def api_alex_learned_list():
+    uk = _alex_session_user_key()
+    try:
+        limit = int(request.args.get("limit") or 80)
+    except Exception:
+        limit = 80
+    limit = max(5, min(limit, 200))
+    return jsonify({
+        "ok": True,
+        "items": _alex_learned_list(uk, limit=limit),
+        "facts": _alex_facts_list(uk, limit=limit),
+        "memory_count": _alex_memory_count(uk),
+        "training_stats": _alex_training_stats(user_key=uk),
+        "model": _alex_yaz_memory_model(),
+    })
+
+
+@app.route("/api/alex/learned/refresh", methods=["POST"])
+@login_required
+def api_alex_learned_refresh():
+    uk = _alex_session_user_key()
+    data = request.get_json(silent=True) or {}
+    try:
+        limit = int(data.get("limit") or 40)
+    except Exception:
+        limit = 40
+    limit = max(5, min(limit, 120))
+    saved = _alex_refresh_learned_from_recent(uk, limit=limit)
+    return jsonify({
+        "ok": True,
+        "saved": int(saved or 0),
+        "items": _alex_learned_list(uk, limit=80),
+    })
+
+
+@app.route("/api/alex/learned/add", methods=["POST"])
+@login_required
+def api_alex_learned_add():
+    uk = _alex_session_user_key()
+    data = request.get_json(silent=True) or {}
+    summary = str(data.get("summary") or "").strip()
+    category = str(data.get("category") or "manuel").strip() or "manuel"
+    if not summary:
+        return jsonify({"ok": False, "error": "summary bos"}), 400
+    rid = _alex_learned_add(
+        uk, summary, source="manual", evidence={"manual": True},
+        confidence=1.0, category=category, promote_fact=True)
+    if not rid:
+        return jsonify({"ok": False, "error": "kaydedilemedi"}), 400
+    return jsonify({"ok": True, "id": rid})
+
+
+@app.route("/api/alex/learned/<int:item_id>/delete", methods=["POST", "DELETE"])
+@login_required
+def api_alex_learned_delete(item_id):
+    uk = _alex_session_user_key()
+    try:
+        _alex_exec(
+            "DELETE FROM alex_learned_summaries WHERE id = ? AND user_key = ?",
+            (int(item_id), uk), commit=True)
+        return jsonify({"ok": True})
+    except Exception as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+
+@app.route("/alex-hafiza", methods=["GET"])
+@login_required
+def alex_hafiza_page():
+    """Alex'in konusmadan/Yaz LLM ile cikardigi uzun hafiza ekrani."""
+    uk = _alex_session_user_key()
+    items = _alex_learned_list(uk, limit=120)
+    facts = _alex_facts_list(uk, limit=30)
+    stats = _alex_training_stats(user_key=uk)
+    memory_count = _alex_memory_count(uk)
+    model_name = _alex_yaz_memory_model()
+
+    def _fmt_ts(ms):
+        try:
+            import datetime as _dt
+            return _dt.datetime.fromtimestamp(int(ms) / 1000).strftime(
+                "%d.%m.%Y %H:%M")
+        except Exception:
+            return ""
+
+    rows_html = ""
+    for item in items:
+        rows_html += f"""
+        <tr>
+          <td><span class="badge text-bg-primary">{sh(item.get('source') or 'hafiza')}</span></td>
+          <td>{safe_html(item.get('summary') or '')}</td>
+          <td class="small text-muted text-nowrap">{safe_html(_fmt_ts(item.get('updated_ts')))}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-danger"
+              onclick="ykAlexForget({int(item.get('id') or 0)})">Sil</button>
+          </td>
+        </tr>
+        """
+    if not rows_html:
+        rows_html = (
+            '<tr><td colspan="4" class="text-center text-muted py-4">'
+            'Henuz kalici ogrenim yok. Alex ile konusurken "bunu unutma" '
+            'veya "bunu ogren" diyebilirsiniz.</td></tr>')
+
+    facts_html = "".join(
+        f'<span class="yk-fact-pill">{safe_html(f.get("category"))}: '
+        f'{safe_html((f.get("fact") or "")[:180])}</span>'
+        for f in facts[:18])
+    if not facts_html:
+        facts_html = '<span class="text-muted">Kalici bilgi henuz yok.</span>'
+
+    content = f"""
+    <style>
+      .yk-memory-shell {{ display:grid; gap:16px; }}
+      .yk-memory-hero {{
+        border:1px solid #d7e7f3; border-radius:14px; padding:18px;
+        background:linear-gradient(135deg,#f7fcff,#f3fff7);
+      }}
+      .yk-memory-stats {{
+        display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+        gap:10px; margin-top:12px;
+      }}
+      .yk-memory-stat {{
+        background:#fff; border:1px solid #dce8f2; border-radius:10px;
+        padding:12px;
+      }}
+      .yk-memory-stat b {{ display:block; font-size:24px; color:#0b63b6; }}
+      .yk-fact-pill {{
+        display:inline-flex; margin:4px; padding:7px 10px; border-radius:999px;
+        background:#eef7ff; border:1px solid #d2e7f7; font-size:12px;
+      }}
+      .yk-memory-table td {{ vertical-align:middle; }}
+    </style>
+    <div class="yk-memory-shell">
+      <section class="yk-memory-hero">
+        <h2>Alex Hafizasi</h2>
+        <p class="text-muted mb-0">
+          Konusma, klavye ve egitim kayitlarindan Yaz LLM/Ollama ile cikarilan
+          kalici ogrenimler burada tutulur. Alex cevap verirken bu hafizayi kullanir.
+        </p>
+        <div class="yk-memory-stats">
+          <div class="yk-memory-stat"><b>{len(items)}</b><span>Ogrenilen ozet</span></div>
+          <div class="yk-memory-stat"><b>{memory_count}</b><span>Konusma satiri</span></div>
+          <div class="yk-memory-stat"><b>{stats.get('total', 0)}</b><span>Egitim kaydi</span></div>
+          <div class="yk-memory-stat"><b>{safe_html(model_name or '-')}</b><span>Yaz LLM modeli</span></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <b>Kalici ogrenilenler</b>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary btn-sm" onclick="ykAlexRefresh()">
+              Son konusmalari Yaz LLM ile isle
+            </button>
+            <a class="btn btn-outline-secondary btn-sm" href="/alex-egitim-merkezi">
+              Egitim merkezi
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="ykAlexMemoryStatus" class="small mb-2"></div>
+          <table class="table table-sm yk-memory-table">
+            <thead><tr><th>Kaynak</th><th>Ogrenim</th><th>Guncel</th><th></th></tr></thead>
+            <tbody>{rows_html}</tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header"><b>Alex'e ogretilmis bilgiler</b></div>
+        <div class="card-body">{facts_html}</div>
+      </section>
+    </div>
+    <script>
+      async function ykAlexRefresh() {{
+        const st = document.getElementById('ykAlexMemoryStatus');
+        st.innerHTML = '<span class="text-primary">Yaz LLM son konusmalari isliyor...</span>';
+        try {{
+          const r = await fetch('/api/alex/learned/refresh', {{
+            method:'POST', credentials:'same-origin',
+            headers:{{'Content-Type':'application/json'}},
+            body:JSON.stringify({{limit:40}})
+          }});
+          const d = await r.json();
+          if (d.ok) {{
+            st.innerHTML = '<span class="text-success">Kaydedilen yeni ogrenim: ' + (d.saved||0) + '</span>';
+            setTimeout(() => location.reload(), 900);
+          }} else {{
+            st.innerHTML = '<span class="text-danger">' + (d.error||'Hata') + '</span>';
+          }}
+        }} catch(e) {{ st.innerHTML = '<span class="text-danger">'+e.message+'</span>'; }}
+      }}
+      async function ykAlexForget(id) {{
+        if (!confirm('Bu ogrenimi sileyim mi?')) return;
+        await fetch('/api/alex/learned/' + id + '/delete', {{
+          method:'POST', credentials:'same-origin'
+        }});
+        location.reload();
+      }}
+    </script>
+    """
+    return render(content, title="Alex Hafizasi")
 
 
 @app.route("/alex-egitim-merkezi", methods=["GET"])
@@ -57373,6 +58250,41 @@ def api_phone_voice_turn_text():
         yield ("event: stt\ndata: " +
                _json.dumps({"text": user_text, "ms": 0}) + "\n\n")
 
+        quick_reply = ""
+        try:
+            quick_reply = _smart_dialog_live_companion_reply(
+                user_text, {"alex_mode": True, "voice": True})
+        except Exception:
+            quick_reply = ""
+        if quick_reply:
+            audio = None
+            try:
+                if tts_engine == "piper":
+                    audio = _ai_phone_piper_tts_bytes(quick_reply)
+                else:
+                    audio = _ai_phone_xtts_tts_bytes(quick_reply, voice=voice)
+                if not audio:
+                    audio = _ai_phone_piper_tts_bytes(quick_reply)
+            except Exception:
+                audio = None
+            if audio:
+                yield ("event: chunk\ndata: " + _json.dumps({
+                    "idx": 1,
+                    "text": quick_reply,
+                    "audio_b64": _b64.b64encode(audio).decode("ascii"),
+                    "tts_ms": 0,
+                }) + "\n\n")
+            yield ("event: done\ndata: " + _json.dumps({
+                "full": quick_reply,
+                "llm_first_token_ms": 0,
+                "llm_total_ms": 0,
+                "sentences": 1 if audio else 0,
+                "voice": voice,
+                "model": "alex-fast-rule",
+                "history_turns": 0,
+            }) + "\n\n")
+            return
+
         # LLM secimi (phone task)
         try:
             manual_model = _ollama_manual_model_for_task("phone")
@@ -57431,6 +58343,12 @@ def api_phone_voice_turn_text():
         except Exception:
             pass
         facts_str = _alex_facts_format_for_prompt(facts_list)
+        learned_str = ""
+        try:
+            learned_str = _alex_learned_format_for_prompt(
+                user_key, limit=18, max_chars_each=240)
+        except Exception:
+            learned_str = ""
         history_rows = []
         try:
             # D300: 10 -> 4 turn (memory bleeding fix - eskidende kalan
@@ -57701,6 +58619,8 @@ def api_phone_voice_turn_text():
                     f"icin sunu yap: {cmd_text}]")
         # Final prompt insa
         prompt_parts = [sys_prompt]
+        if learned_str:
+            prompt_parts.append(f"[Yaz LLM uzun hafiza]\n{learned_str}")
         if facts_str:
             prompt_parts.append(f"[Kullanici hakkinda bilinen bilgiler]\n{facts_str}")
         if known_research_str:
@@ -57733,6 +58653,8 @@ def api_phone_voice_turn_text():
         prompt = "\n\n".join(prompt_parts)
         has_long_ctx = bool(research_context or url_context or patient_usg_context
                             or news_context or rag_context)
+        if not has_long_ctx:
+            model = "llama3.1:8b"
         # D300 FIX: gpt-oss/deepseek-r1/o1/qwq reasoning modelleri thinking
         # field'inde gizli token harciyorlar - response gelmesi icin extra
         # budget gerekir. Yoksa done_reason=length, full=''.
@@ -57906,6 +58828,13 @@ def api_phone_voice_turn_text():
                             side_effects=side)
                     except Exception:
                         pass
+                    try:
+                        _alex_maybe_learn_from_turn(
+                            user_key, user_text, full_response.strip(),
+                            source="voice-text", model=model,
+                            async_extract=True)
+                    except Exception:
+                        pass
             except Exception as _exc:
                 try:
                     print(f"[VTT] memory save HATA: {_exc}", flush=True)
@@ -58067,6 +58996,12 @@ def api_phone_voice_turn():
         except Exception:
             pass
         facts_str = _alex_facts_format_for_prompt(facts_list)
+        learned_str = ""
+        try:
+            learned_str = _alex_learned_format_for_prompt(
+                user_key, limit=18, max_chars_each=240)
+        except Exception:
+            learned_str = ""
 
         # 2) Konusma hafizasi (son 10 turn)
         history_rows = []
@@ -58245,6 +59180,8 @@ def api_phone_voice_turn():
 
         # Final prompt insa et
         prompt_parts = [sys_prompt]
+        if learned_str:
+            prompt_parts.append(f"[Yaz LLM uzun hafiza]\n{learned_str}")
         if facts_str:
             prompt_parts.append(f"[Kullanici hakkinda bilinen bilgiler]\n{facts_str}")
         if known_research_str:
@@ -58430,6 +59367,25 @@ def api_phone_voice_turn():
                     _alex_memory_append(user_key, "user", user_text)
                     _alex_memory_append(user_key, "assistant",
                                         full_response.strip())
+                    try:
+                        side = []
+                        if research_context: side.append("research")
+                        if url_context: side.append("url")
+                        if promote_context: side.append("promote")
+                        if cmd_context: side.append("command")
+                        _alex_training_log(
+                            user_key, user_text, full_response.strip(),
+                            model=model, category="voice-turn",
+                            side_effects=side)
+                    except Exception:
+                        pass
+                    try:
+                        _alex_maybe_learn_from_turn(
+                            user_key, user_text, full_response.strip(),
+                            source="voice-turn", model=model,
+                            async_extract=True)
+                    except Exception:
+                        pass
             except Exception as _exc:
                 try:
                     print(f"[VOICE-TURN] memory save HATA: {_exc}", flush=True)
@@ -60945,6 +61901,7 @@ _SMART_DIALOG_ROUTE_REGISTRY = [
     ("/akilli-dialog", "Akıllı Diyalog"),
     ("/sessiz-alex", "Sessiz Alex"),
     ("/alex-arastirma", "Alex Araştırma (PubMed + Web online)"),
+    ("/alex-hafiza", "Alex Hafizasi (Yaz LLM uzun hafiza)"),
     ("/alex-egitim", "Alex Eğitim (kalıcı bilgi + özel komut)"),
     ("/sesli-recete", "Sesli reçete"),
     ("/yz-ses-cevir", "Ses çevir"),
@@ -61787,6 +62744,19 @@ def _smart_dialog_system_prompt(active_patient_summary: str = "",
     return prompt
 
 
+def _smart_dialog_voice_fast_system_prompt(active_patient_summary: str = "") -> str:
+    sections = [
+        "Sen Alex'sin. YazKlinik icinde Dr. Hakan'a yardim eden Turkce klinik asistansin.",
+        "Cevap 1-3 cumle olsun. Dogal, sicak, net ve profesyonel konus.",
+        "Kullanici doktordur; ona hasta gibi hitap etme. 'doktorum' veya 'hocam' kullanabilirsin.",
+        "Komut varsa isi yap veya ACTION JSON hazirla. Kesin tani koyma; klinik karar hekime aittir.",
+        "Sesli modda uzun aciklama, madde listesi ve gereksiz kapanis cumlesi kullanma.",
+    ]
+    if active_patient_summary:
+        sections.append("AKTIF HASTA BAGLAMI:\n" + str(active_patient_summary)[:1200])
+    return "\n\n".join(sections)
+
+
 def _smart_dialog_live_companion_reply(message, client_context=None):
     folded = _fold_search_text(message)
     if not folded:
@@ -61794,6 +62764,38 @@ def _smart_dialog_live_companion_reply(message, client_context=None):
     context = client_context if isinstance(client_context, dict) else {}
     alex_mode = bool(context.get("alex_mode") or context.get("voice"))
     tokens = folded.split()
+    if re.fullmatch(
+            r"(alex|aleks|aleksa|alex merhaba|aleks merhaba|aleksa merhaba|hey alex|merhaba alex|selam alex)",
+            folded):
+        return "Buradayim doktorum, sesini aliyorum. Ne yapalim?"
+    if any(k in folded for k in (
+            "beni duyuyor musun", "sesimi aliyor musun", "oradasin",
+            "oradamisin", "burada misin", "hazir misin",
+            "sistem test", "alex test", "test cevap", "calisiyor musun",
+            "calisiyor mu", "alex calisiyor")):
+        return "Sistem hazir doktorum. Ses, komut ve sohbet hattindayim."
+    if any(k in folded for k in (
+            "kisa ve sakin", "sakin bir cevap", "kisa cevap ver",
+            "sakin cevap ver")):
+        return (
+            "Buradayim doktorum. Kisa ve sakin gidelim; ne lazimsa adim adim "
+            "toparlayalim."
+        )
+    if any(k in folded for k in (
+            "motivasyon", "motive et", "moral ver", "cesaret ver",
+            "gaza getir", "bugun motive", "kisa moral")):
+        return (
+            "Doktorum, bugun tek hedef secip ilk adimi atalim. Ben buradayim; "
+            "hasta, not veya ekran isini soyle, hizlica toparlayalim."
+        )
+    if any(k in folded for k in (
+            "isleri nasil daha hizli", "isleri hizli toparla",
+            "is akisini hizlandir", "daha hizli toparlarim")):
+        return (
+            "Once acil isi secip digerlerini siraya alalim doktorum. "
+            "Hasta, not veya recete isini soyle; ben ekrani ve metni hizlica "
+            "toparlarim."
+        )
     if _smart_dialog_is_action_request(message):
         return ""
 
@@ -61803,6 +62805,10 @@ def _smart_dialog_live_companion_reply(message, client_context=None):
             "beni duyuyor musun", "sesimi aliyor musun", "oradasin",
             "oradamisin", "burada misin", "hazir misin")):
         return "Buradayım doktorum, seni duyuyorum. Söyle, beraber toparlayalım."
+    if any(k in folded for k in (
+            "sistem test", "alex test", "test cevap", "calisiyor musun",
+            "calisiyor mu", "alex calisiyor")):
+        return "Sistem hazir doktorum. Ses, komut ve sohbet hattindayim."
     if any(k in folded for k in (
             "nasilsin", "naber", "iyi misin", "keyfin nasil")):
         return "İyiyim doktorum, buradayım. Bugün işi hızlı ve sakin götürelim."
@@ -63301,8 +64307,8 @@ def _smart_dialog_ai_reply(message, action_result=None, history=None,
     is_voice_mode = bool(
         isinstance(client_context, dict)
         and (client_context.get("alex_mode") or client_context.get("voice")))
-    history_window = 12 if is_voice_mode else 16
-    char_per_turn = 380 if is_voice_mode else 600
+    history_window = 6 if is_voice_mode else 16
+    char_per_turn = 240 if is_voice_mode else 600
     compact_history = []
     for row in history[-history_window:]:
         compact_history.append(
@@ -63373,7 +64379,53 @@ def _smart_dialog_ai_reply(message, action_result=None, history=None,
     except Exception:
         pass
 
+    # D300: Akilli Diyalog da Alex'in uzun hafizasini kullansin.
+    user_key = _alex_session_user_key()
+    learned_context = ""
+    facts_context = ""
+    long_memory_context = ""
+    research_context = ""
+    rag_context = ""
+    try:
+        learned_context = _alex_learned_format_for_prompt(
+            user_key, limit=18, max_chars_each=240)
+    except Exception:
+        learned_context = ""
+    try:
+        facts_context = _alex_facts_format_for_prompt(
+            _alex_facts_list(user_key, limit=24))
+    except Exception:
+        facts_context = ""
+    try:
+        rows = _alex_memory_get(user_key, limit=4)
+        long_memory_context = _alex_memory_format_for_prompt(rows)
+    except Exception:
+        long_memory_context = ""
+    try:
+        research_context = _alex_research_format_for_prompt(
+            user_key, limit=5, max_chars_each=280, user_text=message)
+    except Exception:
+        research_context = ""
+    try:
+        words = str(message or "").strip().split()
+        if len(str(message or "").strip()) >= 15 and len(words) >= 3:
+            import yazklinik_rag as _rag
+            rag_context = _rag.retrieve_for_query(
+                message, top_k=3, threshold=0.55)
+    except Exception:
+        rag_context = ""
+
     prompt = (
+        ("Yaz LLM uzun hafiza:\n" + learned_context + "\n\n"
+         if learned_context else "") +
+        ("Alex'e ogretilmis kalici bilgiler:\n" + facts_context + "\n\n"
+         if facts_context else "") +
+        ("Son Alex hafizasi:\n" + long_memory_context + "\n\n"
+         if long_memory_context else "") +
+        ("Daha once kaynakli ogrenilen arastirma:\n" + research_context + "\n\n"
+         if research_context else "") +
+        ("Alakali RAG bilgisi:\n" + rag_context + "\n\n"
+         if rag_context else "") +
         "Konusma gecmisi:\n" + "\n".join(compact_history[-8:]) +
         "\n\nKullanici istegi:\n" + str(message or "") +
         action_text +
@@ -63384,13 +64436,16 @@ def _smart_dialog_ai_reply(message, action_result=None, history=None,
         "ACTION:{...} JSON'u ekle (route haritasini kullan)."
     )
     dialog_model = _smart_dialog_pick_chat_model()
-    sys_prompt = _smart_dialog_system_prompt(
-        active_patient_summary, voice_mode=is_voice_mode)
+    sys_prompt = (
+        _smart_dialog_voice_fast_system_prompt(active_patient_summary)
+        if is_voice_mode
+        else _smart_dialog_system_prompt(active_patient_summary, voice_mode=False)
+    )
 
     # D121: voice modda kisa+hizli, normal modda kapsamli klinik konsult.
     # Klinik konsultant kalitesi icin temperature 0.3 (daha tutarli).
-    voice_max_tokens = 340 if is_voice_mode else 600
-    voice_timeout = 24 if is_voice_mode else 40
+    voice_max_tokens = 220 if is_voice_mode else 600
+    voice_timeout = 12 if is_voice_mode else 40
     voice_temperature = 0.3
 
     # D300 RTX 5090: auto modda yerel Ollama/RTX once gelsin. Sadece doktor
@@ -63401,8 +64456,11 @@ def _smart_dialog_ai_reply(message, action_result=None, history=None,
         provider_choice in {"cloud_first", "online", "cloud"}
         or _ai_provider_is_cloud(provider_choice)
     )
-    strategy = _ai_strategy_available_order(
-        images=False, prefer_cloud=prefer_cloud)
+    if is_voice_mode:
+        strategy = [("ollama", None)]
+    else:
+        strategy = _ai_strategy_available_order(
+            images=False, prefer_cloud=prefer_cloud)
     for kind, provider in strategy:
         if kind == "cloud":
             ok, answer, duration = _b301_call_cloud_ai(
@@ -63416,16 +64474,37 @@ def _smart_dialog_ai_reply(message, action_result=None, history=None,
                 return _smart_dialog_polish_reply(answer, is_voice_mode), f"ai:{provider}", duration
             continue
         if kind == "ollama":
-            ok, answer, duration = call_ollama(
-                prompt,
-                model=dialog_model,
-                temperature=voice_temperature,
-                max_tokens=voice_max_tokens,
-                timeout=voice_timeout,
-                use_cache=True,
-                system=sys_prompt)
+            attempt_model = dialog_model
+            if is_voice_mode:
+                for cand in ("llama3.1:8b", "llama3.1:latest", "yaz:latest",
+                             dialog_model, DEFAULT_OLLAMA_MODEL):
+                    if not cand:
+                        continue
+                    attempt_model = cand
+                    break
+            if is_voice_mode:
+                ok, answer, duration = _smart_dialog_fast_local_ollama(
+                    prompt,
+                    model=attempt_model,
+                    temperature=voice_temperature,
+                    max_tokens=voice_max_tokens,
+                    max_seconds=7.0,
+                    system=sys_prompt)
+            else:
+                ok, answer, duration = call_ollama(
+                    prompt,
+                    model=attempt_model,
+                    temperature=voice_temperature,
+                    max_tokens=voice_max_tokens,
+                    timeout=voice_timeout,
+                    use_cache=True,
+                    system=sys_prompt,
+                    force_ollama=False)
             if ok and answer:
-                return _smart_dialog_polish_reply(answer, is_voice_mode), "ai:ollama", duration
+                source_model = "ai:ollama"
+                if attempt_model != dialog_model:
+                    source_model += f":{attempt_model}"
+                return _smart_dialog_polish_reply(answer, is_voice_mode), source_model, duration
             continue
     # B111: Eskiden raw action_result.result fallback olarak donerdi (JSON/HTML
     # parcasi). Doktor "saÃ§ma/aptal cevap" goruyordu. Artik kibar Turkce sarmal:
@@ -63437,6 +64516,13 @@ def _smart_dialog_ai_reply(message, action_result=None, history=None,
         return (
             f"Komut tamamlandi. Sonuc ozeti: {snippet}",
             "action_fallback",
+            duration,
+        )
+    if is_voice_mode:
+        return (
+            "Duydum doktorum. YZ cevabi gecikti ama sesli komut hattim acik; "
+            "hangi ekran, hasta veya not isi lazimsa kisa soyle, hemen yapayim.",
+            "voice_fallback",
             duration,
         )
     return (
@@ -63815,6 +64901,103 @@ def _smart_dialog_handle(message, confirmed=False, speak=True, selected_patient=
         meta={"client_context": client_context or {}},
         dialog_id=dialog_id)
 
+    voice_ctx = bool(
+        isinstance(client_context, dict)
+        and (client_context.get("alex_mode") or client_context.get("voice")))
+    user_key = _alex_session_user_key()
+    if _alex_detect_learned_question_intent(message):
+        answer_text = _alex_learned_answer(user_key)
+        meta = {
+            "source": "learned_memory",
+            "duration_ms": 0,
+            "action": None,
+            "status": "learned_memory",
+        }
+        _smart_dialog_save("assistant", answer_text, meta=meta, dialog_id=dialog_id)
+        _alex_record_dialog_turn(
+            user_key, message, answer_text, model="yaz-memory",
+            category="memory", source="learned_memory", learn=False)
+        return {
+            "ok": True,
+            "dialog_id": dialog_id,
+            "answer": answer_text,
+            "source": "learned_memory",
+            "duration_ms": 0,
+            "action_result": None,
+            "action": None,
+            "needs_confirm": False,
+            "speak": bool(speak),
+            "status": {"learned_memory": True},
+        }
+    if voice_ctx:
+        folded_voice = _fold_search_text(message)
+        domain_action = any(k in folded_voice for k in (
+            "hasta", "recete", "randevu", "dosya", "voluson", "bulut",
+            "dicom", "whatsapp", "pdf", "yazdir", "ekran ac", "sayfa ac",
+            "not ekle", "sistem durum", "ayar", "backup", "yedek",
+            "akilli dialog", "akilli sohbet", "sessiz alex", "sesli recete"))
+        if not domain_action:
+            companion_reply = _smart_dialog_live_companion_reply(
+                message, client_context=client_context)
+            source = "live_companion"
+            duration = 0
+            answer_text = companion_reply
+            if not answer_text:
+                sys_prompt = (
+                    "Sen Alex'sin. Dr. Hakan icin Turkce, dogal ve kisa "
+                    "konusan klinik asistansin. Kullanici doktordur. "
+                    "Cevap 1-3 cumle olsun. ACTION JSON, kod, teknik format "
+                    "ve madde listesi yazma."
+                )
+                fast_prompt = (
+                    "Kullanici: " + str(message or "") +
+                    "\nAlex: Kisa, akici ve Turkce cevap ver."
+                )
+                ok, generated, duration = _smart_dialog_fast_local_ollama(
+                    fast_prompt,
+                    model="llama3.1:8b",
+                    temperature=0.35,
+                    max_tokens=120,
+                    max_seconds=6.0,
+                    system=sys_prompt)
+                if ok and generated:
+                    answer_text = _smart_dialog_polish_reply(generated, True)
+                    answer_text = re.sub(
+                        r"(?is)^\s*doktorun\s+sorusu\s*:.*?\bcevap\s*:\s*",
+                        "",
+                        answer_text).strip()
+                    answer_text = re.sub(r"\s*\n+\s*", " ", answer_text).strip()
+                    source = "voice_local_fast"
+                else:
+                    answer_text = (
+                        "Duydum doktorum. Kisa cevap vereyim: bir isi secip "
+                        "hemen ilk adimi atalim; kalanini birlikte toparlayalim."
+                    )
+                    source = "voice_fallback"
+            meta = {
+                "source": source,
+                "duration_ms": duration,
+                "action": None,
+                "status": "voice_chat",
+            }
+            _smart_dialog_save("assistant", answer_text, meta=meta, dialog_id=dialog_id)
+            _alex_record_dialog_turn(
+                user_key, message, answer_text, model=source,
+                category="smart_voice", side_effects=["voice"],
+                source=source, learn=True)
+            return {
+                "ok": True,
+                "dialog_id": dialog_id,
+                "answer": answer_text,
+                "source": source,
+                "duration_ms": duration,
+                "action_result": None,
+                "action": None,
+                "needs_confirm": False,
+                "speak": bool(speak),
+                "status": {"voice_chat": True},
+            }
+
     action = _command_center_parse(message)
     if action.get("key") == "blocked_shell":
         answer_text = (
@@ -63828,6 +65011,10 @@ def _smart_dialog_handle(message, confirmed=False, speak=True, selected_patient=
             "status": "blocked",
         }
         _smart_dialog_save("assistant", answer_text, meta=meta, dialog_id=dialog_id)
+        _alex_record_dialog_turn(
+            user_key, message, answer_text, model="command_guard",
+            category="guard", side_effects=["blocked"],
+            source="command_guard", learn=True)
         return {
             "ok": True,
             "dialog_id": dialog_id,
@@ -63918,6 +65105,10 @@ def _smart_dialog_handle(message, confirmed=False, speak=True, selected_patient=
             "status": action_status or "fast_action",
         }
         _smart_dialog_save("assistant", answer_text, meta=meta, dialog_id=dialog_id)
+        _alex_record_dialog_turn(
+            user_key, message, answer_text, model="fast_action",
+            category="action", side_effects=[action_status or "fast_action"],
+            source="fast_action", learn=True)
         return {
             "ok": True,
             "dialog_id": dialog_id,
@@ -63941,6 +65132,9 @@ def _smart_dialog_handle(message, confirmed=False, speak=True, selected_patient=
             "status": "chat",
         }
         _smart_dialog_save("assistant", companion_reply, meta=meta, dialog_id=dialog_id)
+        _alex_record_dialog_turn(
+            user_key, message, companion_reply, model="live_companion",
+            category="chat", source="live_companion", learn=True)
         return {
             "ok": True,
             "dialog_id": dialog_id,
@@ -63999,6 +65193,10 @@ def _smart_dialog_handle(message, confirmed=False, speak=True, selected_patient=
         "status": (action_result or {}).get("status") or "chat",
     }
     _smart_dialog_save("assistant", answer_text, meta=meta, dialog_id=dialog_id)
+    _alex_record_dialog_turn(
+        user_key, message, answer_text, model=source,
+        category="chat", side_effects=[meta.get("status") or "chat"],
+        source=source, learn=True)
     payload = {
         "ok": True,
         "dialog_id": dialog_id,
@@ -73226,6 +74424,10 @@ def voice_alex_center_page():
           <span class="yk-vc-icon"><i class="bi bi-search-heart"></i></span>
           <span><b>Alex Araştırma</b><small>PubMed + web arama, Türkçe özet + klinik öneri.</small></span>
         </a>
+        <a class="yk-vc-card" href="/alex-hafiza">
+          <span class="yk-vc-icon"><i class="bi bi-journal-text"></i></span>
+          <span><b>Alex Hafizasi</b><small>Konusma ve klavyeden ogrendiklerini saklar.</small></span>
+        </a>
         <a class="yk-vc-card" href="/alex-egitim">
           <span class="yk-vc-icon"><i class="bi bi-mortarboard-fill"></i></span>
           <span><b>Alex Eğitim</b><small>Kalıcı bilgi öğret, özel komut tanımla.</small></span>
@@ -74122,8 +75324,17 @@ def api_smart_dialog_say():
             or ""
         ).strip()
     )
-    current_path = str(data.get("current_path") or "").strip()
-    page_title = str(data.get("page_title") or "").strip()
+    incoming_context = (
+        data.get("client_context")
+        if isinstance(data, dict) and isinstance(data.get("client_context"), dict)
+        else {}
+    )
+    current_path = str(
+        data.get("current_path") or incoming_context.get("current_path") or ""
+    ).strip()
+    page_title = str(
+        data.get("page_title") or incoming_context.get("page_title") or ""
+    ).strip()
     if not selected_patient and current_path:
         try:
             path_patient = _voice_command_patient_from_path(current_path)
@@ -74141,8 +75352,12 @@ def api_smart_dialog_say():
         client_context={
             "current_path": current_path,
             "page_title": page_title,
-            "voice": bool(data.get("voice") or data.get("speak")),
-            "alex_mode": bool(data.get("alex_mode")),
+            "voice": bool(
+                data.get("voice") or data.get("speak")
+                or incoming_context.get("voice")
+                or incoming_context.get("alex_mode")),
+            "alex_mode": bool(
+                data.get("alex_mode") or incoming_context.get("alex_mode")),
         })
     return jsonify(result)
 

@@ -358,6 +358,7 @@ FEATURE_GROUPS = (
         _r("/bilgi-ajanlari", "Bilgi Ajanları", "PubMed + güvenilir web bilgisini kaynaklı YAZ hafızasına işler", "ai", "bi bi-broadcast", simple=True, aliases=("yaz llm", "webden ogren", "webden öğren", "kaynakli bilgi", "kaynaklı bilgi", "bilgi ajanlari")),
         _r("/alex-arastirma", "Alex Araştırma", "PubMed + web online arama, Türkçe özet + klinik öneri", "ai", "bi bi-search-heart", simple=True, aliases=("pubmed", "literatur tara", "online arastir", "alex arastirma", "tibbi arastirma")),
         _r("/alex-egitim", "Alex Eğitim", "Alex'e kalıcı bilgi öğret + özel komut (Windows aksiyon) tanımla", "ai", "bi bi-mortarboard-fill", simple=True, aliases=("alex egit", "ogret", "hafiza yonet", "komut tanimla")),
+        _r("/alex-hafiza", "Alex Hafızası", "Konuşma, klavye ve eğitimlerden Yaz LLM ile öğrenilen kalıcı hafıza", "ai", "bi bi-journal-text", simple=True, aliases=("alex hafiza", "ne ogrendin", "benden ne ogrendin", "yaz llm hafiza", "kalici hafiza")),
         _r("/sesli-recete", "Sesli Reçete", "Konuşarak reçete taslağı", "ai", "bi bi-mic", simple=True),
         _r("/hizmet-ajanlari", "Hizmet Ajanları", "Randevu, hasta takip, reçete, BK-Voluson ve Alex ajanları", "ai", "bi bi-person-workspace", simple=True, aliases=("benim ajanlarim", "ajanlarim", "hizmet eden ajanlar", "calisan ajanlar")),
         _r("/yz-ses-cevir", "Ses Çevir", "Sesli notu metne çevir", "ai", "bi bi-soundwave"),

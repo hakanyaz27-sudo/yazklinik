@@ -292,6 +292,11 @@ def _merge_demo_json(con: sqlite3.Connection, patient_key: str,
     except Exception:
         raw = None
     obj = _json_load(raw)
+    existing_bk = obj.get("bulutklinik")
+    if isinstance(existing_bk, dict):
+        existing_wh = existing_bk.get("womens_health")
+        if existing_wh and "womens_health" not in meta:
+            meta["womens_health"] = existing_wh
     obj["bulutklinik"] = meta
     return json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
 
@@ -524,6 +529,8 @@ def _ensure_clinical_schema(con: sqlite3.Connection) -> None:
         ("source", "ALTER TABLE visits ADD COLUMN source TEXT"),
         ("notes", "ALTER TABLE visits ADD COLUMN notes TEXT"),
         ("created_at", "ALTER TABLE visits ADD COLUMN created_at TEXT"),
+        ("clinical_section",
+         "ALTER TABLE visits ADD COLUMN clinical_section TEXT"),
     ):
         if col not in visit_cols:
             try:
@@ -531,6 +538,26 @@ def _ensure_clinical_schema(con: sqlite3.Connection) -> None:
                 visit_cols.add(col)
             except Exception:
                 pass
+
+    for table in ("obstetric_form", "gynec_form"):
+        con.execute(f"""
+            CREATE TABLE IF NOT EXISTS {table} (
+                patient_key TEXT PRIMARY KEY,
+                data_json TEXT,
+                updated_at TEXT
+            )
+        """)
+        form_cols = _columns(con, table)
+        for col, ddl in (
+            ("data_json", f"ALTER TABLE {table} ADD COLUMN data_json TEXT"),
+            ("updated_at", f"ALTER TABLE {table} ADD COLUMN updated_at TEXT"),
+        ):
+            if col not in form_cols:
+                try:
+                    con.execute(ddl)
+                    form_cols.add(col)
+                except Exception:
+                    pass
 
     con.execute("""
         CREATE TABLE IF NOT EXISTS visit_notes (
@@ -584,6 +611,8 @@ def _ensure_clinical_schema(con: sqlite3.Connection) -> None:
     for ddl in (
         "CREATE INDEX IF NOT EXISTS idx_bk_mirror_visits "
         "ON visits(patient_folder_key, source, visit_date)",
+        "CREATE INDEX IF NOT EXISTS idx_bk_mirror_visit_section "
+        "ON visits(patient_folder_key, source, clinical_section, visit_date)",
         "CREATE INDEX IF NOT EXISTS idx_bk_mirror_rx "
         "ON prescriptions(patient_key, visit_key, protocol_no)",
     ):
@@ -790,9 +819,290 @@ def _build_protocol_note(con, protocol: dict, display_name: str) -> tuple[str, s
     return "\n".join(lines), control_note, diagnosis
 
 
+def _protocol_section_from_text(text: str) -> str:
+    upper = _ascii_text(text).upper()
+    if re.search(r"(^|[^A-Z0-9])O\d", upper):
+        return "obstetric"
+    if any(k in upper for k in (
+            "GEBE", "GEBELIK", "OBSTETRI", "OBSTETRIK", "FETAL",
+            "NST", "USG AGE", "PLASENTA", "AMNION")):
+        return "obstetric"
+    if re.search(r"(^|[^A-Z0-9])N\d", upper):
+        return "gynecologic"
+    if any(k in upper for k in (
+            "JINEK", "INFERTIL", "MYOM", "KIST", "PELVIK",
+            "VAJINAL", "ENDOMET", "OVER", "UTERUS", "ADET")):
+        return "gynecologic"
+    return ""
+
+
+def _protocol_section(con, protocol: dict) -> str:
+    pno = _text(protocol.get("protokol_no"))
+    bk_no = _text(protocol.get("bk_hasta_no"))
+    visit_date = _date_only(protocol.get("protokol_tarihi"))
+    if _obs_for_patient_date(con, bk_no, visit_date):
+        return "obstetric"
+    if _gyn_for_protocol(con, pno) or _gyn_track_for_patient_date(
+            con, bk_no, visit_date):
+        return "gynecologic"
+    med = _medical_for_protocol(con, pno)
+    section_text = " ".join([
+        _text(protocol.get("gelis_nedeni")),
+        _text(protocol.get("protokol_tipi")),
+        _text(med.get("tani_kodlari")),
+        _text(med.get("hikayesi")),
+        _text(med.get("sikayeti")),
+        _text(med.get("bulgular")),
+        _text(med.get("uygulamalar")),
+        _text(med.get("oneriler")),
+        _text(med.get("notlar")),
+    ])
+    return _protocol_section_from_text(section_text)
+
+
+def _compact_record(row: dict, keys: tuple[str, ...]) -> dict:
+    out: dict[str, str] = {}
+    for key in keys:
+        value = _text(row.get(key))
+        if value:
+            out[key] = value
+    return out
+
+
+def _compact_json_fields(row: dict, keys: tuple[str, ...]) -> dict:
+    data = _json_load(row.get("data_json"))
+    out: dict[str, str] = {}
+    for key in keys:
+        value = _text(data.get(key))
+        if value:
+            out[key] = value
+    return out
+
+
+def _record_date(record: dict) -> str:
+    for key in ("tarih", "protokol_tarihi", "last_visit", "first_visit"):
+        day = _date_only(record.get(key))
+        if day:
+            return day
+    return ""
+
+
+def _latest_date(records: list[dict]) -> str:
+    days = [_record_date(r) for r in records]
+    days = [d for d in days if d]
+    return max(days) if days else ""
+
+
+def _sort_records_desc(records: list[dict]) -> list[dict]:
+    return sorted(records, key=lambda item: _record_date(item), reverse=True)
+
+
+def _protocol_payload(con, protocol: dict, section: str) -> dict:
+    med = _medical_for_protocol(con, _text(protocol.get("protokol_no")))
+    payload = _compact_record(protocol, (
+        "protokol_no", "protokol_tarihi", "protokol_tipi",
+        "gelis_nedeni", "doktor"))
+    payload["section"] = section
+    med_payload = _compact_record(med, (
+        "hikayesi", "sikayeti", "ozgecmis", "soygecmis", "bulgular",
+        "uygulamalar", "oneriler", "notlar", "tani_kodlari"))
+    if med_payload:
+        payload["medical_info"] = med_payload
+    return payload
+
+
+def _gyn_resume_payload(row: dict) -> dict:
+    payload = _compact_record(row, (
+        "row_hash", "protokol_no", "resume_no", "tarih",
+        "son_adet_tarihi", "sikayet_oyku", "bulgular", "notlar", "tani",
+        "tedavi_plani", "recete", "sonuc"))
+    payload.update({
+        k: v for k, v in _compact_json_fields(row, (
+            "mens_duzeni", "interval", "dismenore", "kanama", "spekulum",
+            "uterus", "uterus_ve_adneks", "batin", "diger", "sag_over",
+            "sol_over", "diger_bulgular", "diger_goruntuleme", "hb", "hct",
+            "mcv", "plt", "glukoz", "tit", "amh", "tsh", "prl", "rubella",
+            "toxo", "sperm_bulgular", "hsg_bulgular", "recall_tarihi",
+            "olusturulma_tarihi", "guncellenme_tarihi")).items()
+        if k not in payload
+    })
+    return payload
+
+
+def _tracking_payload(row: dict) -> dict:
+    payload = _compact_record(row, (
+        "row_hash", "resume_no", "takip_no", "tarih", "usg_age", "efw",
+        "amnion", "plasenta", "serviks", "hb", "hct", "mcv", "plt", "tit",
+        "diger", "kilo", "ta", "sikayet", "olusturulma", "guncelleme"))
+    extras = _compact_json_fields(row, (
+        "takip_numarasi", "kio", "olusturulma_tarihi",
+        "guncelleme_tarihi"))
+    if extras.get("kio") and "kilo" not in payload:
+        payload["kilo"] = extras["kio"]
+    for key, value in extras.items():
+        if key != "kio" and key not in payload:
+            payload[key] = value
+    return payload
+
+
+def _patient_field_payload(row: sqlite3.Row) -> dict:
+    data = _row_dict(row)
+    return _compact_record(data, (
+        "bk_hasta_no", "tc_kimlik", "ad", "soyad", "cinsiyet",
+        "dogum_tarihi", "telefon", "kan_grubu", "medeni_hali",
+        "ozgecmis", "soygecmis", "alerjiler", "gelis_nedeni", "not_text"))
+
+
+def _section_summary(records: list[dict]) -> dict:
+    return {
+        "count": len(records),
+        "last_date": _latest_date(records),
+        "first_date": min(
+            [d for d in (_record_date(r) for r in records) if d],
+            default=""),
+    }
+
+
+def _upsert_section_form(con: sqlite3.Connection, table: str,
+                         patient_key: str, payload: dict,
+                         now: str) -> bool:
+    raw = None
+    try:
+        row = con.execute(
+            f"SELECT data_json FROM {table} WHERE patient_key=?",
+            (patient_key,)).fetchone()
+        raw = row["data_json"] if row else None
+    except Exception:
+        raw = None
+    obj = _json_load(raw)
+    obj["bulutklinik"] = payload
+    con.execute(f"""
+        INSERT INTO {table} (patient_key, data_json, updated_at)
+        VALUES (?,?,?)
+        ON CONFLICT(patient_key) DO UPDATE SET
+            data_json=excluded.data_json,
+            updated_at=excluded.updated_at
+    """, (patient_key,
+          json.dumps(obj, ensure_ascii=False, separators=(",", ":")),
+          now))
+    return True
+
+
+def _sync_bk_womens_health_sections(con: sqlite3.Connection,
+                                    row: sqlite3.Row,
+                                    bk_no: str,
+                                    patient_key: str,
+                                    display_name: str,
+                                    full_path: str,
+                                    now: str) -> dict:
+    """Store BK women's-health data in Voluson-side section forms."""
+    stats = {"obstetric_form": 0, "gynec_form": 0, "womens_health": 0}
+    if not bk_no:
+        return stats
+
+    protocols = _fetch_table_rows(
+        con, "bk_protocols", "WHERE bk_hasta_no=?",
+        (bk_no,), "ORDER BY COALESCE(protokol_tarihi,'') DESC")
+    proto_by_section = {"obstetric": [], "gynecologic": []}
+    for protocol in protocols:
+        section = _protocol_section(con, protocol)
+        if section in proto_by_section:
+            proto_by_section[section].append(
+                _protocol_payload(con, protocol, section))
+
+    obs_rows = _fetch_table_rows(
+        con, "bk_obstetri_visits", "WHERE bk_hasta_no=?",
+        (bk_no,), "ORDER BY COALESCE(tarih,'') DESC, COALESCE(takip_no,'') DESC")
+    gyn_rows = _fetch_table_rows(
+        con, "bk_gynecology_resume", "WHERE bk_hasta_no=?",
+        (bk_no,), "ORDER BY COALESCE(tarih,'') DESC, COALESCE(resume_no,'') DESC")
+    gyn_track_rows = _fetch_table_rows(
+        con, "bk_gynecology_tracking", "WHERE bk_hasta_no=?",
+        (bk_no,), "ORDER BY COALESCE(tarih,'') DESC, COALESCE(takip_no,'') DESC")
+
+    obs_visits = [_tracking_payload(r) for r in obs_rows[:120]]
+    gyn_resumes = [_gyn_resume_payload(r) for r in gyn_rows[:120]]
+    gyn_tracking = [_tracking_payload(r) for r in gyn_track_rows[:120]]
+    patient_fields = _patient_field_payload(row)
+
+    obstetric_records = _sort_records_desc(
+        obs_visits + proto_by_section["obstetric"])
+    gynecologic_records = _sort_records_desc(
+        gyn_resumes + gyn_tracking + proto_by_section["gynecologic"])
+
+    if obstetric_records:
+        payload = {
+            "source": "bulutklinik",
+            "section": "obstetric",
+            "bk_hasta_no": bk_no,
+            "patient_key": patient_key,
+            "display_name": display_name,
+            "synced_at": now,
+            "virtual_full_path": full_path,
+            "patient_fields": patient_fields,
+            "summary": _section_summary(obstetric_records),
+            "protocols": proto_by_section["obstetric"][:80],
+            "obstetric_visits": obs_visits,
+        }
+        _upsert_section_form(con, "obstetric_form", patient_key, payload, now)
+        stats["obstetric_form"] = 1
+
+    if gynecologic_records:
+        payload = {
+            "source": "bulutklinik",
+            "section": "gynecologic",
+            "bk_hasta_no": bk_no,
+            "patient_key": patient_key,
+            "display_name": display_name,
+            "synced_at": now,
+            "virtual_full_path": full_path,
+            "patient_fields": patient_fields,
+            "summary": _section_summary(gynecologic_records),
+            "protocols": proto_by_section["gynecologic"][:80],
+            "gynecology_resumes": gyn_resumes,
+            "gynecology_tracking": gyn_tracking,
+        }
+        _upsert_section_form(con, "gynec_form", patient_key, payload, now)
+        stats["gynec_form"] = 1
+
+    raw = None
+    try:
+        demo = con.execute(
+            "SELECT data_json FROM patient_demographics WHERE patient_key=?",
+            (patient_key,)).fetchone()
+        raw = demo["data_json"] if demo else None
+    except Exception:
+        raw = None
+    obj = _json_load(raw)
+    bk_meta = obj.get("bulutklinik")
+    if not isinstance(bk_meta, dict):
+        bk_meta = _bk_meta(row, patient_key, full_path, now)
+    bk_meta["womens_health"] = {
+        "synced_at": now,
+        "bk_hasta_no": bk_no,
+        "obstetric": _section_summary(obstetric_records),
+        "gynecologic": _section_summary(gynecologic_records),
+        "last_obstetric": obstetric_records[0] if obstetric_records else {},
+        "last_gynecologic": gynecologic_records[0] if gynecologic_records else {},
+    }
+    obj["bulutklinik"] = bk_meta
+    con.execute("""
+        INSERT INTO patient_demographics (patient_key, data_json, updated_at)
+        VALUES (?,?,?)
+        ON CONFLICT(patient_key) DO UPDATE SET
+            data_json=excluded.data_json,
+            updated_at=excluded.updated_at
+    """, (patient_key,
+          json.dumps(obj, ensure_ascii=False, separators=(",", ":")),
+          now))
+    stats["womens_health"] = 1
+    return stats
+
+
 def _upsert_bk_visit(con: sqlite3.Connection, patient_key: str, visit_key: str,
                      full_path: str, visit_date: str, note: str,
-                     control_note: str, now: str) -> bool:
+                     control_note: str, now: str,
+                     clinical_section: str = "") -> bool:
     existed = bool(con.execute(
         "SELECT 1 FROM visits WHERE patient_folder_key=? AND visit_key=?",
         (patient_key, visit_key)).fetchone())
@@ -801,8 +1111,8 @@ def _upsert_bk_visit(con: sqlite3.Connection, patient_key: str, visit_key: str,
             patient_folder_key, visit_key, full_path, visit_date, folder_mtime,
             file_count, image_count, video_count, pdf_count, latest_pdf_path,
             first_seen_at, last_synced_at, visit_type, examination,
-            control_note, source, notes, created_at)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            control_note, source, notes, created_at, clinical_section)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ON CONFLICT(patient_folder_key, visit_key) DO UPDATE SET
             full_path=excluded.full_path,
             visit_date=excluded.visit_date,
@@ -812,11 +1122,12 @@ def _upsert_bk_visit(con: sqlite3.Connection, patient_key: str, visit_key: str,
             examination=excluded.examination,
             control_note=excluded.control_note,
             source=excluded.source,
-            notes=excluded.notes
+            notes=excluded.notes,
+            clinical_section=excluded.clinical_section
     """, (
         patient_key, visit_key, full_path, visit_date,
         time.time(), 0, 0, 0, 0, None, now, now, "muayene",
-        note, control_note, "bulutklinik", note, now,
+        note, control_note, "bulutklinik", note, now, clinical_section,
     ))
     con.execute("""
         INSERT INTO visit_notes(patient_key, visit_key, note, updated_at)
@@ -889,8 +1200,9 @@ def _sync_bk_clinical_timeline(con: sqlite3.Connection, bk_no: str,
         visit_path = os.path.join(full_path or _virtual_path(patient_key), visit_key)
         note, control_note, diagnosis = _build_protocol_note(
             con, protocol, display_name)
+        section = _protocol_section(con, protocol)
         if _upsert_bk_visit(con, patient_key, visit_key, visit_path,
-                            visit_date, note, control_note, now):
+                            visit_date, note, control_note, now, section):
             stats["visits"] += 1
         stats["notes"] += 1
         for gyn in _gyn_for_protocol(con, pno):
@@ -931,7 +1243,8 @@ def _sync_bk_clinical_timeline(con: sqlite3.Connection, bk_no: str,
         ) if x)
         visit_path = os.path.join(full_path or _virtual_path(patient_key), visit_key)
         if _upsert_bk_visit(con, patient_key, visit_key, visit_path,
-                            visit_date, note, control_note, now):
+                            visit_date, note, control_note, now,
+                            "gynecologic"):
             stats["visits"] += 1
         stats["notes"] += 1
         if _upsert_bk_prescription(
@@ -944,6 +1257,7 @@ def _sync_bk_clinical_timeline(con: sqlite3.Connection, bk_no: str,
         ("bk_obstetri_visits", "OBS", "BulutKlinik obstetri takip"),
         ("bk_gynecology_tracking", "GYN_TAKIP", "BulutKlinik jinekoloji takip"),
     ):
+        section = "obstetric" if prefix == "OBS" else "gynecologic"
         rows = _fetch_table_rows(
             con, table, "WHERE bk_hasta_no=?",
             (bk_no,), "ORDER BY COALESCE(tarih,''), COALESCE(takip_no,'')")
@@ -972,7 +1286,7 @@ def _sync_bk_clinical_timeline(con: sqlite3.Connection, bk_no: str,
             visit_path = os.path.join(
                 full_path or _virtual_path(patient_key), visit_key)
             if _upsert_bk_visit(con, patient_key, visit_key, visit_path,
-                                visit_date, note, "", now):
+                                visit_date, note, "", now, section):
                 stats["visits"] += 1
             stats["notes"] += 1
     return stats
@@ -981,6 +1295,7 @@ def _sync_bk_clinical_timeline(con: sqlite3.Connection, bk_no: str,
 def mirror_bk_patients(db_path: str | None = None, dry_run: bool = False,
                        only_obstetric: bool = False,
                        limit: int | None = None,
+                       bk_no: str | None = None,
                        user: str = "system",
                        virtual_root: str | None = None) -> dict:
     """Mirror missing bk_patients into the YazKlinik patient tables.
@@ -993,10 +1308,15 @@ def mirror_bk_patients(db_path: str | None = None, dry_run: bool = False,
     con = _connect(db)
     try:
         ensure_schema(con)
-        where = ""
+        where_parts = []
+        params: list[str] = []
         if only_obstetric:
-            where = ("WHERE p.bk_hasta_no IN "
-                     "(SELECT bk_hasta_no FROM bk_obstetri_index)")
+            where_parts.append(
+                "p.bk_hasta_no IN (SELECT bk_hasta_no FROM bk_obstetri_index)")
+        if bk_no:
+            where_parts.append("p.bk_hasta_no = ?")
+            params.append(str(bk_no))
+        where = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
         sql = f"""
             SELECT p.*,
                    CASE WHEN oi.bk_hasta_no IS NULL THEN 0 ELSE 1 END AS is_obstetric
@@ -1007,7 +1327,7 @@ def mirror_bk_patients(db_path: str | None = None, dry_run: bool = False,
         """
         if limit:
             sql += f" LIMIT {int(limit)}"
-        rows = con.execute(sql).fetchall()
+        rows = con.execute(sql, tuple(params)).fetchall()
         links = {
             r["bk_hasta_no"]: r["folder_key"]
             for r in con.execute(
@@ -1031,6 +1351,9 @@ def mirror_bk_patients(db_path: str | None = None, dry_run: bool = False,
             "clinical_visits": 0,
             "clinical_notes": 0,
             "clinical_prescriptions": 0,
+            "bk_obstetric_forms": 0,
+            "bk_gynec_forms": 0,
+            "bk_womens_health": 0,
             "mirror_root": _mirror_root(virtual_root),
         }
         for row in rows:
@@ -1059,6 +1382,11 @@ def mirror_bk_patients(db_path: str | None = None, dry_run: bool = False,
                     stats["clinical_visits"] += clinical["visits"]
                     stats["clinical_notes"] += clinical["notes"]
                     stats["clinical_prescriptions"] += clinical["prescriptions"]
+                    sections = _sync_bk_womens_health_sections(
+                        con, row, bk_no, linked_fk, display, full_path, now)
+                    stats["bk_obstetric_forms"] += sections["obstetric_form"]
+                    stats["bk_gynec_forms"] += sections["gynec_form"]
+                    stats["bk_womens_health"] += sections["womens_health"]
                 continue
 
             target_fk = ""
@@ -1093,6 +1421,11 @@ def mirror_bk_patients(db_path: str | None = None, dry_run: bool = False,
                     stats["clinical_visits"] += clinical["visits"]
                     stats["clinical_notes"] += clinical["notes"]
                     stats["clinical_prescriptions"] += clinical["prescriptions"]
+                    sections = _sync_bk_womens_health_sections(
+                        con, row, bk_no, target_fk, display, full_path, now)
+                    stats["bk_obstetric_forms"] += sections["obstetric_form"]
+                    stats["bk_gynec_forms"] += sections["gynec_form"]
+                    stats["bk_womens_health"] += sections["womens_health"]
                 else:
                     stats["created_links"] += 1
                 continue
@@ -1119,6 +1452,11 @@ def mirror_bk_patients(db_path: str | None = None, dry_run: bool = False,
                 stats["clinical_visits"] += clinical["visits"]
                 stats["clinical_notes"] += clinical["notes"]
                 stats["clinical_prescriptions"] += clinical["prescriptions"]
+                sections = _sync_bk_womens_health_sections(
+                    con, row, bk_no, folder_key, display, full_path, now)
+                stats["bk_obstetric_forms"] += sections["obstetric_form"]
+                stats["bk_gynec_forms"] += sections["gynec_form"]
+                stats["bk_womens_health"] += sections["womens_health"]
             else:
                 if not _patient_exists(con, folder_key):
                     stats["created_patients"] += 1
@@ -1149,10 +1487,13 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--only-obstetric", action="store_true")
     ap.add_argument("--limit", type=int, default=None)
+    ap.add_argument("--bk-no", default=None,
+                    help="Sync a single BulutKlinik patient number.")
     args = ap.parse_args()
     stats = mirror_bk_patients(db_path=args.db_path, dry_run=args.dry_run,
                                only_obstetric=args.only_obstetric,
-                               limit=args.limit, user="cli")
+                               limit=args.limit, bk_no=args.bk_no,
+                               user="cli")
     print(json.dumps(stats, ensure_ascii=False, indent=2))
     return 0
 

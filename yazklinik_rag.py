@@ -265,8 +265,8 @@ def auto_index_all(db_path=None, force=False):
                    or r"D:\YazKlinik_Final_D300\local_db\yazklinik_v68.sqlite3")
     con = sqlite3.connect(db_path)
     con.execute("PRAGMA journal_mode=WAL")
-    stats = {"researches": 0, "voluson": 0, "facts": 0, "patients": 0,
-             "total": 0}
+    stats = {"researches": 0, "voluson": 0, "facts": 0, "learnings": 0,
+             "patients": 0, "total": 0}
     try:
         # 1) alex_researches
         try:
@@ -335,7 +335,25 @@ def auto_index_all(db_path=None, force=False):
             stats["facts"] = n
         except Exception as exc:
             print(f"[RAG] facts index HATA: {exc}")
-        # 4) patients (folder index)
+        # 4) alex_learned_summaries (Yaz LLM uzun hafiza)
+        try:
+            rows = con.execute(
+                "SELECT id, source, summary, user_key "
+                "FROM alex_learned_summaries "
+                "WHERE summary IS NOT NULL AND length(summary) > 8").fetchall()
+            docs = []
+            for rid, src, summary, uk in rows:
+                if not summary:
+                    continue
+                text = f"[Yaz LLM hafiza / {src or 'dialog'}] {summary}"
+                docs.append((f"learning_{rid}", text,
+                            {"kind": "learning", "source": src or "",
+                             "user_key": uk or "", "row_id": rid}))
+            n = index_documents_batch(docs)
+            stats["learnings"] = n
+        except Exception as exc:
+            print(f"[RAG] learned index HATA: {exc}")
+        # 5) patients (folder index)
         try:
             rows = con.execute(
                 "SELECT folder_key, display_name FROM patients "
@@ -375,7 +393,8 @@ def format_results_for_prompt(results, max_chars_each=400):
         if len(text) > max_chars_each:
             text = text[:max_chars_each].rsplit(" ", 1)[0] + "..."
         tag = {"research": "ARASTIRMA", "usg": "USG", "fact": "BILGI",
-               "patient": "HASTA"}.get(kind, kind.upper())
+               "learning": "HAFIZA", "patient": "HASTA"}.get(
+                   kind, kind.upper())
         lines.append(f"- [{tag} · skor {score}] {text}")
     return "\n".join(lines)
 
