@@ -326,6 +326,7 @@ FEATURE_GROUPS = (
         _r("/dicom-ayar", "DICOM Ayar", "Orthanc ve PACS parametreleri", "system", "[A]"),
         _r("/kamera", "Kamera / NVR", "Ic ag NVR panelini 5443 uzerinden proxy ile izle", "media", "bi bi-camera-video", simple=True, aliases=("kamera", "nvr", "ip kamera", "guvenlik kamera")),
         _r("/hd-studio", "HD Studio", "Seçili hastanın HD Live USG resim/video iyileştirme ekranı", "media", "[HD]", simple=True, aliases=("hd studio", "usg", "mp4", "video")),
+        _r("/bebek-goruntu-zeka", "Bebek YZ", "Lokal bebek/USG anomali ön tarama ve kalite artırma", "media", "[BZ]", simple=True, aliases=("bebek", "anomali", "kalite", "fetal")),
         _r("/takip-medya-arsivi", "Medya Arsivi", "Oncesi/sonrasi medya", "media", "[M]", simple=True),
         _r("/hasta/{patient}/takip-medya", "Medya", "Hasta medya takibi", "media", "[M]", webshell=False),
         _r("/hasta/{patient}/takip-medya?module=medical_aesthetic", "Medikal Estetik Medya", "Estetik medya akisi", "media", "[ME]", webshell=False),

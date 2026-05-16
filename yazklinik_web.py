@@ -1856,6 +1856,25 @@ def _init_appointments_table():
                 CREATE INDEX IF NOT EXISTS idx_usg_img_patient
                 ON usg_image_analysis(patient_key, uploaded_at DESC)
             """)
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS ai_anomaly_screenings (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    patient_key TEXT NOT NULL,
+                    source_count INTEGER DEFAULT 0,
+                    source_names TEXT,
+                    model_used TEXT,
+                    model_source TEXT,
+                    answer TEXT,
+                    risk_flags TEXT,
+                    quality_flags TEXT,
+                    created_at TEXT NOT NULL,
+                    created_by TEXT
+                )
+            """)
+            con.execute("""
+                CREATE INDEX IF NOT EXISTS idx_ai_anomaly_screenings_patient
+                ON ai_anomaly_screenings(patient_key, created_at DESC)
+            """)
 
             # Lab screenshots and phone-origin result images, linked to dated
             # lab rows while preserving the original uploaded file.
@@ -4784,6 +4803,191 @@ def _anomaly_safe_fallback_report(ctx_str, rule_warnings, ga_w=None,
         "daha stabil bir model secin.",
     ])
     return "\n".join(lines)
+
+
+def _ensure_ai_anomaly_screening_schema(con):
+    """Persist local fetal image/anomaly pre-screening runs."""
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS ai_anomaly_screenings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_key TEXT NOT NULL,
+            source_count INTEGER DEFAULT 0,
+            source_names TEXT,
+            model_used TEXT,
+            model_source TEXT,
+            answer TEXT,
+            risk_flags TEXT,
+            quality_flags TEXT,
+            created_at TEXT NOT NULL,
+            created_by TEXT
+        )
+    """)
+    con.execute("""
+        CREATE INDEX IF NOT EXISTS idx_ai_anomaly_screenings_patient
+        ON ai_anomaly_screenings(patient_key, created_at DESC)
+    """)
+
+
+def _fetal_anomaly_risk_tags(text):
+    """Extract conservative risk/quality flags from local model output."""
+    hay = str(text or "").lower()
+    groups = [
+        ("perinatoloji/sevk", (
+            "perinatoloji", "sevk", "detayli usg", "fetal ekokardiyografi",
+            "acil", "yuksek risk")),
+        ("kalp/toraks", (
+            "kalp", "kardiyak", "ventrikul", "septum", "ekokardiyografi",
+            "toraks", "hidrops")),
+        ("santral sinir sistemi", (
+            "ventrikulomegali", "beyin", "posterior fossa", "spina",
+            "noral tup", "omurga", "kafa")),
+        ("yuz/profil", (
+            "yarik", "dudak", "damak", "profil", "nazal", "ense",
+            "nt")),
+        ("batin/bobrek", (
+            "bobrek", "hidronefroz", "mesane", "barsak", "karin",
+            "abdominal", "omfalosel", "gastro")),
+        ("ekstremite", (
+            "ekstremite", "kol", "bacak", "el", "ayak", "femur",
+            "humerus", "kisalma")),
+        ("buyume/sivi/plasenta", (
+            "iugr", "sga", "efw", "afi", "oligohidramnios",
+            "polihidramnios", "plasenta", "doppler")),
+        ("supheli bulgu", (
+            "anomali", "suphe", "patoloji", "normal degil", "izleniyor",
+            "asimetri", "genisleme", "artmis", "azalmis")),
+    ]
+    tags = []
+    for label, words in groups:
+        if any(word in hay for word in words):
+            tags.append(label)
+    return tags[:12]
+
+
+def _fetal_anomaly_quality_tags(text):
+    hay = str(text or "").lower()
+    tags = []
+    for label, words in [
+        ("goruntu yetersiz", ("yetersiz", "net degil", "gorulemiyor", "artefakt")),
+        ("tek kare siniri", ("tek kare", "sinirli", "tam degerlendirme")),
+        ("orijinal gerekli", ("orijinal", "dicom", "cihaz", "usg kaydi")),
+        ("ek kesit gerekli", ("ek kesit", "tekrar", "farkli plan", "yeniden")),
+    ]:
+        if any(word in hay for word in words):
+            tags.append(label)
+    return tags[:8]
+
+
+def _fetal_anomaly_checklist_prompt(ctx_str):
+    return (
+        "[GOREV]\n"
+        "Gercek fetal/obstetrik USG goruntuleri, video kareleri, DICOM adlari, "
+        "PDF rapor metni ve klinik olcumlerle hekime lokal karar destek on taramasi yap. "
+        "Bu sistem kesin tani koymaz; sadece gorulebilen bulgulari, goruntu kalitesini, "
+        "risk bayraklarini ve ek inceleme gereksinimini listeler. Goruntude olmayan anatomiyi "
+        "normal kabul etme. Goruntu yetersizse bunu acikca yaz. Orijinal DICOM/USG ve hekim "
+        "muayenesi her zaman esastir.\n\n"
+        f"[HASTA BAGLAMI]\n{ctx_str}\n\n"
+        "[CIKTI FORMATI]\n"
+        "## Guvenlik Notu\n"
+        "Kesin tani degildir; hekimin orijinal goruntu ve klinik kararini destekler.\n\n"
+        "## Goruntu Kalitesi\n"
+        "Netlik, artefakt, olcum/yazi okunurlugu, kesit yeterliligi.\n\n"
+        "## Gorulen Anatomi\n"
+        "Sadece gorulebilen fetal yapilari yaz. Gorulemeyenleri 'degerlendirilemedi' diye belirt.\n\n"
+        "## Anomali Checklist\n"
+        "Bas-boyun/profil, CNS-omurga, kalp/toraks, abdomen-bobrek-mesane, ekstremite, "
+        "plasenta-sivi-Doppler, buyume/biometri basliklariyla kisa kontrol.\n\n"
+        "## Risk Bayraklari\n"
+        "Yok / Supheli / Yuksek risk olarak yaz. Supheli ise gerekceyi ve hangi kesitin gerektigini ekle.\n\n"
+        "## Onerilen Ek Inceleme\n"
+        "Detayli USG, fetal eko, Doppler, tekrar goruntu veya perinatoloji sevki gerekiyorsa belirt.\n\n"
+        "## Hekim Icin Kisa Sonuc\n"
+        "3-5 maddelik pratik ozet."
+    )
+
+
+def _save_ai_anomaly_screening(patient_key, source_count, source_names,
+                               model_used, model_source, answer,
+                               risk_flags=None, quality_flags=None):
+    import json as _json
+    try:
+        with db_conn() as con:
+            _ensure_ai_anomaly_screening_schema(con)
+            con.execute(
+                "INSERT INTO ai_anomaly_screenings "
+                "(patient_key, source_count, source_names, model_used, "
+                "model_source, answer, risk_flags, quality_flags, created_at, created_by) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    patient_key,
+                    int(source_count or 0),
+                    _json.dumps(list(source_names or [])[:40], ensure_ascii=False),
+                    str(model_used or ""),
+                    str(model_source or ""),
+                    str(answer or ""),
+                    _json.dumps(list(risk_flags or []), ensure_ascii=False),
+                    _json.dumps(list(quality_flags or []), ensure_ascii=False),
+                    datetime.now().isoformat(timespec="seconds"),
+                    str(session.get("user") or ""),
+                ),
+            )
+            con.commit()
+            return True
+    except Exception:
+        return False
+
+
+def _recent_ai_anomaly_screenings_html(patient_key, limit=5):
+    import json as _json
+    try:
+        with db_conn() as con:
+            _ensure_ai_anomaly_screening_schema(con)
+            con.row_factory = lambda cur, row: {
+                d[0]: row[i] for i, d in enumerate(cur.description)}
+            rows = con.execute(
+                "SELECT * FROM ai_anomaly_screenings WHERE patient_key=? "
+                "ORDER BY created_at DESC LIMIT ?",
+                (patient_key, int(limit or 5)),
+            ).fetchall()
+    except Exception:
+        rows = []
+    if not rows:
+        return (
+            '<div class="alert alert-light border">'
+            'Henuz kayitli lokal anomali on tarama raporu yok.</div>')
+    cards = []
+    for row in rows:
+        try:
+            risks = _json.loads(row.get("risk_flags") or "[]")
+        except Exception:
+            risks = []
+        try:
+            quality = _json.loads(row.get("quality_flags") or "[]")
+        except Exception:
+            quality = []
+        excerpt = " ".join(str(row.get("answer") or "").split())[:900]
+        badges = "".join(
+            f'<span class="badge bg-danger me-1">{sh(x)}</span>'
+            for x in list(risks or [])[:6])
+        qbadges = "".join(
+            f'<span class="badge bg-secondary me-1">{sh(x)}</span>'
+            for x in list(quality or [])[:4])
+        cards.append(f"""
+        <details class="card mb-2">
+          <summary class="card-header" style="cursor:pointer;">
+            <b>{sh(row.get('created_at') or '')}</b>
+            <span class="text-muted ms-2">{sh(row.get('model_used') or '')}</span>
+            <span class="badge bg-primary ms-2">{int(row.get('source_count') or 0)} gorsel</span>
+          </summary>
+          <div class="card-body">
+            <div class="mb-2">{badges or '<span class="badge bg-success">risk bayragi yok</span>'}</div>
+            <div class="mb-2">{qbadges}</div>
+            <div class="small" style="white-space:pre-wrap;">{safe_html(excerpt)}</div>
+          </div>
+        </details>
+        """)
+    return "".join(cards)
 
 
 def call_ollama(prompt, model=None, temperature=None,
@@ -114593,8 +114797,26 @@ def ai_usg_analyze(patient_key, image_id):
         f"## ÃƒÂ¢Ã…Â¡ Dikkat Edilecek Noktalar\n"
         f"## ğŸ¯ Klinik Ã–neri")
 
+    prompt = (
+        "Bu bir obstetrik/fetal USG goruntusudur. "
+        f"Tip: {img_type}, GA: {ga_w} hafta. "
+        "Yalnizca gorulebilen yapilari degerlendir; gorulemeyen anatomiyi "
+        "normal kabul etme. Kesin tani koyma, hekim icin lokal on tarama "
+        "ve risk bayragi uret. Goruntu yetersizse acikca belirt. "
+        "Orijinal DICOM/USG kaydi tanisal karar icin esastir.\n\n"
+        "Format:\n"
+        "## Guvenlik Notu\n"
+        "## Goruntu Kalitesi\n"
+        "## Gorulen Anatomi\n"
+        "## Anomali Checklist\n"
+        "## Risk Bayraklari\n"
+        "## Onerilen Ek Inceleme\n"
+        "## Hekim Icin Kisa Sonuc")
+
     findings = ""
     risk_alerts = ""
+    risk_flags = []
+    quality_flags = []
     try:
         vision_choice = _select_ollama_vision_model()
         vision_model = vision_choice.get("model", "")
@@ -114629,6 +114851,22 @@ def ai_usg_analyze(patient_key, image_id):
                 if any(k in s.lower() for k in risk_kws):
                     risk_alerts = s.strip() + "."
                     break
+
+        risk_flags = _fetal_anomaly_risk_tags(findings)
+        quality_flags = _fetal_anomaly_quality_tags(findings)
+        if risk_flags and not risk_alerts:
+            risk_alerts = ", ".join(risk_flags[:4])
+
+        _save_ai_anomaly_screening(
+            patient_key,
+            1,
+            [Path(str(img.get("image_path") or "")).name],
+            vision_model,
+            f"ollama:{vision_choice.get('source') or 'vision'}",
+            findings,
+            risk_flags,
+            quality_flags,
+        )
 
         # DB'ye kaydet
         try:
@@ -115558,6 +115796,8 @@ def ai_anomaly_screening(patient_key):
             "## Hasta Bilgilendirme NotlarÄ±\n"
             "TÃ¼rkÃ§e. KanÄ±ta dayalÄ±. ACOG/RCOG/SMFM kÄ±lavuzlarÄ±.")
 
+        prompt = _fetal_anomaly_checklist_prompt(ctx_str)
+
         try:
             media = _collect_patient_media_for_ai(
                 patient_key, max_images=10, max_video_frames=4)
@@ -115626,6 +115866,19 @@ def ai_anomaly_screening(patient_key):
                 _log_audit("ai_anomaly_scan", entity_type="patient",
                             patient_key=patient_key,
                             details=f"{len(media['images'])} media input")
+            if ai_report:
+                risk_flags = _fetal_anomaly_risk_tags(ai_report)
+                quality_flags = _fetal_anomaly_quality_tags(ai_report)
+                _save_ai_anomaly_screening(
+                    patient_key,
+                    len(vision_images or []),
+                    media.get("image_names") or [],
+                    model,
+                    "ollama:vision" if vision_model else "ollama:text",
+                    ai_report,
+                    risk_flags,
+                    quality_flags,
+                )
         except Exception as ex:
             error_msg = f"âŒ YZ hatasÄ±: {ex}"
 
@@ -115739,6 +115992,7 @@ def ai_anomaly_screening(patient_key):
             )
     if error_msg:
         ai_html = f'<div class="alert alert-danger">{safe_html(error_msg)}</div>'
+    recent_screenings_html = _recent_ai_anomaly_screenings_html(patient_key)
 
     content = f"""
     <a href="/hasta/{patient_key}" class="btn btn-secondary mb-3">
@@ -115764,6 +116018,9 @@ def ai_anomaly_screening(patient_key):
  {rule_html}
 
     {ai_html}
+
+ <h4 class="mt-4 mb-3">Kayitli Lokal On Tarama Raporlari</h4>
+ {recent_screenings_html}
 
  <form method="POST" class="card mt-3">
  <div class="card-body text-center">
@@ -117355,6 +117612,79 @@ HD_STUDIO_QUICK_ACTIONS = {
             "vignette": "0.18",
             "max_seconds": "24",
             "video_smooth": "on",
+        },
+    },
+    "local_fetal_super_quality": {
+        "label": "Lokal Super Kalite",
+        "preset": "voluson_hd_live_extreme",
+        "engine": "local",
+        "intent": "presentation_premium",
+        "clinical_safe": "on",
+        "upscale": "2",
+        "strength": "0.10",
+        "steps": "8",
+        "cfg": "3.2",
+        "prompt": (
+            "local fetal ultrasound super quality copy, preserve anatomy and labels, "
+            "strong denoise, crisp contours, HD Live lighting, no diagnostic alteration"),
+        "negative": (
+            "fake fetus, changed anatomy, invented finding, changed measurement, "
+            "unreadable label, hallucinated detail"),
+        "settings": {
+            "brightness": "1.10",
+            "contrast": "1.34",
+            "warmth": "1.14",
+            "clarity": "1.72",
+            "denoise": "1.36",
+            "light_strength": "0.50",
+            "light_angle": "315",
+            "light_mode": "cinema",
+            "spot_x": "52",
+            "spot_y": "35",
+            "spot_size": "72",
+            "vignette": "0.18",
+            "micro_contrast": "1.64",
+            "structure": "1.52",
+            "depth": "0.78",
+            "shadow_lift": "0.18",
+            "black_guard": "0.94",
+            "label_guard": "0.98",
+            "highlight_guard": "0.82",
+            "local_contrast": "1.34",
+            "speckle": "1.62",
+            "relief": "1.12",
+            "edge_guard": "0.78",
+            "white_balance": "1.04",
+            "max_seconds": "24",
+            "video_smooth": "on",
+        },
+    },
+    "rtx_fetal_2x_super": {
+        "label": "RTX 2x Super Net",
+        "preset": "usg_print_crisp",
+        "engine": "comfyui",
+        "checkpoint": "v1-5-pruned-emaonly-fp16.safetensors",
+        "upscale_model": "RealESRGAN_x4plus.pth",
+        "clinical_safe": "on",
+        "upscale": "2",
+        "strength": "0.10",
+        "steps": "10",
+        "cfg": "3.8",
+        "prompt": (
+            "clinical fetal ultrasound 2x quality enhancement, preserve original "
+            "anatomy, labels, overlays and measurements exactly, reduce speckle, "
+            "improve readable contours, no new medical detail"),
+        "negative": (
+            "hallucinated anatomy, fake lesion, changed measurement, altered label, "
+            "extra body part, invented finding, cartoon, watermark"),
+        "settings": {
+            "contrast": "1.24",
+            "clarity": "1.45",
+            "micro_contrast": "1.34",
+            "structure": "1.28",
+            "speckle": "1.20",
+            "label_guard": "0.98",
+            "highlight_guard": "0.84",
         },
     },
     "usg_enhance": {
@@ -120079,6 +120409,17 @@ def _render_hd_studio_workbench(patient_key):
                 Sunum Icin Premium Duzelt
               </button>
             </div>
+            <div class="yk-hd-lane-card premium">
+              <h4>Lokal Super Kalite</h4>
+              <p>
+                Internet kullanmadan OpenCV/PIL ile USG grenini azaltir, konturlari
+                netlestirir ve 2x kaliteli kopya olusturur. Orijinal dosya korunur.
+              </p>
+              <button type="submit" name="quick_action" value="local_fetal_super_quality"
+                      class="btn btn-primary w-100">
+                Lokal Super Kalite
+              </button>
+            </div>
             <div class="yk-hd-lane-card cloud">
               <h4>Premium Bulut Duzeltme</h4>
               <p>
@@ -121479,6 +121820,88 @@ def hd_studio_entry():
     </div>
     """
     return render(content, title="HD Studio")
+
+
+@app.route("/bebek-goruntu-zeka")
+@login_required
+def fetal_image_ai_entry():
+    """Local fetal image AI entry: anomaly pre-screen + quality tools."""
+    ctx = _menu_search_patient_context()
+    patient_key = str(ctx.get("patient_key") or "").strip()
+    if patient_key:
+        target = f"/hasta/{quote(patient_key, safe='')}/yz-anomali-tarama"
+        return redirect(target)
+    content = """
+    <style>
+      .yk-fetal-entry {
+        max-width:1120px;
+        margin:0 auto;
+        display:grid;
+        grid-template-columns:minmax(0,1fr) 300px;
+        gap:16px;
+        border:1px solid #C8D7D2;
+        border-radius:8px;
+        background:#FFFFFF;
+        padding:22px;
+        box-shadow:0 18px 46px rgba(15,38,36,.10);
+      }
+      .yk-fetal-entry h1 {
+        margin:0 0 8px;
+        color:#102A43;
+        font-size:30px;
+        font-weight:900;
+      }
+      .yk-fetal-entry p {
+        color:#52606D;
+        font-weight:620;
+      }
+      .yk-fetal-entry .actions {
+        display:flex;
+        flex-wrap:wrap;
+        gap:8px;
+      }
+      .yk-fetal-monitor {
+        min-height:220px;
+        border:1px solid #1F3448;
+        border-radius:8px;
+        background:
+          linear-gradient(90deg,rgba(148,163,184,.10) 1px,transparent 1px),
+          linear-gradient(rgba(148,163,184,.10) 1px,transparent 1px),
+          radial-gradient(circle at 48% 34%,#243B53 0,#07111E 66%);
+        background-size:24px 24px,24px 24px,auto;
+        color:#D9FFF7;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-weight:900;
+      }
+      @media(max-width:760px) {
+        .yk-fetal-entry { grid-template-columns:1fr; }
+      }
+    </style>
+    <div class="yk-fetal-entry">
+      <div>
+        <h1>Bebek Goruntu Zekasi</h1>
+        <p>
+          Lokal Ollama vision modeliyle fetal/USG goruntulerinde anomali on tarama
+          ve HD Studio ile kalite artirma kopyasi hazirlar. Kesin tani koymaz;
+          hekim karari ve orijinal USG/DICOM esastir.
+        </p>
+        <div class="alert alert-warning">
+          Once bir hasta secin. Aktif hasta secilince bu ekran otomatik olarak
+          o hastanin anomali on taramasina gider.
+        </div>
+        <div class="actions">
+          <a class="btn btn-primary" href="/">Hasta ara</a>
+          <a class="btn btn-outline-primary" href="/arama">Gelismis arama</a>
+          <a class="btn btn-outline-success" href="/hd-studio">HD Studio kalite</a>
+          <a class="btn btn-outline-secondary" href="/yz-server-durum">Lokal YZ durumu</a>
+        </div>
+      </div>
+      <div class="yk-fetal-monitor">LOCAL AI</div>
+    </div>
+    """
+    return render(content, title="Bebek Goruntu Zekasi")
 
 
 @app.route("/hasta/<patient_key>/yz-resim-iyilestir",
