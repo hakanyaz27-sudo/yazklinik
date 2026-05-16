@@ -34,20 +34,80 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 
-AGENT_VERSION = "2026.05.16-konsult"
+AGENT_VERSION = "2026.05.17-konsult-v2"
 SOURCE_LABEL = "Klinik konsultasyon zinciri (OB-GYN)"
+
+# Adim bazli model tercih sirasi (Ollama list'inden mevcut olani sec)
+# meditron: tibbi LLM (Stanford), klinik sorular icin SOTA
+# qwen2.5:72b: genel akil yurutme, JSON cikti dayatma iyi
+# qwen2.5:32b: hizli, dengeli (fallback)
+PREFERRED_MODELS_BY_STEP = {
+    "extract":   ["qwen2.5:32b", "qwen2.5:72b", "qwen3-coder:30b"],  # JSON cikti
+    "ddx":       ["meditron:70b", "qwen2.5:72b", "qwen2.5:32b"],     # tibbi akil
+    "workup":    ["meditron:70b", "qwen2.5:32b"],                     # tibbi karar
+    "treatment": ["meditron:70b", "qwen2.5:72b", "qwen2.5:32b"],      # ilac+doz
+    "followup":  ["qwen2.5:32b", "meditron:70b"],                     # plan
+}
 
 
 # --- LLM helpers (ceviri ajanindan tembel import) ---
 
+_OLLAMA_AVAILABLE_MODELS_CACHE = None
+
+
+def _list_ollama_models() -> List[str]:
+    """Ollama'da hangi modeller yuklu (cache 5dk). Bos liste dondurursa hata."""
+    global _OLLAMA_AVAILABLE_MODELS_CACHE
+    if _OLLAMA_AVAILABLE_MODELS_CACHE is not None:
+        return _OLLAMA_AVAILABLE_MODELS_CACHE
+    try:
+        import urllib.request
+        from yazklinik_ceviri_agent import DEFAULT_OLLAMA_URL
+        req = urllib.request.Request(
+            DEFAULT_OLLAMA_URL.rstrip("/") + "/api/tags",
+            headers={"User-Agent": "YazKlinik/D300"})
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+        _OLLAMA_AVAILABLE_MODELS_CACHE = [
+            m.get("name", "") for m in (data.get("models") or [])]
+    except Exception:
+        _OLLAMA_AVAILABLE_MODELS_CACHE = []
+    return _OLLAMA_AVAILABLE_MODELS_CACHE
+
+
+def _pick_model_for_step(step: Optional[str]) -> Optional[str]:
+    """Adim icin tercih edilen ilk yuklu modeli sec."""
+    if not step:
+        return None
+    prefs = PREFERRED_MODELS_BY_STEP.get(step, [])
+    if not prefs:
+        return None
+    available = set(_list_ollama_models())
+    for p in prefs:
+        if p in available:
+            return p
+    # Hicbiri yoksa ilk tercihi don, Ollama varsa pull eder
+    return prefs[0] if prefs else None
+
+
 def _llm_call(prompt: str, prefer: str = "ollama",
                model: Optional[str] = None,
-               json_mode: bool = False) -> Tuple[Optional[str], Optional[str], str]:
-    """(text, error, used_method). LLM erisilemiyorsa (None, err, '')."""
+               json_mode: bool = False,
+               step: Optional[str] = None) -> Tuple[Optional[str], Optional[str], str]:
+    """(text, error, used_method). LLM erisilemiyorsa (None, err, '').
+
+    step: 'extract' | 'ddx' | 'workup' | 'treatment' | 'followup'
+        - Model adi None ise step'e gore otomatik secer
+          (meditron tibbi adimlar icin, qwen JSON icin)
+    """
     try:
         from yazklinik_ceviri_agent import _ollama_generate, _openai_chat, DEFAULT_OLLAMA_MODEL
     except Exception as e:  # noqa: BLE001
         return None, f"LLM helper yuklenemedi: {e}", ""
+
+    # Step bazli model otomatik secimi
+    if not model and step:
+        model = _pick_model_for_step(step)
 
     # Opsiyonlar: JSON modu icin temperature dusur
     options = {"temperature": 0.10 if json_mode else 0.25,
@@ -241,7 +301,7 @@ def _build_extract_prompt(free_text: str) -> str:
 
 def extract_case(free_text: str, prefer: str = "ollama") -> Tuple[CaseStructured, Dict[str, Any]]:
     prompt = _build_extract_prompt(free_text)
-    text, err, method = _llm_call(prompt, prefer=prefer, json_mode=True)
+    text, err, method = _llm_call(prompt, prefer=prefer, json_mode=True, step="extract")
     trace = {"step": "extract", "method": method, "error": err, "raw_preview": (text or "")[:300]}
     if not text:
         return CaseStructured(presenting_complaint=free_text[:200].strip()), trace
@@ -308,7 +368,7 @@ def _build_ddx_prompt(case: CaseStructured) -> str:
 
 def generate_differential(case: CaseStructured, prefer: str = "ollama") -> Tuple[Dict[str, Any], Dict[str, Any]]:
     prompt = _build_ddx_prompt(case)
-    text, err, method = _llm_call(prompt, prefer=prefer, json_mode=True)
+    text, err, method = _llm_call(prompt, prefer=prefer, json_mode=True, step="ddx")
     trace = {"step": "ddx", "method": method, "error": err}
     if not text:
         return {"red_flags": [], "differentials": [], "most_likely": ""}, trace
@@ -353,7 +413,7 @@ def _build_workup_prompt(case: CaseStructured, ddx: Dict[str, Any]) -> str:
 def recommend_workup(case: CaseStructured, ddx: Dict[str, Any],
                       prefer: str = "ollama") -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     prompt = _build_workup_prompt(case, ddx)
-    text, err, method = _llm_call(prompt, prefer=prefer, json_mode=True)
+    text, err, method = _llm_call(prompt, prefer=prefer, json_mode=True, step="workup")
     trace = {"step": "workup", "method": method, "error": err}
     if not text:
         return [], trace
@@ -409,7 +469,7 @@ def _build_treatment_prompt(case: CaseStructured, ddx: Dict[str, Any]) -> str:
 def recommend_treatment(case: CaseStructured, ddx: Dict[str, Any],
                          prefer: str = "ollama") -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     prompt = _build_treatment_prompt(case, ddx)
-    text, err, method = _llm_call(prompt, prefer=prefer, json_mode=True)
+    text, err, method = _llm_call(prompt, prefer=prefer, json_mode=True, step="treatment")
     trace = {"step": "treatment", "method": method, "error": err}
     if not text:
         return [], trace
@@ -447,7 +507,7 @@ def _build_followup_prompt(case: CaseStructured, ddx: Dict[str, Any]) -> str:
 def recommend_followup(case: CaseStructured, ddx: Dict[str, Any],
                         prefer: str = "ollama") -> Tuple[Dict[str, Any], Dict[str, Any]]:
     prompt = _build_followup_prompt(case, ddx)
-    text, err, method = _llm_call(prompt, prefer=prefer, json_mode=True)
+    text, err, method = _llm_call(prompt, prefer=prefer, json_mode=True, step="followup")
     trace = {"step": "followup", "method": method, "error": err}
     if not text:
         return {}, trace

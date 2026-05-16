@@ -59,17 +59,33 @@ CHROMA_DIR = RAG_DIR / "chroma"
 EMBED_CACHE_DIR = RAG_DIR / "embed_cache"
 COLLECTION_NAME = "alex_knowledge"
 
-# Türkçe + İngilizce destekli, dengeli boyut
+# D300 2026-05-17: BGE-M3 (BAAI) - multilingual SOTA, Turkce mukemmel
+# Eski default: paraphrase-multilingual-mpnet-base-v2 (2 yillik)
+# Yenisi:      BAAI/bge-m3 - daha buyuk context (8192), daha dogru skor
+# ENV ile ezerlenebilir: ALEX_EMBED_MODEL=eski-model-adi
 EMBED_MODEL = os.environ.get(
     "ALEX_EMBED_MODEL",
-    "sentence-transformers/paraphrase-multilingual-mpnet-base-v2")
+    "BAAI/bge-m3")
 
-# Default: relevance threshold (cosine distance < 0.7 = ilgili, daha gevsek)
-# Multilingual MPNet skorlari Turkce-Turkce sorgularda 0.4-0.7 araliginda
-RELEVANCE_THRESHOLD = 0.7
-TOP_K = 5
+# Reranker: ilk-asama retrieve + ikinci-asama yeniden sirala = cok daha dogru
+# BGE-Reranker-v2-m3 multilingual, Turkce destekli
+RERANKER_MODEL = os.environ.get(
+    "ALEX_RERANKER_MODEL",
+    "BAAI/bge-reranker-v2-m3")
+
+# Reranker'i kullan? (paket yuklu degilse otomatik kapanir)
+USE_RERANKER = os.environ.get("ALEX_USE_RERANKER", "1") not in ("0", "false", "no")
+
+# Default: relevance threshold (cosine distance < bu ise ilgili)
+# BGE-M3 skorlari MPNet'ten farkli; ENV ile override edilebilir
+RELEVANCE_THRESHOLD = float(os.environ.get("ALEX_RAG_THRESHOLD", "0.7"))
+TOP_K = int(os.environ.get("ALEX_RAG_TOP_K", "5"))
+
+# Reranker icin: ilk asamada bu kadar cek, sonra reranker top_k'ya kucult
+RERANK_FETCH_K = int(os.environ.get("ALEX_RAG_RERANK_FETCH_K", "15"))
 
 _MODEL = None
+_RERANKER = None
 _CLIENT = None
 _COLLECTION = None
 _LOCK = threading.Lock()
@@ -111,6 +127,83 @@ def _get_model():
         except Exception:
             pass
     return _MODEL
+
+
+def _get_reranker():
+    """BGE-Reranker-v2-m3 lazy yukle. Paket yoksa None doner."""
+    global _RERANKER
+    if not USE_RERANKER:
+        return None
+    if _RERANKER is not None:
+        return _RERANKER if _RERANKER is not False else None
+    with _LOCK:
+        if _RERANKER is not None:
+            return _RERANKER if _RERANKER is not False else None
+        try:
+            from rerankers import Reranker  # type: ignore
+            t0 = time.time()
+            try:
+                print(f"[RAG] Reranker yukleniyor: {RERANKER_MODEL}", flush=True)
+            except Exception:
+                pass
+            # rerankers paketi otomatik device sececek (cuda varsa)
+            _RERANKER = Reranker(RERANKER_MODEL, model_type="cross-encoder")
+            try:
+                print(f"[RAG] Reranker OK ({time.time()-t0:.1f}s)", flush=True)
+            except Exception:
+                pass
+        except Exception as exc:
+            try:
+                print(f"[RAG] Reranker yuklenemedi: {exc} - reranker'siz devam",
+                      flush=True)
+            except Exception:
+                pass
+            _RERANKER = False
+            return None
+    return _RERANKER if _RERANKER is not False else None
+
+
+def rerank_results(query, results, top_k=None):
+    """Verilen sonuc listesini reranker ile yeniden sirala.
+
+    results: search() ciktisi. Her oge {"text":..., "score":..., ...}
+    Returns: ayni format, score = reranker raw_score (0..1 normalize).
+    Paket/model yuklenemezse: orijinal sirayi koru, dokunma.
+    """
+    rr = _get_reranker()
+    if rr is None or not results:
+        return results
+    try:
+        docs = [r.get("text", "") for r in results]
+        # rerankers Reranker.rank() Results dondurur, .top_k(N) ile kucult
+        ranked = rr.rank(query=str(query), docs=docs)
+        # Score'a gore yeniden sirala
+        order = []
+        for r in ranked.results:
+            idx = getattr(r, "doc_id", None)
+            if idx is None:
+                continue
+            sc = getattr(r, "score", None)
+            order.append((int(idx), float(sc) if sc is not None else 0.0))
+        if not order:
+            return results
+        # Index'e gore esle, score'u koy, ardindan sirala
+        out = []
+        for idx, sc in order:
+            if 0 <= idx < len(results):
+                item = dict(results[idx])
+                item["score"] = round(sc, 4)
+                item["reranked"] = True
+                out.append(item)
+        if top_k:
+            out = out[:int(top_k)]
+        return out
+    except Exception as exc:
+        try:
+            print(f"[RAG] rerank HATA, orijinal koruna: {exc}", flush=True)
+        except Exception:
+            pass
+        return results
 
 
 def _get_collection():
@@ -209,13 +302,22 @@ def delete_document(doc_id):
         return False
 
 
-def search(query, top_k=TOP_K, threshold=RELEVANCE_THRESHOLD, kind_filter=None):
-    """Sorguya en yakın belgeleri bul.
+def search(query, top_k=TOP_K, threshold=RELEVANCE_THRESHOLD,
+           kind_filter=None, use_reranker=None, fetch_k=None):
+    """Sorguya en yakın belgeleri bul (2-asamali: retrieve + opsiyonel rerank).
 
-    Returns: [{id, text, metadata, distance, score}, ...]
-    score: 1-distance (1=tam eslesme, 0=alakasiz)
-    threshold: distance < bu ise dahil et (cosine distance 0..1 araliginda)
-    kind_filter: metadata.kind = bu ise filtre (ornek "patient", "usg", "research")
+    Args:
+      query        : Sorgu metni
+      top_k        : Son cikti boyutu
+      threshold    : Retrieve asamasi cosine distance esigi (vector benzerligi)
+      kind_filter  : metadata.kind filtre (orn 'usg', 'research')
+      use_reranker : None=USE_RERANKER env'e bak, True/False=zorla
+      fetch_k      : Reranker icin ilk asamada N belge cek (top_k * 3 onerilir).
+                     Reranker yoksa yok sayilir.
+
+    Returns: [{id, text, metadata, distance, score, reranked?}, ...]
+      score: reranker varsa reranker skor (0..1, yuksek = daha iyi)
+             reranker yoksa 1-distance (1=tam eslesme)
     """
     if not query or not str(query).strip():
         return []
@@ -224,8 +326,14 @@ def search(query, top_k=TOP_K, threshold=RELEVANCE_THRESHOLD, kind_filter=None):
     if not emb:
         return []
     where = {"kind": kind_filter} if kind_filter else None
+
+    # Reranker var/yok karari
+    want_rerank = use_reranker if use_reranker is not None else USE_RERANKER
+    n_retrieve = int(fetch_k or RERANK_FETCH_K) if want_rerank else int(top_k)
+    n_retrieve = max(n_retrieve, int(top_k))
+
     try:
-        res = col.query(query_embeddings=[emb], n_results=int(top_k),
+        res = col.query(query_embeddings=[emb], n_results=n_retrieve,
                         where=where)
     except Exception as exc:
         try: print(f"[RAG] search HATA: {exc}", flush=True)
@@ -238,6 +346,7 @@ def search(query, top_k=TOP_K, threshold=RELEVANCE_THRESHOLD, kind_filter=None):
     dists = (res.get("distances") or [[]])[0]
     for i in range(len(ids)):
         d = float(dists[i]) if i < len(dists) and dists[i] is not None else 1.0
+        # Retrieve asamasi threshold: gevsek tut, reranker daha sert yapar
         if d > threshold:
             continue
         out.append({
@@ -247,6 +356,22 @@ def search(query, top_k=TOP_K, threshold=RELEVANCE_THRESHOLD, kind_filter=None):
             "distance": d,
             "score": round(1.0 - d, 3),
         })
+
+    # Ikinci asama: reranker (mevcutsa)
+    if want_rerank and out:
+        rr = _get_reranker()
+        if rr is not None:
+            try:
+                out = rerank_results(query, out, top_k=int(top_k))
+            except Exception as exc:
+                try: print(f"[RAG] rerank skip: {exc}", flush=True)
+                except Exception: pass
+                out = out[:int(top_k)]
+        else:
+            out = out[:int(top_k)]
+    else:
+        out = out[:int(top_k)]
+
     return out
 
 

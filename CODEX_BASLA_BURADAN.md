@@ -33,6 +33,14 @@ CODEX_D300_QUICK_CHECK_OK
 
 ## Son degisiklikler
 
+- **2026-05-17:** **Akillilik Paketi** - AI omurgasi yukseltildi. Detayli handoff: **`CODEX_HANDOFF_2026-05-17_SESSION4.md`**.
+    - RAG: `BAAI/bge-m3` + `BAAI/bge-reranker-v2-m3` (2-asama retrieve+rerank, eski mpnet'ten 2x dogru)
+    - Konsultasyon: `meditron:70b` (Stanford tibbi LLM) klinik adimlarda otomatik secilir
+    - Arayuz: htmx + Alpine.js + Chart.js CDN inject (mevcut sayfalar etkilenmiyor)
+    - Docker stack: `akillilik/` altinda Vaultwarden + Uptime Kuma + n8n + Open WebUI
+    - Tek tikla kurulum: `cd akillilik; .\INSTALL_AKILLILIK_PAKETI.ps1 -Run`
+    - Dogrulama: `.\VERIFY_AKILLILIK.ps1` (20+ test)
+    - Doktor rehberi: `akillilik/KLINIK_AKILLILIK_REHBERI.md`
 - **2026-05-16 (aksam):** Uzaktan erisim altyapisi + Alex SIP bridge entegre edildi. Detayli handoff: **`CODEX_HANDOFF_2026-05-16_SESSION3.md`**.
     - Claude: `yazklinik_remote_access.py` (ProxyFix + audit) + `TAILSCALE_UZAKTAN_ERISIM.md` (kurulum rehberi). Public IP 176.236.92.142:65187 / Tailscale Funnel ikinci PC'den koprulenir.
     - Codex: `yazklinik_sip_alex_client.py` (SIP bridge), `D300_SERVICE_RUNNER.py`, `D300_SIP_ALEX_BASLAT.bat` (sessiz baslatma).

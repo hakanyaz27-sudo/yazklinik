@@ -41546,6 +41546,25 @@ def render(content, title=None):
                 html = html + inject
     except Exception:
         pass
+    # D300 2026-05-17: htmx + Alpine.js + Chart.js CDN (akilli UI altyapisi).
+    # Sayfa yenilemeden form/buton (htmx), reactive widgets (Alpine), grafikler (Chart.js).
+    # Eski sayfalar etkilenmiyor; sadece yeni 'data-*' attribute kullananlar yararlanir.
+    try:
+        if html and isinstance(html, str) and "yk-smart-ui-bundle" not in html:
+            inject = (
+                '<script id="yk-smart-ui-bundle">window.__ykSmartUI=1;</script>'
+                '<script src="https://unpkg.com/htmx.org@1.9.12" defer></script>'
+                '<script defer src="https://unpkg.com/alpinejs@3.13.10/dist/cdn.min.js"></script>'
+                '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>'
+            )
+            if "</body>" in html:
+                html = html.replace("</body>", inject + "</body>", 1)
+            elif "</head>" in html:
+                html = html.replace("</head>", inject + "</head>", 1)
+            else:
+                html = html + inject
+    except Exception:
+        pass
     # D300: Dark mode toggle KALDIRILDI (kullanicinin 27 temasi var,
     # sidebar'daki Midnight Pro / theme-picker-btn ile yapilir).
     # D300: Smart search hafifletildi - sadece input[list] varsa attach.

@@ -28,6 +28,10 @@ config.*.env
 !config.env.example
 users.json
 active_patient.json
+
+# Akillilik Docker stack data (Vaultwarden/n8n/UptimeKuma/OpenWebUI)
+akillilik/data/
+akillilik/.env
 bulutklinik_session.json
 bulutklinik_browser_profile/
 yazklinik_config.json

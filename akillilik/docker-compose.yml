@@ -1,0 +1,105 @@
+# YazKlinik D300 Akillilik Stack (2026-05-17)
+# 4 servis tek docker-compose'da:
+#   - Vaultwarden     (parola yoneticisi)        https://localhost:18443
+#   - Uptime Kuma     (servis saglik dashboard)  http://localhost:13001
+#   - n8n             (workflow otomasyon)       http://localhost:15678
+#   - Open WebUI      (Ollama profesyonel UI)    http://localhost:13000
+#
+# Kullanim:
+#   cd D:\YazKlinik_Final_D300\akillilik
+#   docker compose up -d
+#   docker compose ps           # durum
+#   docker compose logs -f n8n  # log
+#   docker compose down         # durdur
+#
+# Tum data 'akillilik/data/' altina kalir; backup icin bu klasoru kopyalamak yeter.
+# Portlari 1xxxx ile baslattik ki YazKlinik (5443) ve sistem portlariyla cakismasin.
+
+services:
+  # === 1) VAULTWARDEN (Bitwarden self-host) ==================================
+  # Tum klinik parolalari (BulutKlinik, SGK, Voluson, Tailscale, NAS, ...)
+  # tek vaultta sifreli sakla. Telefon + tarayici uzantisi ile her yerden erisim.
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: yk-vaultwarden
+    restart: unless-stopped
+    environment:
+      - WEBSOCKET_ENABLED=true
+      - SIGNUPS_ALLOWED=true       # ilk kullanici icin true, sonra false yap
+      - ADMIN_TOKEN=${VAULTWARDEN_ADMIN_TOKEN:-CHANGE_ME_RUN_INSTALL_SCRIPT}
+      - DOMAIN=http://localhost:18443
+      - SHOW_PASSWORD_HINT=false
+    volumes:
+      - ./data/vaultwarden:/data
+    ports:
+      - "18443:80"
+      - "13012:3012"               # websocket
+
+  # === 2) UPTIME KUMA (servis saglik) ========================================
+  # Watch list:
+  #   - https://127.0.0.1:5443/giris       (YazKlinik server)
+  #   - http://127.0.0.1:11434/api/tags    (Ollama)
+  #   - http://127.0.0.1:9000              (Whisper service)
+  #   - https://176.236.92.142:65187       (Public Funnel)
+  # Down olursa: discord/telegram/email push notification.
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: yk-uptime-kuma
+    restart: unless-stopped
+    volumes:
+      - ./data/uptime-kuma:/app/data
+    ports:
+      - "13001:3001"
+    # Ozel: host network ile lokal portlari (5443, 11434) gorur
+    # Windows Docker'da host network calismaz, host.docker.internal ile bagla
+
+  # === 3) N8N (workflow otomasyon) ===========================================
+  # YazKlinik webhook'larini al, WhatsApp/email/SMS/Telegram'a yonlendir.
+  # Ornek workflowlar:
+  #   - "Yeni randevu" -> 24h sonra hastaya WhatsApp hatirlatma
+  #   - "Voluson PDF yeni" -> kontrol agirligi -> doktora telegram bildirim
+  #   - "Gelmeyen hasta" -> ertesi gun otomatik yeniden ara
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: yk-n8n
+    restart: unless-stopped
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:15678/
+      - GENERIC_TIMEZONE=Europe/Istanbul
+      - TZ=Europe/Istanbul
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_SECURE_COOKIE=false    # localhost http icin
+    volumes:
+      - ./data/n8n:/home/node/.n8n
+    ports:
+      - "15678:5678"
+
+  # === 4) OPEN WEBUI (Ollama profesyonel chat arayuzu) =======================
+  # Ollama'daki tum modelleri ChatGPT-vari arayuzde dene.
+  # Yaz model'i, qwen2.5:72b, meditron:70b ile direkt klinik soru-cevap.
+  # Multi-modal (llama3.2-vision:11b) ile USG resmini gosterip soru sorabilirsin.
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: yk-open-webui
+    restart: unless-stopped
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - WEBUI_AUTH=true            # giris zorunlu (multi-user destekli)
+      - WEBUI_NAME=YazKlinik AI
+      - WEBUI_URL=http://localhost:13000
+      - ENABLE_SIGNUP=true         # ilk admin icin, sonra false
+      - DEFAULT_USER_ROLE=user
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data/open-webui:/app/backend/data
+    ports:
+      - "13000:8080"
+
+# Tek bir bridge network. Servisler birbirini service-name ile bulur.
+networks:
+  default:
+    name: yazklinik-akillilik
