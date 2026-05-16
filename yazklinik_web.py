@@ -15460,9 +15460,9 @@ def _load_patient_listing(limit=200, include_full_path=False):
     max_limit = 50000 if include_full_path else 1000
     limit = max(1, min(int(limit or 200), max_limit))
     query_limit = max(limit, min(max_limit, limit * 3))
-    # D250 2026-05-12: cache versionunu artirdik ki eski dosya-adi tipi
-    # kayitlar cache'ten temizlensin.
-    cache_key = f"terminal_patients_v3_{limit}_{int(bool(include_full_path))}"
+    # D300 2026-05-16: cache versionunu artirdik; hasta listesi artik
+    # en yeni gelis/kayit sinyali en ustte olacak sekilde sabitlenir.
+    cache_key = f"terminal_patients_v4_latest_{limit}_{int(bool(include_full_path))}"
     ttl_key = "terminal_patient_listing" if include_full_path else "web_patient_listing"
     cached = cache_get(cache_key)
     if cached is not None:
@@ -15592,10 +15592,20 @@ def _load_patient_listing(limit=200, include_full_path=False):
             WHERE COALESCE(p.archived_at, '') = ''
             ORDER BY
               CASE
-                WHEN COALESCE(vs.last_visit, datetime(p.folder_mtime, 'unixepoch'), p.first_seen_at, ps.last_pdf_visit, '') = ''
+                WHEN MAX(
+                  COALESCE(vs.last_visit, ''),
+                  COALESCE(ps.last_pdf_visit, ''),
+                  COALESCE(datetime(p.folder_mtime, 'unixepoch'), ''),
+                  COALESCE(p.first_seen_at, '')
+                ) = ''
                 THEN 1 ELSE 0
               END,
-              COALESCE(vs.last_visit, datetime(p.folder_mtime, 'unixepoch'), p.first_seen_at, ps.last_pdf_visit, '') DESC,
+              MAX(
+                COALESCE(vs.last_visit, ''),
+                COALESCE(ps.last_pdf_visit, ''),
+                COALESCE(datetime(p.folder_mtime, 'unixepoch'), ''),
+                COALESCE(p.first_seen_at, '')
+              ) DESC,
               COALESCE(p.display_name, p.folder_key) COLLATE NOCASE
             LIMIT ?
         """, (query_limit,)).fetchall()
@@ -15693,6 +15703,8 @@ def _load_patient_listing(limit=200, include_full_path=False):
             item["last_visit"] = effective_visit_date
         item["_sort_pdf_date"] = last_pdf_date
         item["_sort_visit_date"] = effective_visit_date
+        # En son gelen hasta en ustte: ziyaret, PDF, klasor tarihi ve ilk kayit
+        # sinyallerinden en yenisini tek siralama anahtari olarak kullan.
         item["_sort_arrival"] = (
             max(sort_arrival_candidates) if sort_arrival_candidates else "")
         if not include_full_path:
@@ -42862,6 +42874,25 @@ def home():
       color: #fff;
       box-shadow: 0 4px 10px rgba(74,122,171,.25);
     }
+    .yk-patient-sort-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 34px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(34, 134, 105, .22);
+      background: rgba(236, 253, 245, .88);
+      color: #0f6b51;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      box-shadow: 0 6px 14px rgba(15, 80, 68, .06);
+      white-space: nowrap;
+    }
+    .yk-patient-sort-pill i {
+      font-size: 15px;
+    }
 
     /* LISTE modu - tek satir, explicit grid areas */
     #patientList.yk-view-list {
@@ -43015,8 +43046,11 @@ def home():
       </section>
       {search_info_html}
       {pager_html}
-      <div class="d-flex justify-content-end align-items-center mb-2">
+      <div class="d-flex justify-content-end align-items-center flex-wrap gap-2 mb-2">
         <small class="text-muted me-auto">Mouse'u karta tut: hizli aksiyonlar acilir</small>
+        <span class="yk-patient-sort-pill me-2">
+          <i class="bi bi-sort-down"></i> En son gelen en ustte
+        </span>
         <div class="yk-patient-view-toggle" role="tablist" aria-label="Goruntu modu">
           <button type="button" data-view="grid" class="active" title="Kart goruntusu">
             <i class="bi bi-grid-3x3-gap-fill"></i>Grid
@@ -71008,20 +71042,24 @@ def voice_alex_center_page():
     content = """
     <style>
       .yk-vc-wrap {
-        max-width: 1180px;
+        max-width: 1240px;
         margin: 0 auto;
+        padding: 6px 2px 28px;
       }
       .yk-vc-head {
         display: flex;
-        align-items: center;
+        align-items: flex-end;
         justify-content: space-between;
         gap: 14px;
-        margin-bottom: 16px;
+        margin-bottom: 18px;
+        padding: 4px 0 14px;
+        border-bottom: 1px solid rgba(37, 99, 135, .12);
       }
       .yk-vc-title h2 {
         margin: 0;
-        font-size: 28px;
-        color: #0f2f4a;
+        font-size: 29px;
+        color: #102a43;
+        letter-spacing: 0;
       }
       .yk-vc-title small {
         color: #64748b;
@@ -71029,38 +71067,59 @@ def voice_alex_center_page():
       }
       .yk-vc-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+        gap: 14px;
       }
       .yk-vc-card {
+        position: relative;
+        overflow: hidden;
         display: flex;
         align-items: center;
         gap: 12px;
-        min-height: 88px;
-        padding: 14px;
-        border: 1px solid #d8e7f3;
-        border-radius: 14px;
-        background: #fff;
+        min-height: 92px;
+        padding: 16px;
+        border: 1px solid rgba(91, 141, 188, .24);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, .88);
         color: #0f2f4a;
         text-decoration: none;
-        box-shadow: 0 10px 24px rgba(15,54,91,.07);
+        box-shadow: 0 12px 26px rgba(15,54,91,.08);
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+      }
+      .yk-vc-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 16px;
+        bottom: 16px;
+        width: 4px;
+        border-radius: 0 8px 8px 0;
+        background: linear-gradient(180deg, #0ea5e9, #14b8a6);
+        opacity: .82;
       }
       .yk-vc-card:hover {
         border-color: #0ea5e9;
         color: #075985;
         text-decoration: none;
+        transform: translateY(-2px);
+        box-shadow: 0 18px 34px rgba(15,54,91,.13);
+      }
+      .yk-vc-card:focus-visible {
+        outline: 3px solid rgba(14, 165, 233, .26);
+        outline-offset: 3px;
       }
       .yk-vc-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
-        background: #eef8ff;
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #edf8ff, #e9fbf8);
         color: #075985;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         font-size: 20px;
         flex: 0 0 auto;
+        box-shadow: inset 0 0 0 1px rgba(14, 116, 144, .08);
       }
       .yk-vc-card b,
       .yk-vc-card small {
@@ -71068,16 +71127,16 @@ def voice_alex_center_page():
       }
       .yk-vc-card small {
         color: #64748b;
-        margin-top: 3px;
-        line-height: 1.3;
+        margin-top: 4px;
+        line-height: 1.35;
       }
       .yk-vc-panel {
-        margin-top: 14px;
-        border: 1px solid #d8e7f3;
-        border-radius: 16px;
-        background: linear-gradient(180deg, #f8fcff, #ffffff);
-        padding: 16px;
-        box-shadow: 0 10px 24px rgba(15,54,91,.07);
+        margin-top: 16px;
+        border: 1px solid rgba(91, 141, 188, .26);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, .9);
+        padding: 18px;
+        box-shadow: 0 16px 34px rgba(15,54,91,.09);
       }
       .yk-vc-actions {
         display: flex;
@@ -71085,7 +71144,8 @@ def voice_alex_center_page():
         flex-wrap: wrap;
       }
       .yk-vc-actions .btn {
-        min-height: 40px;
+        min-height: 42px;
+        border-radius: 12px;
         white-space: normal;
         word-break: keep-all;
         line-height: 1.2;
