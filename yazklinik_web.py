@@ -15747,8 +15747,9 @@ def _load_patient_listing(limit=200, include_full_path=False):
     limit = max(1, min(int(limit or 200), max_limit))
     query_limit = max(limit, min(max_limit, limit * 3))
     # D300 2026-05-16: cache versionunu artirdik; hasta listesi artik
-    # son muayene/kontrol gelis satirina gore siralanir.
-    cache_key = f"terminal_patients_v5_visit_order_{limit}_{int(bool(include_full_path))}"
+    # once Voluson/manuel kaynak, sonra son muayene/kontrol gelisine gore
+    # siralanir. BulutKlinik DB-only mirror kayitlari kaynak onceliginde arkada.
+    cache_key = f"terminal_patients_v6_source_visit_order_{limit}_{int(bool(include_full_path))}"
     ttl_key = "terminal_patient_listing" if include_full_path else "web_patient_listing"
     cached = cache_get(cache_key)
     if cached is not None:
@@ -15922,7 +15923,23 @@ def _load_patient_listing(limit=200, include_full_path=False):
                    COALESCE(ds.has_delivered, 0) AS has_delivered,
                    COALESCE(pts.has_pdf_obstetric, 0) AS has_pdf_obstetric,
                    COALESCE(pts.has_pdf_gynecologic, 0) AS has_pdf_gynecologic,
-                   COALESCE(ohs.has_obstetric_hint, 0) AS has_obstetric_hint
+                   COALESCE(ohs.has_obstetric_hint, 0) AS has_obstetric_hint,
+                   CASE
+                     WHEN COALESCE(pt.is_manual, 0) = 1 THEN 2
+                     WHEN COALESCE(p.folder_key, '') LIKE 'BK_%'
+                       OR LOWER(COALESCE(p.full_path, '')) LIKE '%_bk_imported%'
+                     THEN 0
+                     WHEN COALESCE(p.full_path, '') <> '' THEN 2
+                     ELSE 1
+                   END AS source_priority,
+                   CASE
+                     WHEN COALESCE(pt.is_manual, 0) = 1 THEN 'manual'
+                     WHEN COALESCE(p.folder_key, '') LIKE 'BK_%'
+                       OR LOWER(COALESCE(p.full_path, '')) LIKE '%_bk_imported%'
+                     THEN 'bulutklinik'
+                     WHEN COALESCE(p.full_path, '') <> '' THEN 'voluson'
+                     ELSE 'local'
+                   END AS source_bucket
             FROM patients p
             LEFT JOIN patient_type pt
               ON pt.patient_key = p.folder_key
@@ -15942,6 +15959,7 @@ def _load_patient_listing(limit=200, include_full_path=False):
               ON ohs.patient_key = p.folder_key
             WHERE COALESCE(p.archived_at, '') = ''
             ORDER BY
+              source_priority DESC,
               CASE
                 WHEN COALESCE(vs.last_visit_sort, '') = ''
                  AND COALESCE(ps.last_pdf_visit, '') = ''
@@ -16055,6 +16073,10 @@ def _load_patient_listing(limit=200, include_full_path=False):
         item["_sort_visit_date"] = effective_visit_date
         item["_sort_visit_rowid"] = last_visit_rowid
         item["_sort_has_visit"] = 1 if sort_arrival_candidates else 0
+        try:
+            item["_sort_source_priority"] = int(item.get("source_priority") or 0)
+        except Exception:
+            item["_sort_source_priority"] = 0
         # En son gelen hasta en ustte: once gercek muayene/kontrol gelisi,
         # sonra PDF gelisi; hasta klasor/ilk import tarihleri yalniz yedektir.
         item["_sort_arrival"] = (
@@ -16069,6 +16091,7 @@ def _load_patient_listing(limit=200, include_full_path=False):
         x.get("display_label") or x.get("display_name") or "").casefold())
     patients.sort(
         key=lambda x: (
+            int(x.get("_sort_source_priority") or 0),
             int(x.get("_sort_has_visit") or 0),
             str(x.get("_sort_arrival") or ""),
             int(x.get("_sort_visit_rowid") or 0),
