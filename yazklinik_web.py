@@ -46203,7 +46203,7 @@ def _patient_file_store_pdf_payload(patient_key, pdf_payload, applied=None):
     _patient_file_update_data_json(patient_key, _update)
 
 
-_PATIENT_FILE_PDF_AUTO_PROFILE_VERSION = "2026-05-14-profile-demographics-metrics-v3"
+_PATIENT_FILE_PDF_AUTO_PROFILE_VERSION = "2026-05-17-voluson-ga-metrics-v4"
 
 
 def _patient_file_pdf_candidate_signature(patient_key, max_pdfs=12):

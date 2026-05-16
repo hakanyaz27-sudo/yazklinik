@@ -131,6 +131,30 @@ def _line_value(lines: list[str], labels: Iterable[str]) -> str:
     return ""
 
 
+def _line_value_or_next(lines: list[str], labels: Iterable[str],
+                        known_labels: Iterable[str] = (),
+                        max_next: int = 4) -> str:
+    """Read "Label: value" or GE/Voluson-style "Label\\nvalue" text."""
+    direct = _line_value(lines, labels)
+    if direct:
+        return direct
+    folded_labels = {_fold(label).strip(" :") for label in labels}
+    folded_known = {_fold(label).strip(" :") for label in known_labels}
+    for i, line in enumerate(lines):
+        current = _fold(_clean(line, limit=160)).strip(" :")
+        if current not in folded_labels:
+            continue
+        for j in range(i + 1, min(len(lines), i + 1 + max_next)):
+            candidate = _clean(lines[j], limit=160)
+            if not candidate:
+                continue
+            folded_candidate = _fold(candidate).strip(" :")
+            if folded_candidate in folded_known:
+                return ""
+            return candidate
+    return ""
+
+
 def _flat_value(folded_text: str, patterns: Iterable[str]) -> str:
     for pattern in patterns:
         m = re.search(pattern, folded_text, re.IGNORECASE)
@@ -251,15 +275,31 @@ def _parse_metric_value(lines: list[str], labels: Iterable[str],
                         low: float, high: float,
                         forbidden: Iterable[str] = (),
                         height: bool = False) -> float | None:
-    for line in lines:
+    folded_labels = {_fold(label).strip(" :") for label in labels}
+    for idx, line in enumerate(lines):
         if forbidden and _line_has_any(line, forbidden):
             continue
         raw = _number_after_label(line, labels, max_gap=30)
-        if not raw:
-            continue
         parsed = _height_cm(raw) if height else _num(raw, low=low, high=high)
         if parsed is not None:
             return parsed
+        # Voluson/GE PDF text often comes as:
+        # Height\n158.0 cm\nWeight\n88.00 kg\nBMI\n35.3
+        folded_line = _fold(_clean(line, limit=160)).strip(" :")
+        if folded_line not in folded_labels:
+            continue
+        for next_line in lines[idx + 1:idx + 5]:
+            if forbidden and _line_has_any(next_line, forbidden):
+                continue
+            next_folded = _fold(_clean(next_line, limit=160)).strip(" :")
+            if next_folded in folded_labels:
+                break
+            parsed = (
+                _height_cm(next_line)
+                if height else _num(next_line, low=low, high=high)
+            )
+            if parsed is not None:
+                return parsed
     return None
 
 
@@ -329,8 +369,78 @@ def _parse_ga(text: str) -> tuple[int | None, int | None]:
     return None, None
 
 
-def _parse_measurements(text: str) -> dict[str, Any]:
+def _parse_voluson_ob_measurements(text: str) -> dict[str, Any]:
+    """Target GE/Voluson Obstetrics Report layout before generic regexes."""
+    folded = _fold(text)
+    if not (
+        "obstetrics report" in folded and
+        ("ga(aua)" in folded or "efw (hadlock)" in folded)
+    ):
+        return {}
+    lines = [_clean(line, limit=500) for line in text.splitlines()]
+    lines = [line for line in lines if line]
+    known = (
+        "Patient ID", "Name", "DOB,Age", "Sex", "Height", "Weight", "BMI",
+        "Systolic BP", "Diastolic BP", "MAP", "Gravida", "Para", "AB",
+        "Ectopic", "Fetus", "LMP", "DOC", "EDD(LMP)", "GA(LMP)",
+        "GA(AUA)", "EDD(AUA)", "Date of Exam:", "Perf. Phys.",
+        "Ref. Phys.", "Sonographer", "Comment", "Indication",
+    )
     out: dict[str, Any] = {}
+
+    ga_raw = _line_value_or_next(lines, ("GA(AUA)", "GA (AUA)"), known)
+    ga_w, ga_d = _parse_ga(ga_raw)
+    if ga_w is not None:
+        out["ga_weeks"] = ga_w
+        out["ga_days"] = ga_d or 0
+
+    exam_raw = _line_value_or_next(lines, ("Date of Exam:", "Date of Exam"), known)
+    exam_date = _iso_date(exam_raw)
+    if exam_date:
+        out["usg_date"] = exam_date
+
+    efw = None
+    m = re.search(
+        r"EFW\s*\(Hadlock\)[\s\S]{0,220}?\bAC/BPD/FL\s*\n\s*"
+        r"(\d{2,5})\s*g\b",
+        text, re.IGNORECASE)
+    if not m:
+        m = re.search(
+            r"EFW\s*\(Hadlock\)[\s\S]{0,220}?\n\s*(\d{2,5})\s*g\b",
+            text, re.IGNORECASE)
+    if m:
+        efw = _int_num(m.group(1), low=40, high=6500)
+    if efw is not None:
+        out["efw"] = efw
+
+    specs = {
+        "BPD": ("bpd", 5, 120),
+        "HC": ("hc", 20, 450),
+        "AC": ("ac", 20, 450),
+        "FL": ("fl", 3, 100),
+        "CRL": ("crl", 1, 150),
+        "NT": ("nt", 0.3, 15),
+    }
+    for idx, line in enumerate(lines):
+        folded_line = _fold(line).strip()
+        for label, (key, low, high) in specs.items():
+            if key in out:
+                continue
+            label_fold = _fold(label)
+            if not re.fullmatch(
+                    rf"{re.escape(label_fold)}(?:\s*\([^)]+\))?",
+                    folded_line):
+                continue
+            for next_line in lines[idx + 1:idx + 5]:
+                val = _num(next_line, low=low, high=high)
+                if val is not None:
+                    out[key] = val
+                    break
+    return out
+
+
+def _parse_measurements(text: str) -> dict[str, Any]:
+    out: dict[str, Any] = _parse_voluson_ob_measurements(text)
     specs = {
         "bpd": (("bpd",), 5, 120),
         "hc": (("hc", "head circumference"), 20, 450),
@@ -347,6 +457,8 @@ def _parse_measurements(text: str) -> dict[str, Any]:
         "mca_psv": (("mca psv", "middle cerebral artery psv"), 5, 150),
     }
     for key, (labels, low, high) in specs.items():
+        if key in out:
+            continue
         val = _find_number_near(text, labels, low=low, high=high)
         if val is None:
             continue
@@ -481,6 +593,18 @@ def extract_patient_pdf_payload(pdf_items: Iterable[dict[str, Any]]) -> dict[str
         lines = [_clean(line, limit=500) for line in text.splitlines()]
         lines = [line for line in lines if line]
         folded = _fold("\n".join(lines))
+        voluson_ob_report = (
+            "obstetrics report" in folded and
+            ("ga(aua)" in folded or "efw (hadlock)" in folded)
+        )
+        known_report_labels = (
+            "Patient ID", "Name", "DOB,Age", "Sex", "Height", "Weight",
+            "BMI", "Systolic BP", "Diastolic BP", "MAP", "Gravida",
+            "Para", "AB", "Ectopic", "Fetus", "LMP", "DOC", "EDD(LMP)",
+            "GA(LMP)", "GA(AUA)", "EDD(AUA)", "Date of Exam:",
+            "Perf. Phys.", "Ref. Phys.", "Sonographer", "Comment",
+            "Indication",
+        )
         pdf_record = {
             "name": source,
             "chars": len(text),
@@ -589,18 +713,30 @@ def extract_patient_pdf_payload(pdf_items: Iterable[dict[str, Any]]) -> dict[str
             if val:
                 set_demo(key, val, source)
 
-        lmp = _line_value(lines, ("sat", "son adet tarihi", "lmp", "last menstrual period"))
-        lmp_date = _date(lmp) or _date(_flat_value(folded, (
-            r"(?:\bsat\b|son\s*adet\s*tarihi|\blmp\b|last\s*menstrual\s*period)\D{0,30}(\d{1,2}[./-]\d{1,2}[./-]\d{4})",
-            r"(?:\bsat\b|son\s*adet\s*tarihi|\blmp\b|last\s*menstrual\s*period)\D{0,30}(\d{4}[./-]\d{1,2}[./-]\d{1,2})",
-        )))
+        lmp = _line_value_or_next(
+            lines, ("sat", "son adet tarihi", "lmp", "last menstrual period"),
+            known_report_labels)
+        lmp_date = _date(lmp)
+        if not lmp_date and not voluson_ob_report:
+            lmp_date = _date(_flat_value(folded, (
+                r"(?:\bsat\b|son\s*adet\s*tarihi|(?<!edd\()(?<!ga\()"
+                r"\blmp\b|last\s*menstrual\s*period)\D{0,30}"
+                r"(\d{1,2}[./-]\d{1,2}[./-]\d{4})",
+                r"(?:\bsat\b|son\s*adet\s*tarihi|(?<!edd\()(?<!ga\()"
+                r"\blmp\b|last\s*menstrual\s*period)\D{0,30}"
+                r"(\d{4}[./-]\d{1,2}[./-]\d{1,2})",
+            )))
         if lmp_date:
             set_demo("lmp_override", lmp_date, source)
 
-        edd = _line_value(lines, ("tahmini dogum", "edd", "expected date", "due date"))
+        edd = _line_value_or_next(
+            lines,
+            ("EDD(AUA)", "EDD (AUA)", "tahmini dogum", "edd",
+             "expected date", "due date"),
+            known_report_labels)
         edd_date = _date(edd) or _date(_flat_value(folded, (
-            r"(?:tahmini\s*dogum|edd|expected\s*date|due\s*date)\D{0,30}(\d{1,2}[./-]\d{1,2}[./-]\d{4})",
-            r"(?:tahmini\s*dogum|edd|expected\s*date|due\s*date)\D{0,30}(\d{4}[./-]\d{1,2}[./-]\d{1,2})",
+            r"(?:tahmini\s*dogum|edd\s*\(\s*aua\s*\)|\bedd\b|expected\s*date|due\s*date)\D{0,30}(\d{1,2}[./-]\d{1,2}[./-]\d{4})",
+            r"(?:tahmini\s*dogum|edd\s*\(\s*aua\s*\)|\bedd\b|expected\s*date|due\s*date)\D{0,30}(\d{4}[./-]\d{1,2}[./-]\d{1,2})",
         )))
         if edd_date:
             set_demo("edd_from_pdf", edd_date, source)
