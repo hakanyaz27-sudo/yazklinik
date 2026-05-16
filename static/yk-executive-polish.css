@@ -1,0 +1,781 @@
+/* YazKlinik D250 executive UI polish
+   Final override layer: calmer, denser, clinic-grade interface. */
+
+:root {
+  --yk-ex-bg: #edf4f8;
+  --yk-ex-surface: #ffffff;
+  --yk-ex-surface-2: #f7fafc;
+  --yk-ex-ink: #17263a;
+  --yk-ex-muted: #66788e;
+  --yk-ex-line: rgba(103, 124, 148, 0.24);
+  --yk-ex-line-strong: rgba(54, 74, 99, 0.34);
+  --yk-ex-blue: #1769aa;
+  --yk-ex-teal: #187f79;
+  --yk-ex-green: #16815f;
+  --yk-ex-warm: #b8821f;
+  --yk-ex-radius: 8px;
+  --yk-ex-shadow-xs: 0 1px 2px rgba(18, 32, 50, 0.08);
+  --yk-ex-shadow-sm: 0 8px 22px rgba(18, 32, 50, 0.08);
+  --yk-ex-shadow-md: 0 16px 36px rgba(18, 32, 50, 0.11);
+}
+
+html:not([data-theme="dark"]) body {
+  background: var(--yk-ex-bg) !important;
+  color: var(--yk-ex-ink) !important;
+}
+
+html:not([data-theme="dark"]) body,
+html:not([data-theme="dark"]) .main-content,
+html:not([data-theme="dark"]) .main-container {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+html:not([data-theme="dark"]) .main-content {
+  background: var(--yk-ex-bg) !important;
+}
+
+html:not([data-theme="dark"]) .main-container {
+  width: min(100%, 1520px) !important;
+  max-width: 1520px !important;
+  padding: 24px 28px 112px !important;
+}
+
+html:not([data-theme="dark"]) h1,
+html:not([data-theme="dark"]) h2,
+html:not([data-theme="dark"]) h3,
+html:not([data-theme="dark"]) h4,
+html:not([data-theme="dark"]) h5,
+html:not([data-theme="dark"]) h6,
+html:not([data-theme="dark"]) .yk-patient-name,
+html:not([data-theme="dark"]) .sidebar-brand-text {
+  letter-spacing: 0 !important;
+}
+
+html:not([data-theme="dark"]) h1,
+html:not([data-theme="dark"]) .yk-patient-title-line h1 {
+  color: #15263b !important;
+  font-size: 34px !important;
+  line-height: 1.12 !important;
+  font-weight: 850 !important;
+}
+
+html:not([data-theme="dark"]) .text-muted,
+html:not([data-theme="dark"]) small {
+  color: var(--yk-ex-muted) !important;
+}
+
+/* Header */
+html:not([data-theme="dark"]) .top-header,
+html:not([data-theme="dark"]) .yk-header {
+  min-height: 64px !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-bottom: 1px solid var(--yk-ex-line) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.88) inset,
+              0 10px 28px rgba(23,38,58,.07) !important;
+}
+
+html:not([data-theme="dark"]) .top-header .btn,
+html:not([data-theme="dark"]) .yk-header .btn,
+html:not([data-theme="dark"]) .header-icon-btn,
+html:not([data-theme="dark"]) .ai-status-badge,
+html:not([data-theme="dark"]) .profile-chip,
+html:not([data-theme="dark"]) .theme-menu-btn {
+  border-radius: var(--yk-ex-radius) !important;
+  border: 1px solid var(--yk-ex-line) !important;
+  background: #ffffff !important;
+  color: var(--yk-ex-ink) !important;
+  box-shadow: var(--yk-ex-shadow-xs) !important;
+}
+
+html:not([data-theme="dark"]) .top-header .btn:hover,
+html:not([data-theme="dark"]) .yk-header .btn:hover,
+html:not([data-theme="dark"]) .header-icon-btn:hover {
+  border-color: rgba(23,105,170,.45) !important;
+  color: var(--yk-ex-blue) !important;
+  box-shadow: var(--yk-ex-shadow-sm) !important;
+  transform: translateY(-1px);
+}
+
+html:not([data-theme="dark"]) .search-box input,
+html:not([data-theme="dark"]) input.form-control,
+html:not([data-theme="dark"]) select.form-select,
+html:not([data-theme="dark"]) textarea.form-control,
+html:not([data-theme="dark"]) .yk-input,
+html:not([data-theme="dark"]) .yk-select {
+  border-radius: var(--yk-ex-radius) !important;
+  border: 1px solid var(--yk-ex-line) !important;
+  background: #fff !important;
+  color: var(--yk-ex-ink) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.82) !important;
+}
+
+html:not([data-theme="dark"]) .search-box input:focus,
+html:not([data-theme="dark"]) input.form-control:focus,
+html:not([data-theme="dark"]) select.form-select:focus,
+html:not([data-theme="dark"]) textarea.form-control:focus {
+  border-color: rgba(23,105,170,.70) !important;
+  box-shadow: 0 0 0 3px rgba(23,105,170,.12),
+              inset 0 1px 0 rgba(255,255,255,.86) !important;
+}
+
+/* Sidebar */
+html:not([data-theme="dark"]) .sidebar.use-modern-nav {
+  background: #f8fbfd !important;
+  border-right: 1px solid var(--yk-ex-line) !important;
+  box-shadow: 8px 0 28px rgba(18,32,50,.07) !important;
+  color: var(--yk-ex-ink) !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav * {
+  color: inherit;
+}
+
+html:not([data-theme="dark"]) .sidebar-brand,
+html:not([data-theme="dark"]) .yk-sidebar-card,
+html:not([data-theme="dark"]) .sidebar.use-modern-nav [class*="widget"],
+html:not([data-theme="dark"]) .sidebar.use-modern-nav [class*="komuta"],
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .yk-sidebar-pulse {
+  background: #ffffff !important;
+  border: 1px solid var(--yk-ex-line) !important;
+  border-radius: var(--yk-ex-radius) !important;
+  box-shadow: var(--yk-ex-shadow-xs) !important;
+}
+
+html:not([data-theme="dark"]) .sidebar-brand-icon {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: var(--yk-ex-radius) !important;
+  background: #0f8b87 !important;
+  box-shadow: 0 10px 20px rgba(15,139,135,.22) !important;
+}
+
+html:not([data-theme="dark"]) .sidebar-brand-text {
+  color: #12233a !important;
+  font-weight: 850 !important;
+}
+
+html:not([data-theme="dark"]) .sidebar-section-title,
+html:not([data-theme="dark"]) .yk-sidebar-section-label,
+html:not([data-theme="dark"]) .sidebar.use-modern-nav [class*="section-title"] {
+  color: #61758c !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-link {
+  min-height: 42px !important;
+  border-radius: var(--yk-ex-radius) !important;
+  color: #263a52 !important;
+  font-weight: 700 !important;
+  background: transparent !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-link:hover {
+  background: #eef5f8 !important;
+  color: #0f5d87 !important;
+  transform: none !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-link.active {
+  background: #1769aa !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 18px rgba(23,105,170,.18) !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-link.active i,
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-link.active span {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) .quick-action,
+html:not([data-theme="dark"]) .sidebar-quick a,
+html:not([data-theme="dark"]) .sidebar-quick-action {
+  background: #ffffff !important;
+  border: 1px solid var(--yk-ex-line) !important;
+  border-radius: var(--yk-ex-radius) !important;
+  box-shadow: var(--yk-ex-shadow-xs) !important;
+}
+
+html:not([data-theme="dark"]) .quick-action:hover,
+html:not([data-theme="dark"]) .sidebar-quick a:hover,
+html:not([data-theme="dark"]) .sidebar-quick-action:hover {
+  border-color: rgba(23,105,170,.38) !important;
+  box-shadow: var(--yk-ex-shadow-sm) !important;
+  transform: translateY(-1px) !important;
+}
+
+html:not([data-theme="dark"]) .quick-action i,
+html:not([data-theme="dark"]) .sidebar-quick i {
+  color: var(--yk-ex-blue) !important;
+}
+
+/* Cards, panels, controls */
+html:not([data-theme="dark"]) .card,
+html:not([data-theme="dark"]) .yk-card,
+html:not([data-theme="dark"]) .panel,
+html:not([data-theme="dark"]) .section-card,
+html:not([data-theme="dark"]) .metric-card,
+html:not([data-theme="dark"]) .stat-card,
+html:not([data-theme="dark"]) .quick-card,
+html:not([data-theme="dark"]) .yk-patient-command,
+html:not([data-theme="dark"]) .patient-header {
+  border-radius: var(--yk-ex-radius) !important;
+  border: 1px solid var(--yk-ex-line) !important;
+  background: var(--yk-ex-surface) !important;
+  box-shadow: 0 1px 1px rgba(18,32,50,.05),
+              0 16px 34px rgba(18,32,50,.06) !important;
+}
+
+html:not([data-theme="dark"]) .card:hover,
+html:not([data-theme="dark"]) .yk-card:hover,
+html:not([data-theme="dark"]) .patient-card:hover,
+html:not([data-theme="dark"]) .stat-card:hover,
+html:not([data-theme="dark"]) .quick-card:hover,
+html:not([data-theme="dark"]) .metric-card:hover {
+  box-shadow: var(--yk-ex-shadow-md) !important;
+  transform: translateY(-1px) !important;
+}
+
+html:not([data-theme="dark"]) .card-header,
+html:not([data-theme="dark"]) .yk-card-header {
+  border-bottom: 1px solid var(--yk-ex-line) !important;
+  background: var(--yk-ex-surface-2) !important;
+  border-radius: var(--yk-ex-radius) var(--yk-ex-radius) 0 0 !important;
+}
+
+/* Patient list */
+html:not([data-theme="dark"]) .yk-patient-command {
+  padding: 18px 20px !important;
+  overflow: hidden !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-command::before {
+  height: 3px !important;
+  background: linear-gradient(90deg, #1769aa, #187f79, #b8821f) !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-count {
+  border-radius: var(--yk-ex-radius) !important;
+  background: #f4f8fb !important;
+  border-color: var(--yk-ex-line) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.90) !important;
+  color: #18283c !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-toolbar .btn,
+html:not([data-theme="dark"]) .yk-patient-actions .btn,
+html:not([data-theme="dark"]) .btn {
+  border-radius: var(--yk-ex-radius) !important;
+  font-weight: 750 !important;
+  letter-spacing: 0 !important;
+}
+
+html:not([data-theme="dark"]) .btn-primary,
+html:not([data-theme="dark"]) button.btn-primary,
+html:not([data-theme="dark"]) .yk-btn-primary {
+  background: #1769aa !important;
+  border: 1px solid #1769aa !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 20px rgba(23,105,170,.18) !important;
+}
+
+html:not([data-theme="dark"]) .btn-success,
+html:not([data-theme="dark"]) button.btn-success {
+  background: #16815f !important;
+  border: 1px solid #16815f !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 20px rgba(22,129,95,.16) !important;
+}
+
+html:not([data-theme="dark"]) .btn-outline-secondary,
+html:not([data-theme="dark"]) .btn-light,
+html:not([data-theme="dark"]) .btn-secondary {
+  background: #ffffff !important;
+  border: 1px solid var(--yk-ex-line) !important;
+  color: #24364c !important;
+  box-shadow: var(--yk-ex-shadow-xs) !important;
+}
+
+html:not([data-theme="dark"]) .btn:hover {
+  filter: none !important;
+}
+
+html:not([data-theme="dark"]) #patientList.yk-patient-list {
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)) !important;
+  gap: 18px !important;
+}
+
+html:not([data-theme="dark"]) .patient-card.yk-patient-card {
+  --yk-patient-accent: #1769aa;
+  --yk-patient-accent-2: #187f79;
+  min-height: 150px !important;
+  gap: 12px !important;
+  padding: 18px 18px 16px !important;
+  border-radius: var(--yk-ex-radius) !important;
+  border: 1px solid var(--yk-ex-line) !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 1px rgba(18,32,50,.05),
+              0 12px 28px rgba(18,32,50,.07) !important;
+}
+
+html:not([data-theme="dark"]) .patient-card.yk-patient-card::before {
+  width: 4px !important;
+  background: var(--yk-patient-accent) !important;
+}
+
+html:not([data-theme="dark"]) .patient-card.yk-patient-card:hover {
+  border-color: rgba(23,105,170,.46) !important;
+  box-shadow: var(--yk-ex-shadow-md) !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-open-hint {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: var(--yk-ex-radius) !important;
+  background: #ffffff !important;
+  border: 1px solid var(--yk-ex-line) !important;
+  color: #53687f !important;
+  box-shadow: var(--yk-ex-shadow-xs) !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-card-top {
+  gap: 14px !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-avatar {
+  width: 44px !important;
+  height: 44px !important;
+  flex-basis: 44px !important;
+  border-radius: var(--yk-ex-radius) !important;
+  background: #1769aa !important;
+  box-shadow: 0 10px 18px rgba(23,105,170,.18) !important;
+  font-size: 20px !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-name {
+  color: #1769aa !important;
+  font-size: 21px !important;
+  line-height: 1.18 !important;
+  font-weight: 850 !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-chip {
+  min-height: 24px !important;
+  border-radius: 6px !important;
+  background: #f3f7fa !important;
+  border: 1px solid #dce7ef !important;
+  color: #52687e !important;
+  box-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-badges .badge {
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  font-weight: 800 !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-actions {
+  padding-left: 58px !important;
+  border-top: 1px solid #edf2f6 !important;
+  padding-top: 12px !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-actions .btn-primary {
+  background: #142133 !important;
+  border-color: #142133 !important;
+  box-shadow: 0 10px 18px rgba(20,33,51,.18) !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-type-gynecologic {
+  --yk-patient-accent: #4f7c7b !important;
+  --yk-patient-accent-2: #6e9692 !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-type-medical_aesthetic {
+  --yk-patient-accent: #187f79 !important;
+  --yk-patient-accent-2: #5a9e99 !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-type-gynecologic_aesthetic {
+  --yk-patient-accent: #6d6598 !important;
+  --yk-patient-accent-2: #9289b8 !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-type-gynecologic .yk-patient-avatar,
+html:not([data-theme="dark"]) .yk-patient-type-medical_aesthetic .yk-patient-avatar,
+html:not([data-theme="dark"]) .yk-patient-type-gynecologic_aesthetic .yk-patient-avatar {
+  background: var(--yk-patient-accent) !important;
+}
+
+/* Tables and readable dense panels */
+html:not([data-theme="dark"]) .table {
+  color: var(--yk-ex-ink) !important;
+}
+
+html:not([data-theme="dark"]) .table thead th {
+  background: #f4f8fb !important;
+  border-bottom: 1px solid var(--yk-ex-line-strong) !important;
+  color: #2a3d54 !important;
+  font-weight: 850 !important;
+}
+
+html:not([data-theme="dark"]) .table td,
+html:not([data-theme="dark"]) .table th {
+  border-color: #e3ebf1 !important;
+}
+
+html:not([data-theme="dark"]) .alert {
+  border-radius: var(--yk-ex-radius) !important;
+  border: 1px solid var(--yk-ex-line) !important;
+  box-shadow: var(--yk-ex-shadow-xs) !important;
+}
+
+@media (max-width: 992px) {
+  html:not([data-theme="dark"]) .main-container {
+    padding: 14px 12px 104px !important;
+    max-width: 100% !important;
+  }
+
+  html:not([data-theme="dark"]) #patientList.yk-patient-list {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  html:not([data-theme="dark"]) .patient-card.yk-patient-card {
+    min-height: 0 !important;
+    padding: 14px !important;
+  }
+
+  html:not([data-theme="dark"]) .yk-patient-actions {
+    padding-left: 0 !important;
+  }
+}
+
+/* D250 medical enterprise UX layer
+   Calm clinic palette, predictable controls, stronger readability. */
+:root {
+  --yk-med-bg: #eef4f7;
+  --yk-med-bg-2: #f7fafc;
+  --yk-med-surface: #ffffff;
+  --yk-med-ink: #152437;
+  --yk-med-muted: #61738a;
+  --yk-med-line: rgba(78, 98, 118, 0.24);
+  --yk-med-line-strong: rgba(55, 75, 95, 0.34);
+  --yk-med-primary: #155e96;
+  --yk-med-primary-dark: #0f4777;
+  --yk-med-teal: #12736f;
+  --yk-med-teal-dark: #0d5b58;
+  --yk-med-slate: #25364a;
+  --yk-med-violet: #665f8f;
+  --yk-med-amber: #a66d12;
+  --yk-med-danger: #9d3b4e;
+  --yk-med-radius: 8px;
+  --yk-med-shadow-soft: 0 1px 2px rgba(14, 29, 46, 0.06),
+                        0 14px 34px rgba(14, 29, 46, 0.07);
+  --yk-med-shadow-lift: 0 2px 4px rgba(14, 29, 46, 0.07),
+                        0 18px 42px rgba(14, 29, 46, 0.10);
+}
+
+html:not([data-theme="dark"]) body {
+  background:
+    linear-gradient(180deg, #f7fafc 0%, var(--yk-med-bg) 54%, #edf6f4 100%) !important;
+}
+
+html:not([data-theme="dark"]) .main-container {
+  padding-top: 22px !important;
+}
+
+html:not([data-theme="dark"]) :where(.card, .yk-card, .panel, .section-card,
+.metric-card, .stat-card, .quick-card, .patient-header, .yk-patient-command,
+.form-section, .yk-widget, .yk-section) {
+  border: 1px solid var(--yk-med-line) !important;
+  border-radius: var(--yk-med-radius) !important;
+  background: var(--yk-med-surface) !important;
+  box-shadow: var(--yk-med-shadow-soft) !important;
+}
+
+html:not([data-theme="dark"]) :where(.card, .yk-card, .panel, .section-card,
+.metric-card, .stat-card, .quick-card, .patient-header, .yk-patient-command,
+.form-section, .yk-widget, .yk-section):hover {
+  border-color: rgba(21, 94, 150, 0.32) !important;
+  box-shadow: var(--yk-med-shadow-lift) !important;
+}
+
+html:not([data-theme="dark"]) :where(.card-header, .yk-card-header,
+.section-header, .table thead th) {
+  background: #f4f8fb !important;
+  border-color: var(--yk-med-line) !important;
+  color: #24384f !important;
+}
+
+html:not([data-theme="dark"]) :where(h1, h2, h3) {
+  color: #152437 !important;
+}
+
+html:not([data-theme="dark"]) :where(h4, h5, h6, label, .form-label) {
+  color: #263a52 !important;
+}
+
+html:not([data-theme="dark"]) :where(p, .text-muted, small, .form-text) {
+  color: var(--yk-med-muted) !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn, button.btn, .yk-btn,
+.header-icon-btn, .theme-menu-btn, .profile-chip) {
+  min-height: 38px !important;
+  border-radius: var(--yk-med-radius) !important;
+  font-weight: 760 !important;
+  letter-spacing: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+html:not([data-theme="dark"]) :where(.btn-sm, .btn.btn-sm) {
+  min-height: 32px !important;
+  padding: 6px 10px !important;
+  font-size: 13px !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-lg, .btn.btn-lg) {
+  min-height: 46px !important;
+  padding: 10px 18px !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-primary, .yk-btn-primary) {
+  background: var(--yk-med-primary) !important;
+  border: 1px solid var(--yk-med-primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 22px rgba(21, 94, 150, 0.18) !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-primary, .yk-btn-primary):hover {
+  background: var(--yk-med-primary-dark) !important;
+  border-color: var(--yk-med-primary-dark) !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-success) {
+  background: var(--yk-med-teal) !important;
+  border: 1px solid var(--yk-med-teal) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 22px rgba(18, 115, 111, 0.16) !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-success):hover {
+  background: var(--yk-med-teal-dark) !important;
+  border-color: var(--yk-med-teal-dark) !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-danger) {
+  background: var(--yk-med-danger) !important;
+  border: 1px solid var(--yk-med-danger) !important;
+  color: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-warning) {
+  background: #fff7e6 !important;
+  border: 1px solid #e5bf71 !important;
+  color: #744a0d !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-outline-primary) {
+  background: #ffffff !important;
+  border: 1px solid rgba(21, 94, 150, 0.38) !important;
+  color: var(--yk-med-primary) !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-outline-info) {
+  background: #ffffff !important;
+  border: 1px solid rgba(18, 115, 111, 0.34) !important;
+  color: var(--yk-med-teal) !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-outline-secondary, .btn-light,
+.btn-secondary) {
+  background: #ffffff !important;
+  border: 1px solid var(--yk-med-line) !important;
+  color: var(--yk-med-slate) !important;
+}
+
+html:not([data-theme="dark"]) :where(input.form-control, select.form-control,
+textarea.form-control, .form-select, .yk-input, .yk-select, input[type="text"],
+input[type="search"], input[type="number"], input[type="date"], textarea) {
+  min-height: 40px;
+  border-radius: var(--yk-med-radius) !important;
+  border: 1px solid var(--yk-med-line-strong) !important;
+  background: #ffffff !important;
+  color: var(--yk-med-ink) !important;
+}
+
+html:not([data-theme="dark"]) :where(input.form-control, select.form-control,
+textarea.form-control, .form-select, .yk-input, .yk-select, input[type="text"],
+input[type="search"], input[type="number"], input[type="date"], textarea):focus {
+  border-color: rgba(21, 94, 150, 0.72) !important;
+  box-shadow: 0 0 0 3px rgba(21, 94, 150, 0.12) !important;
+  outline: 0 !important;
+}
+
+html:not([data-theme="dark"]) :where(.form-label, label.form-label,
+.yk-label, .section-label) {
+  font-size: 12px !important;
+  font-weight: 820 !important;
+  letter-spacing: 0 !important;
+}
+
+html:not([data-theme="dark"]) :where(.table, .yk-table) {
+  background: #ffffff !important;
+  border-color: var(--yk-med-line) !important;
+}
+
+html:not([data-theme="dark"]) :where(.table th, .table td, .yk-table th,
+.yk-table td) {
+  border-color: #e4edf3 !important;
+  vertical-align: middle !important;
+}
+
+html:not([data-theme="dark"]) :where(.table tbody tr:hover, .yk-table tbody tr:hover) {
+  background: #f7fbfd !important;
+}
+
+html:not([data-theme="dark"]) :where(.badge, .pill, .yk-badge, .yk-chip,
+.category-pill, .tag, .chip) {
+  border-radius: 6px !important;
+  border: 1px solid var(--yk-med-line) !important;
+  box-shadow: none !important;
+  letter-spacing: 0 !important;
+  font-weight: 760 !important;
+}
+
+html:not([data-theme="dark"]) :where(.badge.bg-primary, .badge.bg-info,
+.pill.bg-primary, .pill.bg-info) {
+  background: #e7f0f8 !important;
+  color: #174e7c !important;
+  border-color: #c8dbea !important;
+  -webkit-text-fill-color: #174e7c !important;
+}
+
+html:not([data-theme="dark"]) :where(.badge.bg-success, .pill.bg-success) {
+  background: #e5f3ef !important;
+  color: #11645f !important;
+  border-color: #c7deda !important;
+  -webkit-text-fill-color: #11645f !important;
+}
+
+html:not([data-theme="dark"]) :where(.badge.bg-warning, .pill.bg-warning) {
+  background: #fff3d6 !important;
+  color: #80510e !important;
+  border-color: #efd28f !important;
+  -webkit-text-fill-color: #80510e !important;
+}
+
+html:not([data-theme="dark"]) :where(.badge.bg-danger, .pill.bg-danger) {
+  background: #f5e9ed !important;
+  color: #87314b !important;
+  border-color: #e1c5cf !important;
+  -webkit-text-fill-color: #87314b !important;
+}
+
+html:not([data-theme="dark"]) #patientList.yk-patient-list {
+  gap: 16px !important;
+}
+
+html:not([data-theme="dark"]) #patientList .patient-card.yk-patient-card {
+  min-height: 148px !important;
+  border-width: 1px !important;
+  border-left-width: 4px !important;
+  background: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) #patientList .patient-card.yk-patient-type-obstetric {
+  --yk-patient-accent: var(--yk-med-primary) !important;
+  border-left-color: var(--yk-med-primary) !important;
+}
+
+html:not([data-theme="dark"]) #patientList .patient-card.yk-patient-type-gynecologic {
+  --yk-patient-accent: #5a7774 !important;
+  border-left-color: #5a7774 !important;
+}
+
+html:not([data-theme="dark"]) #patientList .patient-card.yk-patient-type-medical_aesthetic {
+  --yk-patient-accent: var(--yk-med-teal) !important;
+  border-left-color: var(--yk-med-teal) !important;
+}
+
+html:not([data-theme="dark"]) #patientList .patient-card.yk-patient-type-gynecologic_aesthetic {
+  --yk-patient-accent: var(--yk-med-violet) !important;
+  border-left-color: var(--yk-med-violet) !important;
+}
+
+html:not([data-theme="dark"]) #patientList .yk-patient-avatar {
+  background: var(--yk-patient-accent, var(--yk-med-primary)) !important;
+}
+
+html:not([data-theme="dark"]) #patientList .yk-patient-name {
+  color: #1264a3 !important;
+}
+
+html:not([data-theme="dark"]) #patientList .yk-patient-type-gynecologic .yk-patient-name {
+  color: #3f6663 !important;
+}
+
+html:not([data-theme="dark"]) #patientList .yk-patient-type-medical_aesthetic .yk-patient-name {
+  color: #11736f !important;
+}
+
+html:not([data-theme="dark"]) #patientList .yk-patient-type-gynecologic_aesthetic .yk-patient-name {
+  color: #5d5687 !important;
+}
+
+html:not([data-theme="dark"]) :where(.yk-floating-alex-bar, .yk-voice-quickbar,
+#ykVoiceBar, #ykVoicePanel, .voice-panel, .alex-panel) {
+  border: 1px solid var(--yk-med-line-strong) !important;
+  border-radius: var(--yk-med-radius) !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow: 0 18px 46px rgba(14, 29, 46, 0.16) !important;
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+html:not([data-theme="dark"]) :where(.yk-floating-alex-bar input,
+.yk-voice-quickbar input, #ykVoiceBar input) {
+  min-width: min(520px, 48vw);
+}
+
+html:not([data-theme="dark"]) :where(.alert, .yk-alert) {
+  border-radius: var(--yk-med-radius) !important;
+  border: 1px solid var(--yk-med-line) !important;
+  background: #ffffff !important;
+  color: var(--yk-med-ink) !important;
+}
+
+html:not([data-theme="dark"]) :where(.alert-info) {
+  background: #eef8fb !important;
+  border-color: #c9e5ee !important;
+}
+
+html:not([data-theme="dark"]) :where(.alert-warning) {
+  background: #fff8e8 !important;
+  border-color: #efdca7 !important;
+}
+
+html:not([data-theme="dark"]) :where(.alert-danger) {
+  background: #fdf1f3 !important;
+  border-color: #e9c7cf !important;
+}
+
+@media (max-width: 992px) {
+  html:not([data-theme="dark"]) :where(.btn, button.btn, .yk-btn) {
+    min-height: 42px !important;
+  }
+
+  html:not([data-theme="dark"]) :where(.yk-floating-alex-bar input,
+  .yk-voice-quickbar input, #ykVoiceBar input) {
+    min-width: 0;
+    width: 100%;
+  }
+}

@@ -1,0 +1,79 @@
+YazKlinik C27 - TÜM GÖRSELLER NASIL KOYULUR
+=============================================
+
+YazKlinik'te 4 ana görsel slot var. Hepsi opsiyonel - kod fallback gösterir.
+Görselleri bu klasöre kaydedince otomatik yüklenir, kod değişmez.
+Server'ı yeniden başlatmayı unutma.
+
+────────────────────────────────────────────────
+1) BRAND LOGO (sidebar + diyet + gebe takip - C27 yeni)
+────────────────────────────────────────────────
+Sidebar'daki "Yaz Klinik" başlığında, diyet planı kapağında ve gebe takip
+planı kapağında "YK" rozeti yerine bu logo görünür.
+
+Bu klasöre PNG olarak kaydet (ilk bulunan kullanılır):
+
+  static\brand_logo.png        ← TERCİH EDİLEN (resim 3 için)
+  static\yk_logo.png
+  static\yazklinik_logo.png
+  static\brand.png
+  static\logo.png
+  static\brand_logo.jpg
+  static\yk_logo.jpg
+
+ÖNERİLEN BOYUT: 512x512 px kare, ŞEFFAF arka plan (PNG)
+
+────────────────────────────────────────────────
+2) REÇETE ÜST FİGÜRÜ (sol üst logo)
+────────────────────────────────────────────────
+Reçete kağıdının sol üst köşesindeki figür. Brand logo'dan farklı
+bir görsel kullanmak istersen:
+
+  static\recete_figur.png      ← TERCİH EDİLEN (yeni)
+  static\recete_logo.png
+  static\recete_logo_v2.png
+  static\recete_logo.jpeg      (eski - hala çalışır)
+  static\recete_logo.jpg
+
+ÖNERİLEN BOYUT: 400x400 px kare, şeffaf veya beyaz PNG
+
+────────────────────────────────────────────────
+3) İMZA (reçete sağ alt)
+────────────────────────────────────────────────
+Doktorun el yazısı imzası, kaşe üstüne biner.
+
+  static\doctor_signature.png  ← TERCİH EDİLEN
+  static\imza.png
+  static\signature.png
+
+ÖNERİLEN BOYUT: yaklaşık 600x300 px (yatay), şeffaf PNG
+
+────────────────────────────────────────────────
+4) KAŞE (reçete sağ alt - imzanın altında)
+────────────────────────────────────────────────
+Hazır kaşe görseli (Op.Dr.Hakan YAZ + Diploma + Tescil).
+Yüklemezsen kod otomatik italic metin oluşturur.
+
+  static\doctor_stamp.png      ← TERCİH EDİLEN
+  static\kase.png
+  static\stamp.png
+
+ÖNERİLEN BOYUT: yaklaşık 700x300 px (yatay), şeffaf veya beyaz PNG
+
+────────────────────────────────────────────────
+KURULUM ADIMLARI
+────────────────────────────────────────────────
+1. Görseli sağ tıkla "Resmi farklı kaydet" → bu klasör
+   (C:\Users\yazha\OneDrive\Desktop\YazKlinik_Final_C27\static\)
+2. Yukarıdaki TERCİH EDİLEN isimlerden birini kullan
+3. Server'ı yeniden başlat:
+   YazKlinik_Server_Baslat.bat
+4. Tarayıcıda sayfayı yenile (Ctrl+F5) → görsel otomatik yüklenir
+
+────────────────────────────────────────────────
+C27 HABER ÖZETİ
+────────────────────────────────────────────────
+- Gebe takip planı sayfasındaki avatar mockup KALDIRILDI
+- Sidebar "Yaz Klinik" daha güzel: gradient logo, isim+doktor adı
+- Yeni brand_logo.png slot: tek görseli yükle, her yerde gözüksün
+- Reçete: kutu sayısı seçimi (C26), imza/kaşe PNG (C25), AÇIKLAMALAR yok (C24)
