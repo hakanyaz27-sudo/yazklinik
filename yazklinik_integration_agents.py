@@ -12,7 +12,7 @@ from copy import deepcopy
 from datetime import datetime
 
 
-AGENT_VERSION = "2026.04.30-integration-agents"
+AGENT_VERSION = "2026.05.16-integration-agents"
 
 
 INTEGRATION_AGENTS = [
@@ -172,6 +172,241 @@ INTEGRATION_AGENTS = [
             "Ajan eslesme skoru verir",
             "Kullanici onaylar",
             "Kayitlar birlestirilir veya ayri tutulur",
+        ],
+    },
+    {
+        "id": "telesekreter",
+        "name": "YZ Telesekreter Ajani",
+        "short": "Kacirilan/kapali saatte gelen aramalari triyaj eder; aciliyet ve niyet siniflandirir.",
+        "status": "ready_internal",
+        "risk": "medium",
+        "directions": ["Telefon/sip2sip -> YazKlinik onay kuyrugu"],
+        "module": "yazklinik_telesekreter_agent",
+        "entry_function": "parse_call",
+        "safe_methods": [
+            "STT cikti ve caller-ID alir; klinik karar vermez",
+            "Niyet: yeni randevu / iptal / acil / bilgi / spam",
+            "Aciliyet skoru sadece siralama icindir",
+            "Sonuc onay kuyruguna duser, doktor/sekreter karar verir",
+        ],
+        "blocked_methods": [
+            "Hastaya klinik bilgi veya tani vermek",
+            "Randevuyu otomatik kesinlestirmek (sesli_onay ajani isi)",
+            "Caller listesini disariya gondermek",
+        ],
+        "doctor_actions": [
+            "Onay kuyrugundan tek tek cagri inceler",
+            "Uygun bulursa randevu / arama / SMS aksiyonu baslatir",
+            "Spam'ler reddedilir, kayit kalir",
+        ],
+    },
+    {
+        "id": "sesli_onay",
+        "name": "Sesli Randevu Evet Onayi Ajani",
+        "short": "Hasta sesli 'evet/hayir/ertele' yanitini siniflandirir, otomatik onay icin guven esigi uygular.",
+        "status": "ready_internal",
+        "risk": "medium",
+        "directions": ["Telefon STT yaniti -> randevu state degisikligi"],
+        "module": "yazklinik_sesli_onay_agent",
+        "entry_function": "decide",
+        "safe_methods": [
+            "Evet/hayir/ertele/belirsiz/yanit yok siniflandirir",
+            "can_auto_apply() yuksek guvende sadece confirm/cancel uygular",
+            "Belirsiz/erteleme her zaman insan review",
+        ],
+        "blocked_methods": [
+            "Tereddutlu yanitta otomatik karar",
+            "Insan review olmadan randevu silme",
+        ],
+        "doctor_actions": [
+            "Sekreter unclear durumlarini dinler",
+            "Auto-onay esigi ayarlanabilir",
+        ],
+    },
+    {
+        "id": "usg_rapor",
+        "name": "USG Rapor Taslak Ajani",
+        "short": "BPD/HC/AC/FL olcumlerinden Hadlock EFW + standart sablon rapor TASLAGI uretir.",
+        "status": "ready_internal",
+        "risk": "high",
+        "directions": ["Voluson olcum -> rapor taslagi"],
+        "module": "yazklinik_usg_rapor_agent",
+        "entry_function": "build_draft",
+        "safe_methods": [
+            "Sablonlanmis taslak metin",
+            "Hadlock IV ile EFW kestirimi (rapor amacli)",
+            "+/- 2SD disindaki olcumlere DIKKAT etiketi",
+        ],
+        "blocked_methods": [
+            "Klinik tani veya 'normal/anormal' yargisi",
+            "Otomatik hasta dosyasina yazma",
+            "NAS USG goruntusunu silme/tasima",
+        ],
+        "doctor_actions": [
+            "Taslagi ekrandan duzeltir",
+            "Imzalayip hasta dosyasina yazar",
+        ],
+    },
+    {
+        "id": "geri_cagirma",
+        "name": "Hasta Geri Cagirma Ajani",
+        "short": "Kontrol/asi/postop hatirlatma kuyrugu olusturur; aylik mesaj limiti ve KVKK kontrolu uygular.",
+        "status": "ready_internal",
+        "risk": "medium",
+        "directions": ["YazKlinik hasta listesi -> WhatsApp/SMS kuyrugu"],
+        "module": "yazklinik_geri_cagirma_agent",
+        "entry_function": "bulk_schedule",
+        "safe_methods": [
+            "Sadece sablonlanmis hatirlatma metni (klinik bilgi YOK)",
+            "Aylik mesaj limiti (varsayilan 2)",
+            "Iletisim KVKK rizasi olmayan hastalari atlar",
+        ],
+        "blocked_methods": [
+            "Tani/sonuc/recete bilgisini WhatsApp ile gondermek",
+            "Blok listesindeki numaraya mesaj",
+        ],
+        "doctor_actions": [
+            "Sablon paketleri tanimlar",
+            "Toplu hatirlatma kuyrugunu onaylar",
+        ],
+    },
+    {
+        "id": "bk_sync_bekci",
+        "name": "BulutKlinik Sync Bekci Ajani",
+        "short": "OAuth/cookie/CDP saglik kontrolu; kopuk veya stale durumda doktora uyari verir.",
+        "status": "ready_internal",
+        "risk": "low",
+        "directions": ["YazKlinik ic gozlem"],
+        "module": "yazklinik_bk_sync_bekci_agent",
+        "entry_function": "check_status",
+        "safe_methods": [
+            "ok / stale / expired / unreachable / unknown durumlari",
+            "Onerilen aksiyon metni (token yenile, cookie tazele, CDP baglan)",
+            "Esik asarsa doktor sayfa et",
+        ],
+        "blocked_methods": [
+            "Otomatik sifre yenileme",
+            "Token saklamak (web layer state isi)",
+        ],
+        "doctor_actions": [
+            "/bulutklinik panelinde uyari banneri gorur",
+            "Onerilen aksiyonu uygular",
+        ],
+    },
+    {
+        "id": "nas_yedek_izleyici",
+        "name": "NAS Yedek Izleyici Ajani",
+        "short": "Asustor yedek dosyalarini periyodik kontrol eder; boyut/zaman/disk doluluk uyarilarini cikarir.",
+        "status": "ready_internal",
+        "risk": "low",
+        "directions": ["NAS read-only -> rapor"],
+        "module": "yazklinik_nas_yedek_izleyici_agent",
+        "entry_function": "check_health",
+        "safe_methods": [
+            "Sadece read; stat ve disk_usage cagrilari",
+            "Son yedek zaman, sayisi, medyan boyut sapmasi",
+            "Disk doluluk %85 warn / %95 critical",
+        ],
+        "blocked_methods": [
+            "Hicbir dosya silme/tasima",
+            "Hasta verisini ag uzerinden tasima",
+            "Otomatik yedek alma",
+        ],
+        "doctor_actions": [
+            "Critical uyarida elle yedek calistirir",
+            "Disk dolma uyarisinda arsivleme planlar",
+        ],
+    },
+    {
+        "id": "recete_hazirlayici",
+        "name": "Recete Hazirlayici Ajani",
+        "short": "Hasta gecmisi + doktor sablonlarindan recete TASLAGI; alerji/etkilesim uyarilar.",
+        "status": "ready_internal",
+        "risk": "high",
+        "directions": ["Hasta dosyasi -> recete taslak"],
+        "module": "yazklinik_recete_hazirlayici_agent",
+        "entry_function": "build_draft",
+        "safe_methods": [
+            "Son 90 gun ilac deseninden oneri",
+            "Alerji ile eslesen ilaclari otomatik eler",
+            "Etkilesim ipuclarini DIKKAT etiketiyle gosterir",
+        ],
+        "blocked_methods": [
+            "Otomatik imza/e-Recete gonderimi",
+            "Tani veya doz onerisi",
+            "Alerji listesi olmayan hasta icin oneri",
+        ],
+        "doctor_actions": [
+            "Taslagi inceler, dozaj/sure yazar, imzalar",
+        ],
+    },
+    {
+        "id": "gunluk_ozet",
+        "name": "Gunluk Klinik Ozet Ajani",
+        "short": "Gun sonunda hasta trafigi, ciro, bekleyen onay ve yarinki program ozetini hazirlar.",
+        "status": "ready_internal",
+        "risk": "low",
+        "directions": ["YazKlinik ic veri -> WhatsApp/e-posta metni"],
+        "module": "yazklinik_gunluk_ozet_agent",
+        "entry_function": "build_summary",
+        "safe_methods": [
+            "Sadece sayilar ve insiyaller (PII yok)",
+            "Kisa (WhatsApp <320 char) ve uzun metin",
+            "Dunle karsilastirma yuzdesi",
+        ],
+        "blocked_methods": [
+            "Hasta tam adi veya tani metni paylasimi",
+            "SGK fatura beyani",
+        ],
+        "doctor_actions": [
+            "Gunluk ozeti inceler, WhatsApp'a iletir",
+        ],
+    },
+    {
+        "id": "mojibake_bekci",
+        "name": "Mojibake Bekci Ajani (DETECT-ONLY)",
+        "short": "Cift encode kaynakli karakter bozulmalarini tespit eder; OTOMATIK DUZELTME YAPMAZ.",
+        "status": "ready_internal",
+        "risk": "low",
+        "directions": ["Repo read-only -> rapor"],
+        "module": "yazklinik_mojibake_bekci_agent",
+        "entry_function": "scan_tree",
+        "safe_methods": [
+            "Klasoru gezer, UTF-8 okur, mojibake desen sayar",
+            "Yogunluk esikleriyle warn/critical isaretler",
+            "Dosya icerigine asla yazmaz",
+        ],
+        "blocked_methods": [
+            "Otomatik decode/recode",
+            "Toplu dosya yeniden yazma",
+            "Pre-commit hook'u kendi kendine kurma",
+        ],
+        "doctor_actions": [
+            "Rapora bakar, gerekirse el ile duzeltir veya Codex'e tasitir",
+        ],
+    },
+    {
+        "id": "pr_reviewer",
+        "name": "PR Reviewer Ajani",
+        "short": "Diff'i sablon kurallarina karsi tarar (v68 dokunmasi, hasta DELETE, NAS unlink, mojibake, mass format).",
+        "status": "ready_internal",
+        "risk": "low",
+        "directions": ["Git diff metni -> rapor"],
+        "module": "yazklinik_pr_reviewer_agent",
+        "entry_function": "review_diff",
+        "safe_methods": [
+            "Diff metnini parse eder",
+            "Blocker / warn / info seviyeleri",
+            "Yorum birakmaz, sadece kullaniciya rapor verir",
+        ],
+        "blocked_methods": [
+            "PR'i otomatik approve/reject",
+            "GitHub'a yorum push",
+            "Yerel branch'e degisiklik commit",
+        ],
+        "doctor_actions": [
+            "Rapora bakar, blocker varsa PR'i reddeder",
+            "Warn'lari Codex'e tasitir",
         ],
     },
 ]
