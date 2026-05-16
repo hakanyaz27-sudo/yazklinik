@@ -18,6 +18,7 @@ from __future__ import annotations
 import sys, io, os, csv, sqlite3, datetime, argparse, re
 
 DB_PATH = r"D:\YazKlinik_Final_D300\local_db\yazklinik_v68.sqlite3"
+LAST_MIRROR_STATS = None
 
 
 def _safe_print(*args, **kwargs):
@@ -641,6 +642,18 @@ def run_import(since_days: int, dry_run: bool,
     total_pay = con.execute("SELECT COUNT(*) FROM bk_payments").fetchone()[0]
     con.close()
 
+    # BK kaydi Voluson/YazKlinik DB tarafinda mutlaka gorunsun.
+    # Bu adim DB-only calisir; NAS klasoru olusturmaz.
+    global LAST_MIRROR_STATS
+    LAST_MIRROR_STATS = None
+    try:
+        import yazklinik_bk_voluson_mirror as _bkm
+        LAST_MIRROR_STATS = _bkm.mirror_bk_patients(
+            db_path=DB_PATH, dry_run=False, user="bk-import")
+    except Exception as ex:
+        _safe_print(f"  [HATA] BK -> Voluson DB mirror: {ex}")
+        return 7
+
     _safe_print(f"\n=== TAMAM ===")
     _safe_print(f"  Hasta: +{pat_ins} yeni, {pat_upd} guncellenen "
           f"(bk_patients toplam: {total_p})")
@@ -649,6 +662,11 @@ def run_import(since_days: int, dry_run: bool,
     _safe_print(f"  Obstetri index: {total_obs} hasta, "
           f"visits detay: {total_ov}")
     _safe_print(f"  Tahsilat (bk_payments): {total_pay} kayit")
+    if LAST_MIRROR_STATS:
+        _safe_print("  BK -> Voluson DB: "
+              f"+{LAST_MIRROR_STATS.get('created_patients', 0)} DB-only hasta, "
+              f"+{LAST_MIRROR_STATS.get('created_links', 0)} link, "
+              f"{LAST_MIRROR_STATS.get('auto_linked_existing', 0)} mevcut eslesme")
     return 0
 
 

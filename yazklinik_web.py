@@ -123748,7 +123748,9 @@ def bulutklinik_merkez_page():
         recent_html = '<div class="text-muted small">Hasta listesi yuklenemedi</div>'
 
     # Local DB istatistik (BulutKlinik'ten import edilen hasta + protokol)
-    bk_stats = {"patients": 0, "protocols": 0, "last_import": None}
+    bk_stats = {"patients": 0, "protocols": 0, "last_import": None,
+                "voluson_links": 0, "voluson_mirrors": 0,
+                "voluson_missing": 0}
     try:
         con = _alex_db_conn()
         try:
@@ -123759,6 +123761,16 @@ def bulutklinik_merkez_page():
             last = con.execute(
                 "SELECT MAX(imported_at) FROM bk_protocols").fetchone()[0]
             bk_stats["last_import"] = last
+            try:
+                bk_stats["voluson_links"] = con.execute(
+                    "SELECT COUNT(*) FROM bk_voluson_links").fetchone()[0]
+                bk_stats["voluson_mirrors"] = con.execute(
+                    "SELECT COUNT(*) FROM bk_voluson_links "
+                    "WHERE match_kind = 'bk_mirror'").fetchone()[0]
+                bk_stats["voluson_missing"] = max(
+                    int(bk_stats["patients"]) - int(bk_stats["voluson_links"]), 0)
+            except Exception:
+                pass
         except Exception:
             pass
         con.close()
@@ -123980,6 +123992,13 @@ def bulutklinik_merkez_page():
             <div class="text-muted small">Son import</div>
             <div class="fs-6">{sh(bk_stats['last_import'] or '-')}</div>
           </div>
+          <div>
+            <div class="text-muted small">Voluson DB bag</div>
+            <div class="fs-6">
+              <b>{bk_stats['voluson_links']}</b> bag /
+              <b>{bk_stats['voluson_mirrors']}</b> DB-only
+            </div>
+          </div>
         </div>
         <a href="/bk-hastalar" class="btn btn-sm btn-primary">
           <i class="bi bi-table"></i> Hasta Listesi (DB)
@@ -123987,6 +124006,12 @@ def bulutklinik_merkez_page():
         <a href="/bk-voluson-match" class="btn btn-sm btn-info">
           <i class="bi bi-link-45deg"></i> Voluson Eslestir
         </a>
+        <button class="btn btn-sm btn-success" onclick="ykBKMirrorVoluson()">
+          <i class="bi bi-database-check"></i> BK -> Voluson DB garanti
+        </button>
+        <span class="text-muted small ms-1">
+          Eksik: {bk_stats['voluson_missing']}
+        </span>
         <div class="mt-2">
           <span class="text-muted small">Import:</span>
           <button class="btn btn-sm btn-outline-secondary ms-1" onclick="ykBKImportRun('since')"
@@ -124252,11 +124277,44 @@ def bulutklinik_merkez_page():
         const d = await r.json();
         if (d.ok) {{
           const add_h = d.patients_added || 0, add_p = d.protocols_added || 0;
+          const m = d.mirror || {{}};
+          const mirrorTxt = m.ok ? (' Voluson DB: +' +
+            (m.created_patients||0) + ' DB-only hasta, ' +
+            (m.auto_linked_existing||0) + ' mevcut eslesme.') : '';
           st.innerHTML = '<span class="text-success">OK [' + d.mode + '] - +' +
             add_h + ' yeni hasta, +' + add_p + ' yeni protokol. ' +
             'Toplam: ' + d.patients_total + ' hasta / ' + d.protocols_total +
-            ' protokol. (sayfa 3 sn sonra yenilenir)</span>';
+            ' protokol.' + mirrorTxt + ' (sayfa 3 sn sonra yenilenir)</span>';
           setTimeout(() => location.reload(), 3500);
+        }} else {{
+          st.innerHTML = '<span class="text-danger">HATA: ' +
+            _esc(d.error||'?') + '</span>';
+        }}
+      }} catch(e) {{
+        st.innerHTML = '<span class="text-danger">' + _esc(e.message) + '</span>';
+      }}
+    }}
+
+    async function ykBKMirrorVoluson() {{
+      const st = document.getElementById('ykBKImportStatus');
+      if (!confirm('BulutKlinik DB hastalari Voluson/YazKlinik DB tarafina eklenecek. NAS klasoru olusturulmaz. Devam?')) return;
+      st.innerHTML = '<i class="spinner-border spinner-border-sm"></i> ' +
+        'BK hastalari Voluson DB tarafina tamamlaniyor...';
+      try {{
+        const r = await fetch('/api/bk-voluson/mirror-missing', {{
+          method:'POST', credentials:'same-origin',
+          headers: {{'Content-Type':'application/json'}},
+          body: JSON.stringify({{dry_run:false}})
+        }});
+        const d = await r.json();
+        if (d.ok) {{
+          st.innerHTML = '<span class="text-success">OK - +' +
+            (d.created_patients||0) + ' DB-only hasta, +' +
+            (d.created_links||0) + ' link, ' +
+            (d.auto_linked_existing||0) + ' mevcut Voluson hastasi baglandi. ' +
+            'Toplam link: ' + (d.links_total||0) +
+            '. (sayfa yenilenir)</span>';
+          setTimeout(() => location.reload(), 2500);
         }} else {{
           st.innerHTML = '<span class="text-danger">HATA: ' +
             _esc(d.error||'?') + '</span>';
@@ -125387,6 +125445,7 @@ def api_bk_hastalar_import_run():
         rc = _bimp.run_import(since_days=90, dry_run=False, mode=mode)
         if rc != 0:
             return jsonify({"ok": False, "error": f"import rc={rc}"}), 500
+        mirror_stats = getattr(_bimp, "LAST_MIRROR_STATS", None)
         con = _alex_db_conn()
         pt = con.execute("SELECT COUNT(*) FROM bk_patients").fetchone()[0]
         pr = con.execute("SELECT COUNT(*) FROM bk_protocols").fetchone()[0]
@@ -125394,7 +125453,8 @@ def api_bk_hastalar_import_run():
         return jsonify({"ok": True, "mode": mode,
                         "patients_total": pt, "protocols_total": pr,
                         "patients_added": pt - pt_before,
-                        "protocols_added": pr - pr_before})
+                        "protocols_added": pr - pr_before,
+                        "mirror": mirror_stats})
     except Exception as ex:
         return jsonify({"ok": False, "error": str(ex)}), 500
 
@@ -125611,6 +125671,9 @@ def bk_voluson_match_page():
       <div class="mb-3">
         <button id="vmBtnAutoAll" class="btn btn-success" onclick="vmAutoConfirmAll()">
           <i class="bi bi-magic"></i> Tum kesin eslesmeleri otomatik onayla
+        </button>
+        <button class="btn btn-warning" onclick="vmMirrorMissing()">
+          <i class="bi bi-database-check"></i> BK eksikleri Voluson DB'ye ekle
         </button>
         <button class="btn btn-outline-secondary" onclick="vmReload()">
           <i class="bi bi-arrow-clockwise"></i> Yenile</button>
@@ -125848,6 +125911,31 @@ def bk_voluson_match_page():
         }
       }
 
+      async function vmMirrorMissing() {
+        if (!confirm('Eksik BK hastalari Voluson/YazKlinik DB tarafina eklenecek. NAS klasoru olusturulmaz. Devam?')) return;
+        const st = document.getElementById('vmAutoStatus');
+        st.innerHTML = '<i class="spinner-border spinner-border-sm"></i> DB tamamlaniyor...';
+        try {
+          const r = await fetch('/api/bk-voluson/mirror-missing', {
+            method: 'POST', credentials: 'same-origin',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({dry_run:false})
+          });
+          const d = await r.json();
+          if (d.ok) {
+            st.innerHTML = '<span class="text-success">+' +
+              (d.created_patients||0) + ' DB-only hasta, +' +
+              (d.created_links||0) + ' link, ' +
+              (d.auto_linked_existing||0) + ' mevcut hasta baglandi.</span>';
+            vmReload();
+          } else {
+            st.innerHTML = '<span class="text-danger">HATA: ' + _vmEsc(d.error||'?') + '</span>';
+          }
+        } catch(e) {
+          st.innerHTML = '<span class="text-danger">' + _vmEsc(e.message) + '</span>';
+        }
+      }
+
       vmReload();
     </script>
     """
@@ -125865,6 +125953,35 @@ def api_bk_voluson_match_candidates():
     try:
         data = _bk_voluson_compute_candidates(days=days)
         return jsonify({"ok": True, **data})
+    except Exception as ex:
+        return jsonify({"ok": False, "error": str(ex)}), 500
+
+
+@app.route("/api/bk-voluson/mirror-missing", methods=["POST"])
+@login_required
+def api_bk_voluson_mirror_missing():
+    """Tum bk_patients kayitlarini Voluson/YazKlinik DB tarafinda garanti et.
+
+    NAS klasoru acmaz; eksik olanlari DB-only BK_* hasta olarak ekler,
+    mevcut kesin TC/ad-soyad eslesmelerini de linkler.
+    """
+    d = request.get_json(silent=True) or {}
+    dry_raw = d.get("dry_run", request.args.get("dry_run", "0"))
+    only_obstetric_raw = d.get("only_obstetric",
+                               request.args.get("only_obstetric", "0"))
+    dry_run = str(dry_raw).strip().lower() in ("1", "true", "yes", "on")
+    only_obstetric = str(only_obstetric_raw).strip().lower() in (
+        "1", "true", "yes", "on")
+    try:
+        import importlib
+        import yazklinik_bk_voluson_mirror as _bkm
+        importlib.reload(_bkm)
+        stats = _bkm.mirror_bk_patients(
+            db_path=_alex_db_path(),
+            dry_run=dry_run,
+            only_obstetric=only_obstetric,
+            user=str(session.get("user") or "web"))
+        return jsonify(stats)
     except Exception as ex:
         return jsonify({"ok": False, "error": str(ex)}), 500
 
