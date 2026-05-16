@@ -469,6 +469,515 @@ def _upsert_link(con: sqlite3.Connection, bk_no: str, folder_key: str,
     return not existed
 
 
+def _table_exists(con: sqlite3.Connection, table: str) -> bool:
+    return bool(con.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+        (table,)).fetchone())
+
+
+def _ensure_clinical_schema(con: sqlite3.Connection) -> None:
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS visits (
+            patient_folder_key TEXT NOT NULL,
+            visit_key TEXT NOT NULL,
+            full_path TEXT NOT NULL,
+            visit_date TEXT,
+            folder_mtime REAL,
+            file_count INTEGER DEFAULT 0,
+            image_count INTEGER DEFAULT 0,
+            video_count INTEGER DEFAULT 0,
+            pdf_count INTEGER DEFAULT 0,
+            latest_pdf_path TEXT,
+            first_seen_at TEXT,
+            last_synced_at TEXT,
+            archived_at TEXT,
+            archived_by TEXT,
+            archive_reason TEXT,
+            visit_type TEXT DEFAULT 'muayene',
+            examination TEXT,
+            control_note TEXT,
+            source TEXT,
+            notes TEXT,
+            created_at TEXT,
+            PRIMARY KEY(patient_folder_key, visit_key)
+        )
+    """)
+    visit_cols = _columns(con, "visits")
+    for col, ddl in (
+        ("visit_key", "ALTER TABLE visits ADD COLUMN visit_key TEXT"),
+        ("full_path", "ALTER TABLE visits ADD COLUMN full_path TEXT"),
+        ("visit_date", "ALTER TABLE visits ADD COLUMN visit_date TEXT"),
+        ("folder_mtime", "ALTER TABLE visits ADD COLUMN folder_mtime REAL"),
+        ("file_count", "ALTER TABLE visits ADD COLUMN file_count INTEGER DEFAULT 0"),
+        ("image_count", "ALTER TABLE visits ADD COLUMN image_count INTEGER DEFAULT 0"),
+        ("video_count", "ALTER TABLE visits ADD COLUMN video_count INTEGER DEFAULT 0"),
+        ("pdf_count", "ALTER TABLE visits ADD COLUMN pdf_count INTEGER DEFAULT 0"),
+        ("latest_pdf_path", "ALTER TABLE visits ADD COLUMN latest_pdf_path TEXT"),
+        ("first_seen_at", "ALTER TABLE visits ADD COLUMN first_seen_at TEXT"),
+        ("last_synced_at", "ALTER TABLE visits ADD COLUMN last_synced_at TEXT"),
+        ("archived_at", "ALTER TABLE visits ADD COLUMN archived_at TEXT"),
+        ("archived_by", "ALTER TABLE visits ADD COLUMN archived_by TEXT"),
+        ("archive_reason", "ALTER TABLE visits ADD COLUMN archive_reason TEXT"),
+        ("visit_type", "ALTER TABLE visits ADD COLUMN visit_type TEXT DEFAULT 'muayene'"),
+        ("examination", "ALTER TABLE visits ADD COLUMN examination TEXT"),
+        ("control_note", "ALTER TABLE visits ADD COLUMN control_note TEXT"),
+        ("source", "ALTER TABLE visits ADD COLUMN source TEXT"),
+        ("notes", "ALTER TABLE visits ADD COLUMN notes TEXT"),
+        ("created_at", "ALTER TABLE visits ADD COLUMN created_at TEXT"),
+    ):
+        if col not in visit_cols:
+            try:
+                con.execute(ddl)
+                visit_cols.add(col)
+            except Exception:
+                pass
+
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS visit_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_key TEXT NOT NULL,
+            visit_key TEXT NOT NULL,
+            note TEXT NOT NULL DEFAULT '',
+            updated_at TEXT NOT NULL,
+            UNIQUE(patient_key, visit_key)
+        )
+    """)
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS prescriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_key TEXT NOT NULL,
+            medications TEXT,
+            diagnosis TEXT,
+            notes TEXT,
+            created_by TEXT,
+            created_at TEXT,
+            template_id INTEGER,
+            template_name TEXT,
+            purpose TEXT,
+            patient_name TEXT,
+            protocol_no TEXT,
+            visit_key TEXT,
+            updated_at TEXT,
+            deleted_at TEXT,
+            deleted_by TEXT,
+            deleted_reason TEXT
+        )
+    """)
+    rx_cols = _columns(con, "prescriptions")
+    for col, ddl in (
+        ("template_name", "ALTER TABLE prescriptions ADD COLUMN template_name TEXT"),
+        ("purpose", "ALTER TABLE prescriptions ADD COLUMN purpose TEXT"),
+        ("patient_name", "ALTER TABLE prescriptions ADD COLUMN patient_name TEXT"),
+        ("protocol_no", "ALTER TABLE prescriptions ADD COLUMN protocol_no TEXT"),
+        ("visit_key", "ALTER TABLE prescriptions ADD COLUMN visit_key TEXT"),
+        ("updated_at", "ALTER TABLE prescriptions ADD COLUMN updated_at TEXT"),
+        ("deleted_at", "ALTER TABLE prescriptions ADD COLUMN deleted_at TEXT"),
+        ("deleted_by", "ALTER TABLE prescriptions ADD COLUMN deleted_by TEXT"),
+        ("deleted_reason", "ALTER TABLE prescriptions ADD COLUMN deleted_reason TEXT"),
+    ):
+        if col not in rx_cols:
+            try:
+                con.execute(ddl)
+                rx_cols.add(col)
+            except Exception:
+                pass
+    for ddl in (
+        "CREATE INDEX IF NOT EXISTS idx_bk_mirror_visits "
+        "ON visits(patient_folder_key, source, visit_date)",
+        "CREATE INDEX IF NOT EXISTS idx_bk_mirror_rx "
+        "ON prescriptions(patient_key, visit_key, protocol_no)",
+    ):
+        try:
+            con.execute(ddl)
+        except Exception:
+            pass
+
+
+def _row_dict(row) -> dict:
+    if not row:
+        return {}
+    if isinstance(row, sqlite3.Row):
+        return {k: row[k] for k in row.keys()}
+    return dict(row)
+
+
+def _text(value) -> str:
+    return str(value or "").strip()
+
+
+def _date_only(value: str) -> str:
+    raw = _text(value)
+    if not raw:
+        return ""
+    m = re.search(r"(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})", raw)
+    if m:
+        return f"{int(m.group(1)):04d}-{int(m.group(2)):02d}-{int(m.group(3)):02d}"
+    m = re.search(r"(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})", raw)
+    if m:
+        return f"{int(m.group(3)):04d}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"
+    return raw[:10]
+
+
+def _safe_visit_key(prefix: str, value: str) -> str:
+    raw = _slug(value, "KAYIT")
+    return f"BK_{prefix}_{raw}"[:180].rstrip("_")
+
+
+def _fetch_table_rows(con: sqlite3.Connection, table: str, where: str,
+                      params: tuple = (), order: str = "") -> list[dict]:
+    if not _table_exists(con, table):
+        return []
+    try:
+        sql = f"SELECT * FROM {table} {where} {order}"
+        return [_row_dict(r) for r in con.execute(sql, params).fetchall()]
+    except Exception:
+        return []
+
+
+def _append_section(lines: list[str], title: str, items: list[str]) -> None:
+    clean = [str(x).strip() for x in items if str(x or "").strip()]
+    if not clean:
+        return
+    if lines:
+        lines.append("")
+    lines.append(title)
+    lines.extend(f"- {x}" for x in clean)
+
+
+def _medical_for_protocol(con, protocol_no: str) -> dict:
+    rows = _fetch_table_rows(
+        con, "bk_medical_infos", "WHERE protokol_no=?",
+        (protocol_no,), "LIMIT 1")
+    return rows[0] if rows else {}
+
+
+def _gyn_for_protocol(con, protocol_no: str) -> list[dict]:
+    if not protocol_no:
+        return []
+    return _fetch_table_rows(
+        con, "bk_gynecology_resume", "WHERE protokol_no=?",
+        (protocol_no,), "ORDER BY COALESCE(tarih,'') DESC")
+
+
+def _services_for_protocol(con, protocol_no: str) -> list[dict]:
+    return _fetch_table_rows(
+        con, "bk_services", "WHERE protokol_no=?",
+        (protocol_no,), "ORDER BY COALESCE(islem_tarihi,'')")
+
+
+def _payments_for_protocol(con, protocol_no: str) -> list[dict]:
+    return _fetch_table_rows(
+        con, "bk_payments", "WHERE protokol_no=?",
+        (protocol_no,), "ORDER BY COALESCE(tarih,'')")
+
+
+def _obs_for_patient_date(con, bk_no: str, visit_date: str) -> list[dict]:
+    if not bk_no or not visit_date:
+        return []
+    return _fetch_table_rows(
+        con, "bk_obstetri_visits",
+        "WHERE bk_hasta_no=? AND substr(COALESCE(tarih,''),1,10)=?",
+        (bk_no, visit_date), "ORDER BY COALESCE(tarih,'')")
+
+
+def _gyn_track_for_patient_date(con, bk_no: str, visit_date: str) -> list[dict]:
+    if not bk_no or not visit_date:
+        return []
+    return _fetch_table_rows(
+        con, "bk_gynecology_tracking",
+        "WHERE bk_hasta_no=? AND substr(COALESCE(tarih,''),1,10)=?",
+        (bk_no, visit_date), "ORDER BY COALESCE(tarih,'')")
+
+
+def _build_protocol_note(con, protocol: dict, display_name: str) -> tuple[str, str, str]:
+    pno = _text(protocol.get("protokol_no"))
+    bk_no = _text(protocol.get("bk_hasta_no"))
+    visit_date = _date_only(protocol.get("protokol_tarihi"))
+    med = _medical_for_protocol(con, pno)
+    services = _services_for_protocol(con, pno)
+    payments = _payments_for_protocol(con, pno)
+    gyn_rows = _gyn_for_protocol(con, pno)
+    obs_rows = _obs_for_patient_date(con, bk_no, visit_date)
+    gyn_track = _gyn_track_for_patient_date(con, bk_no, visit_date)
+
+    lines = [
+        f"BulutKlinik protokol #{pno}",
+        f"Hasta: {display_name}",
+    ]
+    for label, value in (
+        ("Tarih", protocol.get("protokol_tarihi")),
+        ("Protokol tipi", protocol.get("protokol_tipi")),
+        ("Brans", protocol.get("brans")),
+        ("Doktor", protocol.get("doktor")),
+        ("Gelis nedeni", protocol.get("gelis_nedeni")),
+    ):
+        if _text(value):
+            lines.append(f"{label}: {_text(value)}")
+
+    _append_section(lines, "Medikal bilgiler", [
+        f"Hikaye: {_text(med.get('hikayesi'))}" if _text(med.get("hikayesi")) else "",
+        f"Sikayet: {_text(med.get('sikayeti'))}" if _text(med.get("sikayeti")) else "",
+        f"Bulgular: {_text(med.get('bulgular'))}" if _text(med.get("bulgular")) else "",
+        f"Uygulamalar: {_text(med.get('uygulamalar'))}" if _text(med.get("uygulamalar")) else "",
+        f"Oneriler: {_text(med.get('oneriler'))}" if _text(med.get("oneriler")) else "",
+        f"Tani kodlari: {_text(med.get('tani_kodlari'))}" if _text(med.get("tani_kodlari")) else "",
+        f"Notlar: {_text(med.get('notlar'))}" if _text(med.get("notlar")) else "",
+    ])
+
+    _append_section(lines, "Islenmis hizmetler", [
+        " | ".join(x for x in (
+            _text(s.get("islem_tarihi")),
+            _text(s.get("hizmet_adi")),
+            f"adet {_text(s.get('adet'))}" if _text(s.get("adet")) else "",
+            f"tahsilat {_text(s.get('tahsilat_tutari'))}" if _text(s.get("tahsilat_tutari")) else "",
+        ) if x)
+        for s in services[:40]
+    ])
+
+    _append_section(lines, "Jinekoloji", [
+        " | ".join(x for x in (
+            _text(g.get("tarih")),
+            f"Tani: {_text(g.get('tani'))}" if _text(g.get("tani")) else "",
+            f"Tedavi: {_text(g.get('tedavi_plani'))}" if _text(g.get("tedavi_plani")) else "",
+            f"Recete: {_text(g.get('recete'))}" if _text(g.get("recete")) else "",
+            f"Not: {_text(g.get('notlar'))}" if _text(g.get("notlar")) else "",
+        ) if x)
+        for g in gyn_rows[:20]
+    ])
+
+    _append_section(lines, "Obstetri takip", [
+        " | ".join(x for x in (
+            _text(o.get("tarih")),
+            f"USG {_text(o.get('usg_age'))}" if _text(o.get("usg_age")) else "",
+            f"EFW {_text(o.get('efw'))}" if _text(o.get("efw")) else "",
+            f"Amnion {_text(o.get('amnion'))}" if _text(o.get("amnion")) else "",
+            f"Plasenta {_text(o.get('plasenta'))}" if _text(o.get("plasenta")) else "",
+            f"Serviks {_text(o.get('serviks'))}" if _text(o.get("serviks")) else "",
+            f"Sikayet {_text(o.get('sikayet'))}" if _text(o.get("sikayet")) else "",
+        ) if x)
+        for o in obs_rows[:20]
+    ])
+
+    _append_section(lines, "Jinekoloji takip", [
+        " | ".join(x for x in (
+            _text(o.get("tarih")),
+            f"USG {_text(o.get('usg_age'))}" if _text(o.get("usg_age")) else "",
+            f"EFW {_text(o.get('efw'))}" if _text(o.get("efw")) else "",
+            f"Sikayet {_text(o.get('sikayet'))}" if _text(o.get("sikayet")) else "",
+        ) if x)
+        for o in gyn_track[:20]
+    ])
+
+    _append_section(lines, "Tahsilat", [
+        " | ".join(x for x in (
+            _text(p.get("tarih")),
+            f"{_text(p.get('odenen'))} {_text(p.get('cinsi'))}".strip(),
+        ) if x)
+        for p in payments[:20]
+    ])
+
+    control_items = []
+    if _text(med.get("oneriler")):
+        control_items.append(_text(med.get("oneriler")))
+    for g in gyn_rows:
+        if _text(g.get("tedavi_plani")):
+            control_items.append(_text(g.get("tedavi_plani")))
+        if _text(g.get("sonuc")):
+            control_items.append(_text(g.get("sonuc")))
+    control_note = "\n\n".join(dict.fromkeys(control_items))
+    diagnosis = _text(med.get("tani_kodlari")) or "; ".join(
+        _text(g.get("tani")) for g in gyn_rows if _text(g.get("tani")))
+    return "\n".join(lines), control_note, diagnosis
+
+
+def _upsert_bk_visit(con: sqlite3.Connection, patient_key: str, visit_key: str,
+                     full_path: str, visit_date: str, note: str,
+                     control_note: str, now: str) -> bool:
+    existed = bool(con.execute(
+        "SELECT 1 FROM visits WHERE patient_folder_key=? AND visit_key=?",
+        (patient_key, visit_key)).fetchone())
+    con.execute("""
+        INSERT INTO visits (
+            patient_folder_key, visit_key, full_path, visit_date, folder_mtime,
+            file_count, image_count, video_count, pdf_count, latest_pdf_path,
+            first_seen_at, last_synced_at, visit_type, examination,
+            control_note, source, notes, created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(patient_folder_key, visit_key) DO UPDATE SET
+            full_path=excluded.full_path,
+            visit_date=excluded.visit_date,
+            folder_mtime=excluded.folder_mtime,
+            last_synced_at=excluded.last_synced_at,
+            visit_type=excluded.visit_type,
+            examination=excluded.examination,
+            control_note=excluded.control_note,
+            source=excluded.source,
+            notes=excluded.notes
+    """, (
+        patient_key, visit_key, full_path, visit_date,
+        time.time(), 0, 0, 0, 0, None, now, now, "muayene",
+        note, control_note, "bulutklinik", note, now,
+    ))
+    con.execute("""
+        INSERT INTO visit_notes(patient_key, visit_key, note, updated_at)
+        VALUES (?,?,?,?)
+        ON CONFLICT(patient_key, visit_key) DO UPDATE SET
+            note=excluded.note, updated_at=excluded.updated_at
+    """, (patient_key, visit_key, note, now))
+    return not existed
+
+
+def _upsert_bk_prescription(con: sqlite3.Connection, patient_key: str,
+                            visit_key: str, protocol_no: str,
+                            display_name: str, diagnosis: str,
+                            medications: str, now: str) -> bool:
+    medications = _text(medications)
+    if not medications:
+        return False
+    template = "BulutKlinik Jinekoloji Recete"
+    existing = con.execute("""
+        SELECT id FROM prescriptions
+        WHERE patient_key=? AND visit_key=? AND protocol_no=?
+          AND COALESCE(template_name,'')=?
+          AND COALESCE(deleted_at,'')=''
+        LIMIT 1
+    """, (patient_key, visit_key, protocol_no, template)).fetchone()
+    if existing:
+        con.execute("""
+            UPDATE prescriptions
+            SET medications=?, diagnosis=?, notes=?, patient_name=?,
+                updated_at=?
+            WHERE id=?
+        """, (
+            medications, diagnosis, "BulutKlinik recete alanindan aktarildi.",
+            display_name, now, existing["id"],
+        ))
+        return False
+    con.execute("""
+        INSERT INTO prescriptions (
+            patient_key, medications, diagnosis, notes, created_by,
+            created_at, template_name, purpose, patient_name, protocol_no,
+            visit_key, updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+    """, (
+        patient_key, medications, diagnosis,
+        "BulutKlinik recete alanindan aktarildi.", "bulutklinik",
+        now, template, "bk-clinical-mirror", display_name,
+        protocol_no, visit_key, now,
+    ))
+    return True
+
+
+def _sync_bk_clinical_timeline(con: sqlite3.Connection, bk_no: str,
+                               patient_key: str, display_name: str,
+                               full_path: str, now: str) -> dict:
+    stats = {"visits": 0, "notes": 0, "prescriptions": 0}
+    if not bk_no:
+        return stats
+    _ensure_clinical_schema(con)
+    protocols = _fetch_table_rows(
+        con, "bk_protocols", "WHERE bk_hasta_no=?",
+        (bk_no,), "ORDER BY COALESCE(protokol_tarihi,'')")
+    protocol_ids = set()
+    for protocol in protocols:
+        pno = _text(protocol.get("protokol_no"))
+        if not pno:
+            continue
+        protocol_ids.add(pno)
+        visit_key = _safe_visit_key("PROTOKOL", pno)
+        visit_date = _date_only(protocol.get("protokol_tarihi")) or now[:10]
+        visit_path = os.path.join(full_path or _virtual_path(patient_key), visit_key)
+        note, control_note, diagnosis = _build_protocol_note(
+            con, protocol, display_name)
+        if _upsert_bk_visit(con, patient_key, visit_key, visit_path,
+                            visit_date, note, control_note, now):
+            stats["visits"] += 1
+        stats["notes"] += 1
+        for gyn in _gyn_for_protocol(con, pno):
+            if _upsert_bk_prescription(
+                    con, patient_key, visit_key, pno, display_name,
+                    diagnosis or _text(gyn.get("tani")),
+                    _text(gyn.get("recete")), now):
+                stats["prescriptions"] += 1
+
+    gyn_rows = _fetch_table_rows(
+        con, "bk_gynecology_resume", "WHERE bk_hasta_no=?",
+        (bk_no,), "ORDER BY COALESCE(tarih,''), COALESCE(resume_no,'')")
+    for gyn in gyn_rows:
+        pno = _text(gyn.get("protokol_no"))
+        if pno and pno in protocol_ids:
+            continue
+        raw_key = _text(gyn.get("row_hash")) or _text(gyn.get("resume_no"))
+        if not raw_key:
+            continue
+        visit_key = _safe_visit_key("GYN", raw_key[:16])
+        visit_date = _date_only(gyn.get("tarih")) or now[:10]
+        lines = [f"BulutKlinik jinekoloji kaydi {raw_key[:12]}",
+                 f"Hasta: {display_name}"]
+        _append_section(lines, "Jinekoloji", [
+            f"Tarih: {_text(gyn.get('tarih'))}" if _text(gyn.get("tarih")) else "",
+            f"SAT: {_text(gyn.get('son_adet_tarihi'))}" if _text(gyn.get("son_adet_tarihi")) else "",
+            f"Sikayet/oyku: {_text(gyn.get('sikayet_oyku'))}" if _text(gyn.get("sikayet_oyku")) else "",
+            f"Bulgular: {_text(gyn.get('bulgular'))}" if _text(gyn.get("bulgular")) else "",
+            f"Tani: {_text(gyn.get('tani'))}" if _text(gyn.get("tani")) else "",
+            f"Tedavi: {_text(gyn.get('tedavi_plani'))}" if _text(gyn.get("tedavi_plani")) else "",
+            f"Recete: {_text(gyn.get('recete'))}" if _text(gyn.get("recete")) else "",
+            f"Sonuc: {_text(gyn.get('sonuc'))}" if _text(gyn.get("sonuc")) else "",
+            f"Not: {_text(gyn.get('notlar'))}" if _text(gyn.get("notlar")) else "",
+        ])
+        note = "\n".join(lines)
+        control_note = "\n\n".join(x for x in (
+            _text(gyn.get("tedavi_plani")), _text(gyn.get("sonuc"))
+        ) if x)
+        visit_path = os.path.join(full_path or _virtual_path(patient_key), visit_key)
+        if _upsert_bk_visit(con, patient_key, visit_key, visit_path,
+                            visit_date, note, control_note, now):
+            stats["visits"] += 1
+        stats["notes"] += 1
+        if _upsert_bk_prescription(
+                con, patient_key, visit_key, pno or raw_key[:16],
+                display_name, _text(gyn.get("tani")),
+                _text(gyn.get("recete")), now):
+            stats["prescriptions"] += 1
+
+    for table, prefix, title in (
+        ("bk_obstetri_visits", "OBS", "BulutKlinik obstetri takip"),
+        ("bk_gynecology_tracking", "GYN_TAKIP", "BulutKlinik jinekoloji takip"),
+    ):
+        rows = _fetch_table_rows(
+            con, table, "WHERE bk_hasta_no=?",
+            (bk_no,), "ORDER BY COALESCE(tarih,''), COALESCE(takip_no,'')")
+        for item in rows:
+            raw_key = _text(item.get("row_hash")) or _text(item.get("takip_no"))
+            if not raw_key:
+                continue
+            visit_key = _safe_visit_key(prefix, raw_key[:16])
+            visit_date = _date_only(item.get("tarih")) or now[:10]
+            lines = [f"{title} {raw_key[:12]}", f"Hasta: {display_name}"]
+            _append_section(lines, "Takip", [
+                f"Tarih: {_text(item.get('tarih'))}" if _text(item.get("tarih")) else "",
+                f"Takip no: {_text(item.get('takip_no'))}" if _text(item.get("takip_no")) else "",
+                f"USG age: {_text(item.get('usg_age'))}" if _text(item.get("usg_age")) else "",
+                f"EFW: {_text(item.get('efw'))}" if _text(item.get("efw")) else "",
+                f"Amnion: {_text(item.get('amnion'))}" if _text(item.get("amnion")) else "",
+                f"Plasenta: {_text(item.get('plasenta'))}" if _text(item.get("plasenta")) else "",
+                f"Serviks: {_text(item.get('serviks'))}" if _text(item.get("serviks")) else "",
+                f"Hb/Hct/Plt: {_text(item.get('hb'))} / {_text(item.get('hct'))} / {_text(item.get('plt'))}".strip(" /") if (_text(item.get("hb")) or _text(item.get("hct")) or _text(item.get("plt"))) else "",
+                f"Kilo: {_text(item.get('kilo'))}" if _text(item.get("kilo")) else "",
+                f"TA: {_text(item.get('ta'))}" if _text(item.get("ta")) else "",
+                f"Sikayet: {_text(item.get('sikayet'))}" if _text(item.get("sikayet")) else "",
+                f"Diger: {_text(item.get('diger'))}" if _text(item.get("diger")) else "",
+            ])
+            note = "\n".join(lines)
+            visit_path = os.path.join(
+                full_path or _virtual_path(patient_key), visit_key)
+            if _upsert_bk_visit(con, patient_key, visit_key, visit_path,
+                                visit_date, note, "", now):
+                stats["visits"] += 1
+            stats["notes"] += 1
+    return stats
+
+
 def mirror_bk_patients(db_path: str | None = None, dry_run: bool = False,
                        only_obstetric: bool = False,
                        limit: int | None = None,
@@ -519,6 +1028,9 @@ def mirror_bk_patients(db_path: str | None = None, dry_run: bool = False,
             "repaired_links": 0,
             "updated_demographics": 0,
             "updated_patient_type": 0,
+            "clinical_visits": 0,
+            "clinical_notes": 0,
+            "clinical_prescriptions": 0,
             "mirror_root": _mirror_root(virtual_root),
         }
         for row in rows:
@@ -542,6 +1054,11 @@ def mirror_bk_patients(db_path: str | None = None, dry_run: bool = False,
                                          is_obstetric)
                     stats["updated_demographics"] += 1
                     stats["updated_patient_type"] += 1
+                    clinical = _sync_bk_clinical_timeline(
+                        con, bk_no, linked_fk, display, full_path, now)
+                    stats["clinical_visits"] += clinical["visits"]
+                    stats["clinical_notes"] += clinical["notes"]
+                    stats["clinical_prescriptions"] += clinical["prescriptions"]
                 continue
 
             target_fk = ""
@@ -571,6 +1088,11 @@ def mirror_bk_patients(db_path: str | None = None, dry_run: bool = False,
                                          is_obstetric)
                     stats["updated_demographics"] += 1
                     stats["updated_patient_type"] += 1
+                    clinical = _sync_bk_clinical_timeline(
+                        con, bk_no, target_fk, display, full_path, now)
+                    stats["clinical_visits"] += clinical["visits"]
+                    stats["clinical_notes"] += clinical["notes"]
+                    stats["clinical_prescriptions"] += clinical["prescriptions"]
                 else:
                     stats["created_links"] += 1
                 continue
@@ -592,6 +1114,11 @@ def mirror_bk_patients(db_path: str | None = None, dry_run: bool = False,
                                      is_obstetric)
                 stats["updated_demographics"] += 1
                 stats["updated_patient_type"] += 1
+                clinical = _sync_bk_clinical_timeline(
+                    con, bk_no, folder_key, display, full_path, now)
+                stats["clinical_visits"] += clinical["visits"]
+                stats["clinical_notes"] += clinical["notes"]
+                stats["clinical_prescriptions"] += clinical["prescriptions"]
             else:
                 if not _patient_exists(con, folder_key):
                     stats["created_patients"] += 1

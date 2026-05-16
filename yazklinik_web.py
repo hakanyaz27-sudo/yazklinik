@@ -123906,7 +123906,8 @@ def bulutklinik_merkez_page():
     # Local DB istatistik (BulutKlinik'ten import edilen hasta + protokol)
     bk_stats = {"patients": 0, "protocols": 0, "last_import": None,
                 "voluson_links": 0, "voluson_mirrors": 0,
-                "voluson_missing": 0}
+                "voluson_missing": 0, "clinical_visits": 0,
+                "clinical_rx": 0}
     try:
         con = _alex_db_conn()
         try:
@@ -123925,6 +123926,14 @@ def bulutklinik_merkez_page():
                     "WHERE match_kind = 'bk_mirror'").fetchone()[0]
                 bk_stats["voluson_missing"] = max(
                     int(bk_stats["patients"]) - int(bk_stats["voluson_links"]), 0)
+                bk_stats["clinical_visits"] = con.execute(
+                    "SELECT COUNT(*) FROM visits WHERE source='bulutklinik'"
+                ).fetchone()[0]
+                bk_stats["clinical_rx"] = con.execute(
+                    "SELECT COUNT(*) FROM prescriptions "
+                    "WHERE purpose='bk-clinical-mirror' "
+                    "AND COALESCE(deleted_at,'')=''"
+                ).fetchone()[0]
             except Exception:
                 pass
         except Exception:
@@ -124132,8 +124141,9 @@ def bulutklinik_merkez_page():
         <h4><i class="bi bi-hdd-stack"></i> Local Database (BulutKlinik kopyasi)
           <span class="badge bg-info text-dark">offline okunur</span></h4>
         <p class="text-muted small">
-          Cekilmis hasta ve protokoller burada saklaniyor (bk_patients +
-          bk_protocols). Cookie/internet yokken bile sorgulanabilir.
+          Cekilmis hasta, protokol, medikal bilgi, hizmet, randevu,
+          obstetri/jinekoloji takipleri ve receteler burada saklaniyor.
+          Cookie/internet yokken bile Voluson hasta dosyasindan okunabilir.
         </p>
         <div class="d-flex gap-4 mb-3 flex-wrap">
           <div>
@@ -124155,6 +124165,13 @@ def bulutklinik_merkez_page():
               <b>{bk_stats['voluson_mirrors']}</b> DB-only
             </div>
           </div>
+          <div>
+            <div class="text-muted small">BK klinik akis</div>
+            <div class="fs-6">
+              <b>{bk_stats['clinical_visits']}</b> gelis /
+              <b>{bk_stats['clinical_rx']}</b> recete
+            </div>
+          </div>
         </div>
         <a href="/bk-hastalar" class="btn btn-sm btn-primary">
           <i class="bi bi-table"></i> Hasta Listesi (DB)
@@ -124163,7 +124180,7 @@ def bulutklinik_merkez_page():
           <i class="bi bi-link-45deg"></i> Voluson Eslestir
         </a>
         <button class="btn btn-sm btn-success" onclick="ykBKMirrorVoluson()">
-          <i class="bi bi-database-check"></i> BK -> Voluson DB garanti
+          <i class="bi bi-database-check"></i> BK -> Voluson klinik akis
         </button>
         <span class="text-muted small ms-1">
           Eksik: {bk_stats['voluson_missing']}
@@ -124436,7 +124453,9 @@ def bulutklinik_merkez_page():
           const m = d.mirror || {{}};
           const mirrorTxt = m.ok ? (' Voluson DB: +' +
             (m.created_patients||0) + ' DB-only hasta, ' +
-            (m.auto_linked_existing||0) + ' mevcut eslesme.') : '';
+            (m.auto_linked_existing||0) + ' mevcut eslesme, ' +
+            (m.clinical_notes||0) + ' klinik not, ' +
+            (m.clinical_prescriptions||0) + ' recete.') : '';
           st.innerHTML = '<span class="text-success">OK [' + d.mode + '] - +' +
             add_h + ' yeni hasta, +' + add_p + ' yeni protokol. ' +
             'Toplam: ' + d.patients_total + ' hasta / ' + d.protocols_total +
@@ -124453,9 +124472,9 @@ def bulutklinik_merkez_page():
 
     async function ykBKMirrorVoluson() {{
       const st = document.getElementById('ykBKImportStatus');
-      if (!confirm('BulutKlinik DB hastalari Voluson/YazKlinik DB tarafina eklenecek. NAS klasoru olusturulmaz. Devam?')) return;
+      if (!confirm('BulutKlinik hastalari, gelisleri, medikal notlari, hizmetleri ve receteleri Voluson/YazKlinik DB tarafina aktarilacak. NAS klasoru olusturulmaz. Devam?')) return;
       st.innerHTML = '<i class="spinner-border spinner-border-sm"></i> ' +
-        'BK hastalari Voluson DB tarafina tamamlaniyor...';
+        'BK klinik akisi Voluson DB tarafina tamamlaniyor...';
       try {{
         const r = await fetch('/api/bk-voluson/mirror-missing', {{
           method:'POST', credentials:'same-origin',
@@ -124468,6 +124487,8 @@ def bulutklinik_merkez_page():
             (d.created_patients||0) + ' DB-only hasta, +' +
             (d.created_links||0) + ' link, ' +
             (d.auto_linked_existing||0) + ' mevcut Voluson hastasi baglandi. ' +
+            (d.clinical_notes||0) + ' klinik not, ' +
+            (d.clinical_prescriptions||0) + ' recete islendi. ' +
             'Toplam link: ' + (d.links_total||0) +
             '. (sayfa yenilenir)</span>';
           setTimeout(() => location.reload(), 2500);

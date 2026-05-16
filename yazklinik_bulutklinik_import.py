@@ -15,7 +15,7 @@ Kullanim:
   python yazklinik_bulutklinik_import.py --since 90 --dry-run
 """
 from __future__ import annotations
-import sys, io, os, csv, sqlite3, datetime, argparse, re
+import sys, io, os, csv, sqlite3, datetime, argparse, re, json, hashlib, unicodedata
 
 DB_PATH = r"D:\YazKlinik_Final_D300\local_db\yazklinik_v68.sqlite3"
 LAST_MIRROR_STATS = None
@@ -137,6 +137,108 @@ CREATE TABLE IF NOT EXISTS bk_protocols (
 );
 CREATE INDEX IF NOT EXISTS idx_bk_protocols_hasta ON bk_protocols(bk_hasta_no);
 CREATE INDEX IF NOT EXISTS idx_bk_protocols_tarih ON bk_protocols(protokol_tarihi);
+
+CREATE TABLE IF NOT EXISTS bk_medical_infos (
+    protokol_no       TEXT PRIMARY KEY,
+    bk_hasta_no       TEXT,
+    hasta_tc          TEXT,
+    hasta_ad          TEXT,
+    hasta_soyad       TEXT,
+    protokol_tarihi   TEXT,
+    hikayesi          TEXT,
+    sikayeti          TEXT,
+    ozgecmis          TEXT,
+    soygecmis         TEXT,
+    bulgular          TEXT,
+    uygulamalar       TEXT,
+    oneriler          TEXT,
+    notlar            TEXT,
+    tani_kodlari      TEXT,
+    imported_at       TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_bk_medical_hasta ON bk_medical_infos(bk_hasta_no);
+
+CREATE TABLE IF NOT EXISTS bk_services (
+    row_hash          TEXT PRIMARY KEY,
+    protokol_no       TEXT,
+    bk_hasta_no       TEXT,
+    hizmet_no         TEXT,
+    hasta_ad          TEXT,
+    islem_tarihi      TEXT,
+    hizmet_adi        TEXT,
+    grup_adi          TEXT,
+    adet              TEXT,
+    hasta_tutari      TEXT,
+    kurum_tutari      TEXT,
+    indirim_tutari    TEXT,
+    tahsilat_tutari   TEXT,
+    imported_at       TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_bk_services_protokol ON bk_services(protokol_no);
+CREATE INDEX IF NOT EXISTS idx_bk_services_hasta ON bk_services(bk_hasta_no);
+
+CREATE TABLE IF NOT EXISTS bk_appointments (
+    row_hash          TEXT PRIMARY KEY,
+    bk_hasta_no       TEXT,
+    hasta_ad          TEXT,
+    hasta_soyad       TEXT,
+    telefon           TEXT,
+    baslangic         TEXT,
+    bitis             TEXT,
+    randevu_tipi      TEXT,
+    baslik            TEXT,
+    not_text          TEXT,
+    durum             TEXT,
+    doktor            TEXT,
+    kaynak            TEXT,
+    imported_at       TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_bk_appointments_hasta ON bk_appointments(bk_hasta_no);
+
+CREATE TABLE IF NOT EXISTS bk_gynecology_resume (
+    row_hash          TEXT PRIMARY KEY,
+    bk_hasta_no       TEXT,
+    protokol_no       TEXT,
+    resume_no         TEXT,
+    tarih             TEXT,
+    son_adet_tarihi   TEXT,
+    sikayet_oyku      TEXT,
+    bulgular          TEXT,
+    notlar            TEXT,
+    tani              TEXT,
+    tedavi_plani      TEXT,
+    recete            TEXT,
+    sonuc             TEXT,
+    data_json         TEXT,
+    imported_at       TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_bk_gyn_resume_hasta ON bk_gynecology_resume(bk_hasta_no);
+CREATE INDEX IF NOT EXISTS idx_bk_gyn_resume_protokol ON bk_gynecology_resume(protokol_no);
+
+CREATE TABLE IF NOT EXISTS bk_gynecology_tracking (
+    row_hash          TEXT PRIMARY KEY,
+    bk_hasta_no       TEXT,
+    resume_no         TEXT,
+    takip_no          TEXT,
+    tarih             TEXT,
+    usg_age           TEXT,
+    efw               TEXT,
+    amnion            TEXT,
+    plasenta          TEXT,
+    serviks           TEXT,
+    hb                TEXT,
+    hct               TEXT,
+    mcv               TEXT,
+    plt               TEXT,
+    tit               TEXT,
+    diger             TEXT,
+    kilo              TEXT,
+    ta                TEXT,
+    sikayet           TEXT,
+    data_json         TEXT,
+    imported_at       TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_bk_gyn_tracking_hasta ON bk_gynecology_tracking(bk_hasta_no, tarih);
 """
 
 
@@ -175,6 +277,111 @@ def read_csv(path: str) -> tuple[list[str], list[list[str]]]:
     return rows[0], rows[1:]
 
 
+_TR_ASCII = str.maketrans({
+    "\u00c7": "C", "\u00e7": "c",
+    "\u011e": "G", "\u011f": "g",
+    "\u0130": "I", "\u0131": "i",
+    "\u00d6": "O", "\u00f6": "o",
+    "\u015e": "S", "\u015f": "s",
+    "\u00dc": "U", "\u00fc": "u",
+})
+
+
+def _norm_key(value) -> str:
+    text = str(value or "").translate(_TR_ASCII)
+    text = unicodedata.normalize("NFKD", text)
+    text = text.encode("ascii", "ignore").decode("ascii")
+    text = re.sub(r"[^a-zA-Z0-9]+", "_", text).strip("_").lower()
+    return text
+
+
+def _read_csv_dicts(path: str) -> list[dict]:
+    hdr, rows = read_csv(path)
+    keys = [_norm_key(h) for h in hdr]
+    out = []
+    for row in rows:
+        if len(row) < len(keys):
+            row = row + [""] * (len(keys) - len(row))
+        obj = {keys[i]: (row[i] if i < len(row) else "") for i in range(len(keys))}
+        if any(str(v or "").strip() for v in obj.values()):
+            out.append(obj)
+    return out
+
+
+def _pick(row: dict, *keys: str) -> str:
+    for key in keys:
+        val = row.get(_norm_key(key))
+        if val not in (None, ""):
+            return str(val).strip()
+    return ""
+
+
+def _hash_values(*parts) -> str:
+    src = "|".join(str(p or "") for p in parts)
+    return hashlib.md5(src.encode("utf-8", errors="replace")).hexdigest()
+
+
+def _protocol_patient_lookup(con: sqlite3.Connection) -> dict[str, str]:
+    try:
+        return {
+            str(r[0] or ""): str(r[1] or "")
+            for r in con.execute(
+                "SELECT protokol_no, bk_hasta_no FROM bk_protocols").fetchall()
+        }
+    except Exception:
+        return {}
+
+
+def _find_export_file(exports_dir: str, slug: str, ext: str) -> str | None:
+    if not exports_dir:
+        return None
+    root = os.path.abspath(exports_dir)
+    if not os.path.isdir(root):
+        return None
+    wanted = _norm_key(slug)
+    ext = "." + ext.lower().lstrip(".")
+    best = None
+    for name in os.listdir(root):
+        path = os.path.join(root, name)
+        if not os.path.isfile(path) or not name.lower().endswith(ext):
+            continue
+        norm = _norm_key(os.path.splitext(name)[0])
+        if norm == wanted or wanted in norm or norm in wanted:
+            best = path
+            break
+    if best:
+        return best
+    aliases = {
+        "hizmetler": ("islenmis_hizmetler", "hizmet"),
+        "tahsilatlar": ("tahsilat", "indirim"),
+        "medikal": ("medikal_bilgiler", "medikal"),
+        "obstetri": ("kadin_sagligi_obstetri", "obstetri"),
+        "jinekoloji": ("kadin_sagligi_jinekoloji", "jinekoloji"),
+        "randevular": ("randevu",),
+    }
+    for name in os.listdir(root):
+        path = os.path.join(root, name)
+        if not os.path.isfile(path) or not name.lower().endswith(ext):
+            continue
+        norm = _norm_key(os.path.splitext(name)[0])
+        if any(a in norm for a in aliases.get(wanted, ())):
+            return path
+    return None
+
+
+def _existing_exports_manifest(exports_dir: str) -> dict:
+    sys.path.insert(0, r"D:\YazKlinik_Final_D300")
+    import yazklinik_bulutklinik_cookie_client as bkc
+    out = {"ok": True, "files": {}}
+    for cid, (slug, _name, ext) in bkc.BulutklinikCookieClient.EXPORT_CATEGORIES.items():
+        path = _find_export_file(exports_dir, slug, ext)
+        if path:
+            out["files"][slug] = {"path": path, "size": os.path.getsize(path)}
+    if "hastalar" not in out["files"] or "protokoller" not in out["files"]:
+        return {"ok": False, "error": "exports-dir icinde hastalar/protokoller yok"}
+    return out
+
+
 def download_fresh(out_dir: str) -> dict:
     sys.path.insert(0, r"D:\YazKlinik_Final_D300")
     import yazklinik_bulutklinik_cookie_client as bkc
@@ -182,12 +389,13 @@ def download_fresh(out_dir: str) -> dict:
     if not cl or not cl.check_auth():
         return {"ok": False, "error": "Cookie yok / expired"}
     os.makedirs(out_dir, exist_ok=True)
-    # 4 dosya: Hastalar (0) + Protokoller (2) + Tahsilatlar (3) + Obstetri (6, xlsx)
+    # D300: tum klinik exportlar alinir. Hasta/protokol zorunlu;
+    # hizmet, medikal, randevu, obstetri, jinekoloji opsiyoneldir.
     out = {"ok": True, "files": {}}
-    for cid in (0, 2, 3, 6):
+    for cid in sorted(cl.EXPORT_CATEGORIES.keys()):
         r = cl.export_category(cid)
         if not r.get("ok"):
-            if cid in (3, 6):  # tahsilat + obstetri opsiyonel
+            if cid not in (0, 2):
                 _safe_print(f"  [UYARI] cid={cid} export fail: {r.get('error')}")
                 continue
             return {"ok": False, "error": f"export({cid}) fail: {r.get('error')}"}
@@ -368,6 +576,362 @@ def import_tahsilatlar_csv(con: sqlite3.Connection, path: str) -> int:
     return ins
 
 
+def import_medical_csv(con: sqlite3.Connection, path: str) -> int:
+    if not path or not os.path.exists(path):
+        return 0
+    rows = _read_csv_dicts(path)
+    lookup = _protocol_patient_lookup(con)
+    now_iso = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    count = 0
+    for row in rows:
+        pno = _pick(row, "protokol_no")
+        if not pno:
+            continue
+        bk_no = lookup.get(pno, "")
+        con.execute("""
+            INSERT INTO bk_medical_infos (
+              protokol_no, bk_hasta_no, hasta_tc, hasta_ad, hasta_soyad,
+              protokol_tarihi, hikayesi, sikayeti, ozgecmis, soygecmis,
+              bulgular, uygulamalar, oneriler, notlar, tani_kodlari,
+              imported_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(protokol_no) DO UPDATE SET
+              bk_hasta_no=excluded.bk_hasta_no,
+              hasta_tc=excluded.hasta_tc,
+              hasta_ad=excluded.hasta_ad,
+              hasta_soyad=excluded.hasta_soyad,
+              protokol_tarihi=excluded.protokol_tarihi,
+              hikayesi=excluded.hikayesi,
+              sikayeti=excluded.sikayeti,
+              ozgecmis=excluded.ozgecmis,
+              soygecmis=excluded.soygecmis,
+              bulgular=excluded.bulgular,
+              uygulamalar=excluded.uygulamalar,
+              oneriler=excluded.oneriler,
+              notlar=excluded.notlar,
+              tani_kodlari=excluded.tani_kodlari,
+              imported_at=excluded.imported_at
+        """, (
+            pno, bk_no, _pick(row, "hasta_kimlik_numarasi"),
+            _pick(row, "hasta_adi"), _pick(row, "hasta_soyadi"),
+            _pick(row, "protokol_tarihi"), _pick(row, "hikayesi"),
+            _pick(row, "sikayeti"), _pick(row, "ozgecmis"),
+            _pick(row, "soygecmis"), _pick(row, "bulgular"),
+            _pick(row, "uygulamalar"), _pick(row, "oneriler"),
+            _pick(row, "notlar"), _pick(row, "tani_kodlari"), now_iso,
+        ))
+        count += 1
+    con.commit()
+    return count
+
+
+def import_services_csv(con: sqlite3.Connection, path: str) -> int:
+    if not path or not os.path.exists(path):
+        return 0
+    rows = _read_csv_dicts(path)
+    lookup = _protocol_patient_lookup(con)
+    now_iso = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    count = 0
+    for row in rows:
+        pno = _pick(row, "protokol_no")
+        service_no = _pick(row, "hizmet_no")
+        service_name = _pick(row, "hizmet_adi")
+        service_date = _pick(row, "islem_tarihi")
+        if not (pno or service_no or service_name):
+            continue
+        row_hash = _hash_values(pno, service_no, service_name, service_date)
+        con.execute("""
+            INSERT INTO bk_services (
+              row_hash, protokol_no, bk_hasta_no, hizmet_no, hasta_ad,
+              islem_tarihi, hizmet_adi, grup_adi, adet, hasta_tutari,
+              kurum_tutari, indirim_tutari, tahsilat_tutari, imported_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(row_hash) DO UPDATE SET
+              bk_hasta_no=excluded.bk_hasta_no,
+              hasta_ad=excluded.hasta_ad,
+              islem_tarihi=excluded.islem_tarihi,
+              hizmet_adi=excluded.hizmet_adi,
+              grup_adi=excluded.grup_adi,
+              adet=excluded.adet,
+              hasta_tutari=excluded.hasta_tutari,
+              kurum_tutari=excluded.kurum_tutari,
+              indirim_tutari=excluded.indirim_tutari,
+              tahsilat_tutari=excluded.tahsilat_tutari,
+              imported_at=excluded.imported_at
+        """, (
+            row_hash, pno, lookup.get(pno, ""), service_no,
+            _pick(row, "hasta_adi"), service_date, service_name,
+            _pick(row, "grup_adi"), _pick(row, "adet"),
+            _pick(row, "hasta_tutari"), _pick(row, "kurum_tutari"),
+            _pick(row, "indirim_tutari"), _pick(row, "tahsilat_tutari"),
+            now_iso,
+        ))
+        count += 1
+    con.commit()
+    return count
+
+
+def import_appointments_csv(con: sqlite3.Connection, path: str) -> int:
+    if not path or not os.path.exists(path):
+        return 0
+    rows = _read_csv_dicts(path)
+    now_iso = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    count = 0
+    for row in rows:
+        bk_no = _pick(row, "hasta_no")
+        start = _pick(row, "randevu_baslangic")
+        title = _pick(row, "randevu_basligi")
+        if not (bk_no or start or title):
+            continue
+        row_hash = _hash_values(bk_no, start, _pick(row, "doktor_adi"), title)
+        con.execute("""
+            INSERT INTO bk_appointments (
+              row_hash, bk_hasta_no, hasta_ad, hasta_soyad, telefon,
+              baslangic, bitis, randevu_tipi, baslik, not_text, durum,
+              doktor, kaynak, imported_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(row_hash) DO UPDATE SET
+              hasta_ad=excluded.hasta_ad,
+              hasta_soyad=excluded.hasta_soyad,
+              telefon=excluded.telefon,
+              baslangic=excluded.baslangic,
+              bitis=excluded.bitis,
+              randevu_tipi=excluded.randevu_tipi,
+              baslik=excluded.baslik,
+              not_text=excluded.not_text,
+              durum=excluded.durum,
+              doktor=excluded.doktor,
+              kaynak=excluded.kaynak,
+              imported_at=excluded.imported_at
+        """, (
+            row_hash, bk_no, _pick(row, "hasta_adi"),
+            _pick(row, "hasta_soyadi"), _pick(row, "telefon_numarasi"),
+            start, _pick(row, "randevu_bitis"), _pick(row, "randevu_tipi"),
+            title, _pick(row, "randevu_notu"), _pick(row, "randevu_durumu"),
+            _pick(row, "doktor_adi"), _pick(row, "kaynak"), now_iso,
+        ))
+        count += 1
+    con.commit()
+    return count
+
+
+def _sheet_rows(path: str, preferred_sheet: str) -> tuple[list[str], list[tuple]]:
+    import openpyxl
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    try:
+        ws = wb[preferred_sheet] if preferred_sheet in wb.sheetnames else wb.active
+        rows = list(ws.iter_rows(values_only=True))
+    finally:
+        wb.close()
+    if not rows:
+        return [], []
+    hdr = [str(x or "").strip() for x in rows[0]]
+    return hdr, rows[1:]
+
+
+def _xlsx_row_dict(header: list[str], row: tuple) -> dict:
+    keys = [_norm_key(h) for h in header]
+    return {keys[i]: (row[i] if i < len(row) and row[i] is not None else "")
+            for i in range(len(keys))}
+
+
+def import_obstetri_tracking_xlsx(con: sqlite3.Connection, path: str) -> tuple[int, int]:
+    if not path or not os.path.exists(path):
+        return 0, 0
+    try:
+        hdr, rows = _sheet_rows(path, "Obstetri Tracking")
+    except ImportError:
+        _safe_print("  [SKIP] openpyxl yok, obstetri tracking atlandi")
+        return 0, 0
+    now_iso = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    agg = {}
+    detail = 0
+    for raw in rows:
+        row = _xlsx_row_dict(hdr, raw)
+        bk_no = _pick(row, "hasta_no")
+        if not bk_no:
+            continue
+        takip_no = _pick(row, "takip_numarasi")
+        tarih = _pick(row, "takip_tarihi", "tarih")
+        row_hash = _hash_values(bk_no, takip_no, tarih, _pick(row, "olusturulma_tarihi"))
+        vals = {
+            "usg_age": _pick(row, "usg_age"),
+            "efw": _pick(row, "efw"),
+            "amnion": _pick(row, "amnion"),
+            "plasenta": _pick(row, "plasenta"),
+            "serviks": _pick(row, "serviks"),
+            "hb": _pick(row, "hb"),
+            "hct": _pick(row, "hct"),
+            "mcv": _pick(row, "mcv"),
+            "plt": _pick(row, "plt"),
+            "tit": _pick(row, "tit"),
+            "diger": _pick(row, "diger"),
+            "kilo": _pick(row, "kilo"),
+            "ta": _pick(row, "ta"),
+            "sikayet": _pick(row, "sikayet"),
+            "olusturulma": _pick(row, "olusturulma_tarihi"),
+            "guncelleme": _pick(row, "guncelleme_tarihi"),
+        }
+        con.execute("""
+            INSERT INTO bk_obstetri_visits
+              (bk_hasta_no, takip_no, tarih, usg_age, efw, amnion, plasenta,
+               serviks, hb, hct, mcv, plt, tit, diger, kilo, ta, sikayet,
+               olusturulma, guncelleme, row_hash)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(row_hash) DO UPDATE SET
+              usg_age=excluded.usg_age, efw=excluded.efw,
+              amnion=excluded.amnion, plasenta=excluded.plasenta,
+              serviks=excluded.serviks, hb=excluded.hb, hct=excluded.hct,
+              mcv=excluded.mcv, plt=excluded.plt, tit=excluded.tit,
+              diger=excluded.diger, kilo=excluded.kilo, ta=excluded.ta,
+              sikayet=excluded.sikayet, guncelleme=excluded.guncelleme
+        """, (
+            bk_no, takip_no, tarih, vals["usg_age"], vals["efw"],
+            vals["amnion"], vals["plasenta"], vals["serviks"], vals["hb"],
+            vals["hct"], vals["mcv"], vals["plt"], vals["tit"],
+            vals["diger"], vals["kilo"], vals["ta"], vals["sikayet"],
+            vals["olusturulma"], vals["guncelleme"], row_hash,
+        ))
+        a = agg.setdefault(bk_no, {"count": 0, "first": "", "last": ""})
+        a["count"] += 1
+        if tarih:
+            if not a["first"] or tarih < a["first"]:
+                a["first"] = tarih
+            if not a["last"] or tarih > a["last"]:
+                a["last"] = tarih
+        detail += 1
+    inserted, updated = 0, 0
+    for bk_no, a in agg.items():
+        exists = con.execute(
+            "SELECT 1 FROM bk_obstetri_index WHERE bk_hasta_no=?",
+            (bk_no,)).fetchone()
+        con.execute("""
+            INSERT INTO bk_obstetri_index
+              (bk_hasta_no, visit_count, last_visit, first_visit, updated_at)
+            VALUES (?,?,?,?,?)
+            ON CONFLICT(bk_hasta_no) DO UPDATE SET
+              visit_count=excluded.visit_count,
+              last_visit=excluded.last_visit,
+              first_visit=excluded.first_visit,
+              updated_at=excluded.updated_at
+        """, (bk_no, a["count"], a["last"], a["first"], now_iso))
+        if exists:
+            updated += 1
+        else:
+            inserted += 1
+    con.commit()
+    _safe_print(f"  [obstetri-tracking] {detail} satir upsert")
+    return inserted, updated
+
+
+def import_gynecology_xlsx(con: sqlite3.Connection, path: str) -> tuple[int, int]:
+    if not path or not os.path.exists(path):
+        return 0, 0
+    try:
+        hdr, rows = _sheet_rows(path, "Gynecology Resume")
+        thdr, trows = _sheet_rows(path, "Gynecology Tracking")
+    except ImportError:
+        _safe_print("  [SKIP] openpyxl yok, jinekoloji import atlandi")
+        return 0, 0
+    now_iso = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    resume_count = 0
+    for raw in rows:
+        row = _xlsx_row_dict(hdr, raw)
+        bk_no = _pick(row, "hasta_no")
+        resume_no = _pick(row, "resume_no")
+        pno = _pick(row, "protokol_numarasi")
+        tarih = _pick(row, "tarih")
+        if not (bk_no or resume_no or pno):
+            continue
+        data_json = json.dumps(row, ensure_ascii=False, default=str,
+                               separators=(",", ":"))
+        row_hash = _hash_values(bk_no, pno, resume_no, tarih)
+        bulgular = "\n".join(
+            x for x in (
+                _pick(row, "spekulum"),
+                _pick(row, "uterus"),
+                _pick(row, "uterus_ve_adneks"),
+                _pick(row, "batin"),
+                _pick(row, "sag_over"),
+                _pick(row, "sol_over"),
+                _pick(row, "diger_bulgular"),
+                _pick(row, "diger_goruntuleme"),
+            ) if x)
+        con.execute("""
+            INSERT INTO bk_gynecology_resume (
+              row_hash, bk_hasta_no, protokol_no, resume_no, tarih,
+              son_adet_tarihi, sikayet_oyku, bulgular, notlar, tani,
+              tedavi_plani, recete, sonuc, data_json, imported_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(row_hash) DO UPDATE SET
+              tarih=excluded.tarih,
+              son_adet_tarihi=excluded.son_adet_tarihi,
+              sikayet_oyku=excluded.sikayet_oyku,
+              bulgular=excluded.bulgular,
+              notlar=excluded.notlar,
+              tani=excluded.tani,
+              tedavi_plani=excluded.tedavi_plani,
+              recete=excluded.recete,
+              sonuc=excluded.sonuc,
+              data_json=excluded.data_json,
+              imported_at=excluded.imported_at
+        """, (
+            row_hash, bk_no, pno, resume_no, tarih,
+            _pick(row, "son_adet_tarihi"), _pick(row, "sikayet_oyku"),
+            bulgular, _pick(row, "notlar"), _pick(row, "tani"),
+            _pick(row, "tedavi_plani"), _pick(row, "recete"),
+            _pick(row, "sonuc"), data_json, now_iso,
+        ))
+        resume_count += 1
+
+    tracking_count = 0
+    for raw in trows:
+        row = _xlsx_row_dict(thdr, raw)
+        bk_no = _pick(row, "hasta_no")
+        takip_no = _pick(row, "takip_numarasi")
+        tarih = _pick(row, "tarih")
+        if not (bk_no or takip_no or tarih):
+            continue
+        data_json = json.dumps(row, ensure_ascii=False, default=str,
+                               separators=(",", ":"))
+        row_hash = _hash_values(bk_no, _pick(row, "resume_no"), takip_no, tarih)
+        con.execute("""
+            INSERT INTO bk_gynecology_tracking (
+              row_hash, bk_hasta_no, resume_no, takip_no, tarih, usg_age,
+              efw, amnion, plasenta, serviks, hb, hct, mcv, plt, tit,
+              diger, kilo, ta, sikayet, data_json, imported_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ON CONFLICT(row_hash) DO UPDATE SET
+              tarih=excluded.tarih,
+              usg_age=excluded.usg_age,
+              efw=excluded.efw,
+              amnion=excluded.amnion,
+              plasenta=excluded.plasenta,
+              serviks=excluded.serviks,
+              hb=excluded.hb,
+              hct=excluded.hct,
+              mcv=excluded.mcv,
+              plt=excluded.plt,
+              tit=excluded.tit,
+              diger=excluded.diger,
+              kilo=excluded.kilo,
+              ta=excluded.ta,
+              sikayet=excluded.sikayet,
+              data_json=excluded.data_json,
+              imported_at=excluded.imported_at
+        """, (
+            row_hash, bk_no, _pick(row, "resume_no"), takip_no, tarih,
+            _pick(row, "usg_age"), _pick(row, "efw"), _pick(row, "amnion"),
+            _pick(row, "plasenta"), _pick(row, "serviks"), _pick(row, "hb"),
+            _pick(row, "hct"), _pick(row, "mcv"), _pick(row, "plt"),
+            _pick(row, "tit"), _pick(row, "diger"), _pick(row, "kilo", "kio"),
+            _pick(row, "ta"), _pick(row, "sikayet"), data_json, now_iso,
+        ))
+        tracking_count += 1
+    con.commit()
+    return resume_count, tracking_count
+
+
 def run_import(since_days: int, dry_run: bool,
                exports_dir: str | None = None,
                mode: str = "since"):
@@ -388,12 +952,15 @@ def run_import(since_days: int, dry_run: bool,
         _safe_print(f"  Mode: MISSING - sadece DB'de olmayan hastalar")
     _safe_print(f"  Dry run: {dry_run}")
 
-    # 1) Indir
+    # 1) Indir veya verilen export klasorunu oku
     if exports_dir is None:
         stamp = today.strftime("%Y%m%d_%H%M%S")
         exports_dir = rf"D:\YazKlinik_Final_D300\bk_exports\{stamp}_import"
-    _safe_print(f"\n[1/4] CSV indir -> {exports_dir}")
-    dl = download_fresh(exports_dir)
+        _safe_print(f"\n[1/4] CSV/XLSX indir -> {exports_dir}")
+        dl = download_fresh(exports_dir)
+    else:
+        _safe_print(f"\n[1/4] Mevcut CSV/XLSX oku -> {exports_dir}")
+        dl = _existing_exports_manifest(exports_dir)
     if not dl.get("ok"):
         _safe_print(f"  HATA: {dl.get('error')}")
         return 1
@@ -614,7 +1181,7 @@ def run_import(since_days: int, dry_run: bool,
     if obs_path and os.path.exists(obs_path):
         _safe_print(f"\n[5/6] Obstetri index + detail (xlsx)")
         try:
-            obs_ins, obs_upd = import_obstetri_xlsx(con, obs_path)
+            obs_ins, obs_upd = import_obstetri_tracking_xlsx(con, obs_path)
             _safe_print(f"  +{obs_ins} yeni gebe, {obs_upd} guncellenen")
         except Exception as ex:
             _safe_print(f"  [HATA] obstetri import: {ex}")
@@ -634,12 +1201,44 @@ def run_import(since_days: int, dry_run: bool,
     else:
         _safe_print(f"\n[6/6] Tahsilatlar csv yok, atlandi")
 
+    # D300 clinical export katmani: BK'daki gelis iceriği, hizmet,
+    # randevu ve jinekoloji recete/takip bilgileri Voluson tarafinda
+    # okunabilir hale gelsin diye yerel tablolara alinır.
+    med_count = svc_count = appt_count = gyn_resume_count = gyn_track_count = 0
+    med_path = dl["files"].get("medikal", {}).get("path") if dl.get("files") else None
+    svc_path = dl["files"].get("hizmetler", {}).get("path") if dl.get("files") else None
+    appt_path = dl["files"].get("randevular", {}).get("path") if dl.get("files") else None
+    gyn_path = dl["files"].get("jinekoloji", {}).get("path") if dl.get("files") else None
+    if med_path and os.path.exists(med_path):
+        try:
+            med_count = import_medical_csv(con, med_path)
+        except Exception as ex:
+            _safe_print(f"  [HATA] medikal import: {ex}")
+    if svc_path and os.path.exists(svc_path):
+        try:
+            svc_count = import_services_csv(con, svc_path)
+        except Exception as ex:
+            _safe_print(f"  [HATA] hizmet import: {ex}")
+    if appt_path and os.path.exists(appt_path):
+        try:
+            appt_count = import_appointments_csv(con, appt_path)
+        except Exception as ex:
+            _safe_print(f"  [HATA] randevu import: {ex}")
+    if gyn_path and os.path.exists(gyn_path):
+        try:
+            gyn_resume_count, gyn_track_count = import_gynecology_xlsx(con, gyn_path)
+        except Exception as ex:
+            _safe_print(f"  [HATA] jinekoloji import: {ex}")
+
     # Final count
     total_p = con.execute("SELECT COUNT(*) FROM bk_patients").fetchone()[0]
     total_pr = con.execute("SELECT COUNT(*) FROM bk_protocols").fetchone()[0]
     total_obs = con.execute("SELECT COUNT(*) FROM bk_obstetri_index").fetchone()[0]
     total_ov = con.execute("SELECT COUNT(*) FROM bk_obstetri_visits").fetchone()[0]
     total_pay = con.execute("SELECT COUNT(*) FROM bk_payments").fetchone()[0]
+    total_med = con.execute("SELECT COUNT(*) FROM bk_medical_infos").fetchone()[0]
+    total_svc = con.execute("SELECT COUNT(*) FROM bk_services").fetchone()[0]
+    total_gyn = con.execute("SELECT COUNT(*) FROM bk_gynecology_resume").fetchone()[0]
     con.close()
 
     # BK kaydi Voluson/YazKlinik DB tarafinda mutlaka gorunsun.
@@ -662,6 +1261,12 @@ def run_import(since_days: int, dry_run: bool,
     _safe_print(f"  Obstetri index: {total_obs} hasta, "
           f"visits detay: {total_ov}")
     _safe_print(f"  Tahsilat (bk_payments): {total_pay} kayit")
+    _safe_print(f"  Medikal/Hizmet/Jinekoloji: {total_med} / {total_svc} / {total_gyn} kayit")
+    if any((med_count, svc_count, appt_count, gyn_resume_count, gyn_track_count)):
+        _safe_print("  Bu importta klinik detay: "
+              f"medikal={med_count}, hizmet={svc_count}, "
+              f"randevu={appt_count}, gyn={gyn_resume_count}, "
+              f"gyn_takip={gyn_track_count}")
     if LAST_MIRROR_STATS:
         _safe_print("  BK -> Voluson DB: "
               f"+{LAST_MIRROR_STATS.get('created_patients', 0)} DB-only hasta, "
