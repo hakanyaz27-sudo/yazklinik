@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from typing import Iterable
 
 
-MANIFEST_VERSION = "2026.05.11-D250-CLEAN-ASUSTOR-LOCAL-DB"
+MANIFEST_VERSION = "2026.05.16-D300-CLIENT-DEVICE"
 
 SURFACES = ("web", "desktop_hybrid", "webshell")
 DESKTOP_MODES = ("shell", "hybrid", "mirror")
@@ -90,6 +90,7 @@ SIMPLE_ROUTINE_ROUTES = {
     "/yz-sihirbazi",
     "/yz-server-durum",
     "/hizmet-ajanlari",
+    "/terminal-cihaz-merkezi",
     "/entegrasyon/yz-telesekreter",
     "/entegrasyon-ajanlari",
     "/bulutklinik",
@@ -125,6 +126,7 @@ ADVANCED_EXPERT_ROUTES = {
     "/entegrasyon/ip-cihazlar",
     "/nas-senkronizasyon",
     "/whatsapp-ayarlari",
+    "/terminal-cihaz-merkezi",
     "/ozellik-senkron",
     "/sistem-durumu-ozet",
     "/ayarlar",
@@ -400,6 +402,7 @@ FEATURE_GROUPS = (
         _r("/randevu-onay", "Randevu Onay", "YZ randevu taleplerini onayla", "patient", "[RO]", simple=True),
     )),
     ("SISTEM", (
+        _r("/terminal-cihaz-merkezi", "Terminal/Cihaz", "Terminal, iPhone, Mac, medya ve WhatsApp istemci modu", "system", "bi bi-phone", simple=True, aliases=("terminal", "cihaz", "iphone", "mac", "whatsapp cihaz", "resim cihaz")),
         _r("/ozellik-senkron", "Hibrit/Web Senkron", "Ortak ozellik manifesti ve menu senkronizasyonu", "system", "[SYNC]", simple=True, aliases=("senkron", "sync")),
         _r("/sistem-durumu", "Sistem Durumu", "Server, YZ, DICOM ve depolama durumu", "system", "[D]", simple=True),
         _r("/sistem-durumu-ozet", "Sistem Ozet", "Terminal uyumlu sistem ozeti", "system", "[O]"),

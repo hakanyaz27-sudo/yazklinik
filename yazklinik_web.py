@@ -13935,6 +13935,7 @@ def _dicom_study_gallery_assets():
             var item=items[idx]; if(!item||!item.src)return;
             var jpgUrl='/yk-media-jpeg?src='+encodeURIComponent(item.src)+'&title='+encodeURIComponent(item.title||'DICOM');
             try{var w=window.open(jpgUrl,'_blank','noopener');if(w)return;}catch(e){}
+            if(!dicomIsWebShell()&&!dicomIsLocalHost()){window.location.href=jpgUrl;return;}
             var payload={src:item.src,title:item.title||'DICOM',profile:'photo',paper:'PHOTO_6X8'};
             fetch('/api/medya/jpeg-foto-yazdir-hazirla',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
               .then(function(r){return r.json().then(function(data){data.httpOk=r.ok;return data;});})
@@ -13948,6 +13949,10 @@ def _dicom_study_gallery_assets():
           function dicomPrintCurrent(){
             var item=items[idx]; if(!item||!item.src)return;
             var payload={src:item.src,title:item.title||'DICOM',profile:'photo',paper:'PHOTO_6X8'};
+            if(!dicomIsWebShell()&&!dicomIsLocalHost()){
+              window.location.href='/yk-print-media?kind=image&src='+encodeURIComponent(item.src)+'&title='+encodeURIComponent(item.title||'DICOM')+'&profile=photo&paper=PHOTO_6X8&autoprint=1';
+              return;
+            }
             fetch('/api/medya/jpeg-foto-yazdir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
               .then(function(r){return r.json().then(function(data){data.httpOk=r.ok;return data;});})
               .then(function(data){
@@ -33970,19 +33975,11 @@ return false;
  }).then(function(r) { return r.ok ? r.json() : null; })
  .then(function(data) {
  if (data && data.native_url && mediaOpenNativeUrl(data.native_url)) return;
- fetch('/api/medya/jpeg-foto-yazdir', {
- method: 'POST',
- headers: {'Content-Type': 'application/json'},
- body: JSON.stringify(payload),
- keepalive: true
- }).catch(function() {});
+ mediaToast('Yerel baski yardimcisi acilamadi; tarayici yazdirma sayfasi acilacak.', 'warn');
+ window.location.href = mediaPrintUrl({src: payload.src, printSrc: payload.src, title: payload.title});
  }).catch(function() {
- fetch('/api/medya/jpeg-foto-yazdir', {
- method: 'POST',
- headers: {'Content-Type': 'application/json'},
- body: JSON.stringify(payload),
- keepalive: true
- }).catch(function() {});
+ mediaToast('Yerel baski yardimcisi acilamadi; tarayici yazdirma sayfasi acilacak.', 'warn');
+ window.location.href = mediaPrintUrl({src: payload.src, printSrc: payload.src, title: payload.title});
  });
  return true;
  } catch (_) {
@@ -34005,6 +34002,9 @@ return false;
  mediaToast('Bu medya video deÄŸil. "Foto da AÃ§" butonunu kullan.', 'warn');
  return;
  }
+ mediaToast('Video bu cihazda yeni sekmede aciliyor.', 'ok');
+ ykMediaOpenRawImage(item);
+ return;
  const payload = { src: item.src, title: item.title || '' };
  mediaToast('Video server PC ekranÄ±nda Windows oynatÄ±cÄ±sÄ±nda aÃ§Ä±lÄ±yor (arkaplanda)...', 'ok');
  try {
@@ -34057,6 +34057,9 @@ return false;
  }
  return;
  }
+mediaToast('Resim bu cihazda/tarayicida aciliyor...', 'ok');
+ykMediaOpenRawImage(item);
+return;
 // 3) LAN/Tailscale tarayici: once server tarafindaki guvenli Foto
 // endpoint'ini dene. Endpoint uzak istemciyse 403 doner; o zaman ham resim
 // bu cihazda acilir. Boylece ayni PC'de LAN URL ile acilinca eski davranis
@@ -34106,6 +34109,9 @@ ykMediaOpenRawImage(item);
  } catch (_) {}
  return;
  }
+ mediaToast('Yazdirma bu cihazdaki tarayici yazdirma sayfasinda aciliyor.', 'ok');
+ window.location.href = mediaPrintUrl(item);
+ return;
  // 2) Chrome/LAN: server endpoint'i fire-and-forget cagir; ozel protokol
  // kullanma, cunku tarayici "uygulama acilsin mi?" penceresi gosterir.
  try {
@@ -55650,6 +55656,323 @@ def yaz_info_agents_page():
     return render(content, title="YAZ Bilgi Ajanlari")
 
 
+def _bk_voluson_context_panel_html(patient_key=""):
+    """Small BulutKlinik context panel shown inside Voluson/DICOM screens."""
+    q_patient = quote(str(patient_key or "").strip(), safe="")
+
+    def _table_exists(con, name):
+        try:
+            return bool(con.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                (name,)).fetchone())
+        except Exception:
+            return False
+
+    def _one(con, sql, params=()):
+        try:
+            row = con.execute(sql, params).fetchone()
+            return int(row[0] or 0) if row else 0
+        except Exception:
+            return 0
+
+    def _rows(con, sql, params=()):
+        try:
+            con.row_factory = lambda cur, row: {
+                d[0]: row[i] for i, d in enumerate(cur.description)}
+            return con.execute(sql, params).fetchall()
+        except Exception:
+            return []
+
+    patient_html = ""
+    recent_html = ""
+    missing_html = ""
+    stats = {
+        "bk_patients": 0,
+        "bk_protocols": 0,
+        "bk_links": 0,
+        "bk_missing": 0,
+        "bk_visits": 0,
+        "bk_rx": 0,
+        "pending": 0,
+    }
+    try:
+        with db_conn() as con:
+            has = {
+                name: _table_exists(con, name)
+                for name in (
+                    "bk_patients", "bk_protocols", "bk_voluson_links",
+                    "bk_patient_changes", "visits", "prescriptions",
+                    "bk_obstetri_visits", "bk_gynecology_resume",
+                    "bk_gynecology_tracking", "bk_services",
+                    "bk_appointments")
+            }
+            if has["bk_patients"]:
+                stats["bk_patients"] = _one(con, "SELECT COUNT(*) FROM bk_patients")
+            if has["bk_protocols"]:
+                stats["bk_protocols"] = _one(con, "SELECT COUNT(*) FROM bk_protocols")
+            if has["bk_voluson_links"]:
+                stats["bk_links"] = _one(con, "SELECT COUNT(*) FROM bk_voluson_links")
+            stats["bk_missing"] = max(stats["bk_patients"] - stats["bk_links"], 0)
+            if has["visits"]:
+                stats["bk_visits"] = _one(
+                    con, "SELECT COUNT(*) FROM visits WHERE source='bulutklinik'")
+            if has["prescriptions"]:
+                stats["bk_rx"] = _one(
+                    con,
+                    "SELECT COUNT(*) FROM prescriptions "
+                    "WHERE COALESCE(notes,'') LIKE '%BulutKlinik%' "
+                    "OR COALESCE(template_name,'') LIKE '%BulutKlinik%'")
+            if has["bk_patient_changes"]:
+                stats["pending"] = _one(
+                    con,
+                    "SELECT COUNT(*) FROM bk_patient_changes "
+                    "WHERE COALESCE(synced_to_bk,0)=0")
+
+            if q_patient and has["bk_voluson_links"] and has["bk_patients"]:
+                linked = _rows(con, """
+                    SELECT l.bk_hasta_no, l.match_kind, l.confidence,
+                           l.matched_at, p.ad, p.soyad, p.telefon,
+                           p.gelis_tarihi, p.alerjiler, p.kan_grubu,
+                           p.dogum_tarihi
+                    FROM bk_voluson_links l
+                    LEFT JOIN bk_patients p ON p.bk_hasta_no=l.bk_hasta_no
+                    WHERE l.folder_key=?
+                    LIMIT 1
+                """, (patient_key,))
+                if linked:
+                    row = linked[0]
+                    bk_no = str(row.get("bk_hasta_no") or "")
+                    name = " ".join([
+                        str(row.get("ad") or "").strip(),
+                        str(row.get("soyad") or "").strip()]).strip()
+                    proto_rows = _rows(con, """
+                        SELECT protokol_no, protokol_tarihi, gelis_nedeni, brans
+                        FROM bk_protocols
+                        WHERE bk_hasta_no=?
+                        ORDER BY COALESCE(protokol_tarihi,'') DESC,
+                                 COALESCE(protokol_no,'') DESC
+                        LIMIT 4
+                    """, (bk_no,)) if has["bk_protocols"] else []
+                    obs_rows = _rows(con, """
+                        SELECT tarih, usg_age, efw, sikayet
+                        FROM bk_obstetri_visits
+                        WHERE bk_hasta_no=?
+                        ORDER BY COALESCE(tarih,'') DESC
+                        LIMIT 3
+                    """, (bk_no,)) if has["bk_obstetri_visits"] else []
+                    gyn_rows = _rows(con, """
+                        SELECT tarih, sikayet_oyku, tani, tedavi_plani, recete
+                        FROM bk_gynecology_resume
+                        WHERE bk_hasta_no=?
+                        ORDER BY COALESCE(tarih,'') DESC
+                        LIMIT 3
+                    """, (bk_no,)) if has["bk_gynecology_resume"] else []
+                    protos = "".join(
+                        f"<li><b>{sh(r.get('protokol_tarihi') or '-')}</b> "
+                        f"{sh(r.get('gelis_nedeni') or r.get('brans') or '-')}"
+                        f"<small> #{sh(r.get('protokol_no') or '')}</small></li>"
+                        for r in proto_rows)
+                    obs = "".join(
+                        f"<li><b>{sh(r.get('tarih') or '-')}</b> "
+                        f"USG {sh(r.get('usg_age') or '-')} "
+                        f"EFW {sh(r.get('efw') or '-')} "
+                        f"<small>{sh(r.get('sikayet') or '')}</small></li>"
+                        for r in obs_rows)
+                    gyn = "".join(
+                        f"<li><b>{sh(r.get('tarih') or '-')}</b> "
+                        f"{sh(r.get('tani') or r.get('sikayet_oyku') or '-')}"
+                        f"<small>{sh(r.get('recete') or r.get('tedavi_plani') or '')}</small></li>"
+                        for r in gyn_rows)
+                    patient_html = f"""
+                      <div class="yk-bk-v-panel-patient">
+                        <div>
+                          <span class="yk-bk-v-tag">Bu Voluson hastasi BK ile bagli</span>
+                          <h4>{sh(name or ('BK #' + bk_no))}</h4>
+                          <p>BK No: <b>{sh(bk_no)}</b> &middot; Tel: {sh(row.get('telefon') or '-')}
+                             &middot; Kan: {sh(row.get('kan_grubu') or '-')}</p>
+                        </div>
+                        <div class="yk-bk-v-actions">
+                          <a class="btn btn-sm btn-primary" href="/bk-hastalar/{quote(bk_no, safe='')}">BK karti</a>
+                          <a class="btn btn-sm btn-outline-primary" href="/api/bk-hastalar/{quote(bk_no, safe='')}/voluson-export-suggest" target="_blank" rel="noopener">BK -> Voluson oner</a>
+                        </div>
+                      </div>
+                      <div class="yk-bk-v-lists">
+                        <div><b>Protokoller</b><ul>{protos or '<li>Kayit yok</li>'}</ul></div>
+                        <div><b>Obstetri</b><ul>{obs or '<li>Kayit yok</li>'}</ul></div>
+                        <div><b>Jinekoloji / Recete</b><ul>{gyn or '<li>Kayit yok</li>'}</ul></div>
+                      </div>
+                    """
+                else:
+                    patient_html = f"""
+                      <div class="yk-bk-v-panel-patient yk-bk-v-warn">
+                        <div>
+                          <span class="yk-bk-v-tag">BK baglantisi yok</span>
+                          <h4>Bu Voluson hastasi BulutKlinik ile eslesmemis</h4>
+                          <p>BK bilgisi, gelis ve recete gecmisi icin once eslestirme yapin.</p>
+                        </div>
+                        <a class="btn btn-sm btn-warning" href="/bk-voluson-match">Eslestir</a>
+                      </div>
+                    """
+
+            if has["bk_patients"] and has["bk_voluson_links"]:
+                missing_rows = _rows(con, """
+                    SELECT p.bk_hasta_no, p.ad, p.soyad, p.gelis_tarihi
+                    FROM bk_patients p
+                    LEFT JOIN bk_voluson_links l ON l.bk_hasta_no=p.bk_hasta_no
+                    WHERE l.bk_hasta_no IS NULL
+                    ORDER BY COALESCE(p.gelis_tarihi,'' ) DESC
+                    LIMIT 5
+                """)
+                missing_html = "".join(
+                    f"<li><a href='/bk-hastalar/{quote(str(r.get('bk_hasta_no') or ''), safe='')}'>"
+                    f"{sh((str(r.get('ad') or '') + ' ' + str(r.get('soyad') or '')).strip() or ('BK #' + str(r.get('bk_hasta_no') or '')))}</a>"
+                    f"<small>{sh(r.get('gelis_tarihi') or '')}</small></li>"
+                    for r in missing_rows)
+            if has["bk_protocols"]:
+                recent_rows = _rows(con, """
+                    SELECT protokol_no, bk_hasta_no, isim, soyisim,
+                           protokol_tarihi, gelis_nedeni
+                    FROM bk_protocols
+                    ORDER BY COALESCE(protokol_tarihi,'') DESC,
+                             COALESCE(protokol_no,'') DESC
+                    LIMIT 5
+                """)
+                recent_html = "".join(
+                    f"<li><a href='/bk-hastalar/{quote(str(r.get('bk_hasta_no') or ''), safe='')}'>"
+                    f"{sh((str(r.get('isim') or '') + ' ' + str(r.get('soyisim') or '')).strip() or ('BK #' + str(r.get('bk_hasta_no') or '')))}</a>"
+                    f"<small>{sh(r.get('protokol_tarihi') or '')} {sh(r.get('gelis_nedeni') or '')}</small></li>"
+                    for r in recent_rows)
+    except Exception as ex:
+        patient_html = f"<div class='alert alert-warning'>BK paneli okunamadi: {sh(ex)}</div>"
+
+    metrics = "".join(
+        f"<div class='yk-bk-v-metric'><b>{value}</b><span>{label}</span></div>"
+        for label, value in (
+            ("BK hasta", stats["bk_patients"]),
+            ("Protokol", stats["bk_protocols"]),
+            ("Voluson bag", stats["bk_links"]),
+            ("Eksik bag", stats["bk_missing"]),
+            ("Aynalanan gelis", stats["bk_visits"]),
+            ("Recete", stats["bk_rx"]),
+            ("BK'ya donus bekleyen", stats["pending"]),
+        )
+    )
+    return f"""
+    <style>
+      .yk-bk-v-panel{{border:1px solid #cfe3f4;border-radius:18px;background:linear-gradient(135deg,#f7fbff,#eef9f6);padding:16px;margin:0 0 18px;box-shadow:0 12px 34px rgba(19,57,92,.08)}}
+      .yk-bk-v-head{{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}}
+      .yk-bk-v-head h3{{margin:0;font-size:20px;color:#17304f}}
+      .yk-bk-v-head p{{margin:3px 0 0;color:#5f7289;font-weight:600}}
+      .yk-bk-v-actions,.yk-bk-v-panel-patient{{display:flex;gap:8px;align-items:center;flex-wrap:wrap}}
+      .yk-bk-v-metrics{{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;margin-bottom:12px}}
+      .yk-bk-v-metric{{background:#fff;border:1px solid #dceaf6;border-radius:12px;padding:10px 12px}}
+      .yk-bk-v-metric b{{display:block;font-size:22px;line-height:1;color:#15304f}}
+      .yk-bk-v-metric span{{display:block;font-size:11px;font-weight:800;color:#607289;text-transform:uppercase;margin-top:5px}}
+      .yk-bk-v-panel-patient{{justify-content:space-between;background:#fff;border:1px solid #dceaf6;border-radius:14px;padding:12px;margin-bottom:10px}}
+      .yk-bk-v-panel-patient h4{{margin:3px 0 4px;font-size:17px;color:#17304f}}
+      .yk-bk-v-panel-patient p{{margin:0;color:#657991;font-size:13px}}
+      .yk-bk-v-warn{{border-color:#f1d28b;background:#fff9e8}}
+      .yk-bk-v-tag{{display:inline-block;font-size:11px;font-weight:900;text-transform:uppercase;color:#176b55;background:#e8f8ef;border-radius:999px;padding:4px 8px}}
+      .yk-bk-v-lists{{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}}
+      .yk-bk-v-lists>div{{background:#fff;border:1px solid #dceaf6;border-radius:14px;padding:11px}}
+      .yk-bk-v-lists b{{color:#17304f}}
+      .yk-bk-v-lists ul,.yk-bk-v-mini ul{{margin:7px 0 0;padding-left:17px}}
+      .yk-bk-v-lists li,.yk-bk-v-mini li{{margin:0 0 6px;color:#263a52}}
+      .yk-bk-v-lists small,.yk-bk-v-mini small{{display:block;color:#6d7f94;font-size:11px}}
+      .yk-bk-v-mini{{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:10px}}
+      .yk-bk-v-mini>div{{background:rgba(255,255,255,.72);border:1px solid #dceaf6;border-radius:14px;padding:11px}}
+    </style>
+    <section class="yk-bk-v-panel" aria-label="BulutKlinik Voluson baglami">
+      <div class="yk-bk-v-head">
+        <div>
+          <h3><i class="bi bi-cloud-check"></i> BulutKlinik + Voluson baglami</h3>
+          <p>Voluson/DICOM ekranindan cikmadan BK hasta, gelis, recete ve eslesme durumunu gor.</p>
+        </div>
+        <div class="yk-bk-v-actions">
+          <a class="btn btn-sm btn-primary" href="/bulutklinik-merkez">BK Merkezi</a>
+          <a class="btn btn-sm btn-outline-primary" href="/bk-hastalar">BK Hastalari</a>
+          <a class="btn btn-sm btn-outline-success" href="/bk-voluson-match">Voluson Eslestir</a>
+        </div>
+      </div>
+      <div class="yk-bk-v-metrics">{metrics}</div>
+      {patient_html}
+      <div class="yk-bk-v-mini">
+        <div><b>Son BK protokolleri</b><ul>{recent_html or '<li>Kayit yok</li>'}</ul></div>
+        <div><b>Voluson baglantisi eksik</b><ul>{missing_html or '<li>Eksik bag yok</li>'}</ul></div>
+      </div>
+    </section>
+    """
+
+
+@app.route("/terminal-cihaz-merkezi")
+@login_required
+def terminal_device_center_page():
+    """Client-device command center for terminal/iPhone/Mac safe actions."""
+    is_server_local = _is_local_browser_request_a100()
+    host = sh(request.host or "")
+    public_url = sh(_yk_public_url("/") or "/")
+    local_badge = (
+        '<span class="badge bg-success">Server PC uzerindesiniz</span>'
+        if is_server_local else
+        '<span class="badge bg-primary">Terminal / uzak cihaz modu</span>')
+    content = f"""
+    <style>
+      .yk-device-center{{max-width:1180px;margin:0 auto 28px}}
+      .yk-device-hero{{border:1px solid #d7e8f5;border-radius:20px;background:linear-gradient(135deg,#f7fbff,#edf8f5);padding:22px;margin-bottom:16px;box-shadow:0 14px 38px rgba(20,65,98,.09)}}
+      .yk-device-hero h2{{margin:4px 0 6px;color:#17304f}}
+      .yk-device-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}}
+      .yk-device-card{{background:#fff;border:1px solid #dceaf6;border-radius:16px;padding:16px;box-shadow:0 10px 26px rgba(20,65,98,.07)}}
+      .yk-device-card h4{{font-size:17px;margin:0 0 8px;color:#17304f}}
+      .yk-device-card p{{color:#607289;margin:0 0 12px;font-weight:600}}
+      .yk-device-card .btn{{margin:3px 3px 0 0}}
+      .yk-device-rule{{background:#f8fafc;border:1px dashed #b9ccdc;border-radius:14px;padding:12px;margin-top:14px;color:#334155}}
+    </style>
+    <div class="yk-device-center">
+      <div class="yk-device-hero">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+          <div>
+            <span class="text-uppercase small fw-bold text-primary">Terminal / Cihaz Merkezi</span>
+            <h2>Islemler bu cihazda calissin</h2>
+            <p class="text-muted mb-0">Resim, video, WhatsApp ve dosya paylasimi terminal/iPhone/Mac uzerinde acilir; server masaustu gereksiz yere kullanilmaz.</p>
+          </div>
+          <div>{local_badge}</div>
+        </div>
+        <div class="yk-device-rule">
+          Server: <code>{host}</code> &middot; Genel URL: <code>{public_url}</code>
+        </div>
+      </div>
+      <div class="yk-device-grid">
+        <div class="yk-device-card">
+          <h4><i class="bi bi-images"></i> Medya bu cihazda</h4>
+          <p>Foto/video tiklandiginda once tarayici veya WebShell yerel yardimcisi kullanilir.</p>
+          <a class="btn btn-sm btn-primary" href="/hastalar">Hasta sec</a>
+          <a class="btn btn-sm btn-outline-primary" href="/menu-ara?q=medya">Medya menusu</a>
+        </div>
+        <div class="yk-device-card">
+          <h4><i class="bi bi-whatsapp"></i> WhatsApp bu cihazda</h4>
+          <p>Normal tarayicida Web Share/ZIP; WebShell'de yerel WhatsApp yardimcisi.</p>
+          <a class="btn btn-sm btn-success" href="/wa-sablonlar">Sablonlar</a>
+          <a class="btn btn-sm btn-outline-success" href="/whatsapp-ayarlari">Ayarlar</a>
+        </div>
+        <div class="yk-device-card">
+          <h4><i class="bi bi-hdd-network"></i> Voluson + BulutKlinik</h4>
+          <p>DICOM/Voluson ekranlarina BK hasta, gelis, recete ve eslesme paneli eklendi.</p>
+          <a class="btn btn-sm btn-primary" href="/dicom">DICOM/PACS</a>
+          <a class="btn btn-sm btn-outline-primary" href="/voluson-import">Voluson Import</a>
+          <a class="btn btn-sm btn-outline-success" href="/bulutklinik-merkez">BK Merkezi</a>
+        </div>
+        <div class="yk-device-card">
+          <h4><i class="bi bi-search"></i> Pratik menu</h4>
+          <p>Fonksiyon adini yaz; hasta seciliyse hasta baglamli sayfa direkt acilir.</p>
+          <a class="btn btn-sm btn-primary" href="/menu-ara">Tum menude ara</a>
+          <a class="btn btn-sm btn-outline-primary" href="/hizmet-ajanlari">Hizmet ajanlari</a>
+        </div>
+      </div>
+    </div>
+    """
+    return render(content, title="Terminal / Cihaz Merkezi")
+
+
 # ============================================================================
 # D300 VOLUSON USG IMPORT - PDF + UI
 # ============================================================================
@@ -55757,6 +56080,7 @@ def voluson_import_page():
                      'Henuz import yok</td></tr>')
     nas_root = (os.environ.get("YAZKLINIK_NAS_ROOT")
                 or r"E:\USG\Hastalar")
+    bk_panel = _bk_voluson_context_panel_html()
 
     page = f"""
     <!DOCTYPE html><html lang="tr"><head>
@@ -55768,6 +56092,7 @@ def voluson_import_page():
     <h2><i class="bi bi-file-medical"></i> Voluson USG Raporu Import</h2>
     <p class="text-muted">NAS klasoru otomatik tarar + tum Voluson OB PDF'lerini hasta
     DB'sine isler. Hastalar otomatik eslesir (folder_key).</p>
+    {bk_panel}
 
     <div class="row mb-3">
       <div class="col-md-4"><div class="card text-center bg-primary text-white">
@@ -79044,16 +79369,26 @@ def _local_interface_ips_a100():
 
 
 def _is_local_browser_request_a100():
-    """D300: Kimlik dogrulamis tum kullanicilar server-side islem tetikleyebilir.
+    """True only when the browser is running on the same PC as the server.
 
-    Sifre korumasi (users.json) WAN dahil tum baglanti yerlerinden yeterli kabul.
-    Server-side WhatsApp paste, Photos open, clipboard read - hepsi login_required
-    + permission_required decorator'larin altinda. Kim girisini yaptiysa o tetikler.
-
-    NOT: WAN'a aciksan sifren KESINLIKLE guclu olmali (users.json).
-    Default 1234 sifre WAN icin TEHLIKELI - mutlaka degistir.
+    Terminal/iPhone/Mac users must use browser/WebShell-native actions so an
+    image, video or WhatsApp flow opens on their own device, not on the server
+    desktop.
     """
-    return True
+    try:
+        remote = (
+            request.headers.get("X-Forwarded-For", "").split(",", 1)[0]
+            or request.headers.get("X-Real-IP", "")
+            or request.remote_addr
+            or "")
+        remote = str(remote).strip().lower()
+        if remote.startswith("::ffff:"):
+            remote = remote.rsplit(":", 1)[-1]
+        if remote in {"", "127.0.0.1", "::1", "localhost"}:
+            return True
+        return remote in _local_interface_ips_a100()
+    except Exception:
+        return False
 
 
 def _prepare_whatsapp_visit_share_a100(patient_key, visit_key=None, mode="files"):
@@ -79237,14 +79572,12 @@ def whatsapp_latest_visit_prepare(patient_key):
 @app.route("/hasta/<patient_key>/whatsapp/son-gelis/pano-yapistir", methods=["POST"])
 @permission_required("send_whatsapp")
 def whatsapp_latest_visit_paste_local(patient_key):
-    """LAN'daki tum cihazlardan server PC'sinde WhatsApp paste tetikler.
-
-    D300: Onceden sadece server PC kendi browser'inda calisiyordu, artik
-    LAN-trusted (terminal PC'ler dahil) tum cihazlardan kabul.
-    """
+    """Server-local fallback only; terminals use browser/WebShell sharing."""
     if not _is_local_browser_request_a100():
-        # WAN/internet'ten istek - guvenlik icin reddet
-        flash("Bu islem sadece klinik LAN'i icinden tetiklenebilir.", "warning")
+        flash(
+            "Bu dugme server PC ekranina yapistirir. Terminal/iPhone/Mac icin "
+            "'Bu cihazdan paylas', 'Bu cihaz panosuna kopyala' veya ZIP kullanin.",
+            "warning")
         return redirect(url_for("whatsapp_link", patient_key=patient_key))
     visit_key = (
         request.form.get("visit_key")
@@ -79513,10 +79846,18 @@ def _b304_wa_share_worker(task_id, patient_key, visit_key, mode, manual_phone):
 def b304_api_whatsapp_async_share():
     """B304: WhatsApp paylasimi arka planda baslat. Hemen task_id doner.
 
-    D300: Eskiden sadece local browser kabul ediyordu (D42 karar). Artik
-    LAN'daki diger cihazlardan da tetiklenebilir - WhatsApp paste server
-    PC'sinde olur (tek doktor, kendi LAN'inda kullanim icin guvenli).
+    D300 terminal-safe: this server-side clipboard path is available only when
+    the browser is on the server PC. Terminals use manifest/Web Share/native
+    WebShell helpers so WhatsApp opens on the terminal device.
     """
+    if not _is_local_browser_request_a100():
+        return jsonify({
+            "ok": False,
+            "error": (
+                "Server PC WhatsApp yapistirma terminalden kapali. "
+                "Bu cihazdan paylas, cihaz panosu veya ZIP kullanin."),
+            "client_mode": True,
+        }), 409
     _b304_wa_cleanup_old_tasks()
     data = request.get_json(silent=True) or request.form or {}
     patient_key = str(data.get("patient_key") or "").strip()
@@ -79580,6 +79921,14 @@ def b304_api_whatsapp_auto_send_toggle():
 @permission_required("view_files")
 def api_open_visit_folder_windows(patient_key, visit_key):
     """Open the visit folder in Windows Explorer for manual WhatsApp selection."""
+    if not _is_local_browser_request_a100():
+        return jsonify({
+            "ok": False,
+            "message": (
+                "Terminalden server klasoru acilmadi. WebShell yerel klasor "
+                "yardimcisini veya web medya sayfasini kullanin."),
+            "client_mode": True,
+        }), 409
     try:
         _visit, folder = _find_visit_for_whatsapp(patient_key, visit_key)
         if not folder:
@@ -79921,43 +80270,46 @@ def whatsapp_link(patient_key):
                 <i class="bi bi-whatsapp"></i> Windows panoya kopyala + WhatsApp'a yapistir
               </a>
                 """
-            local_paste_tool = f"""
+            local_paste_tool = ""
+            if _is_local_browser_request_a100():
+                local_paste_tool = f"""
               <form method="POST"
                     action="/hasta/{patient_key}/whatsapp/son-gelis/pano-yapistir"
                     class="d-inline">
                 <input type="hidden" name="visit_key"
                        value="{safe_attr(prepared_visit_key)}">
-                <button type="submit" class="btn btn-outline-warning btn-lg">
-                  <i class="bi bi-clipboard-plus"></i> Bu PC'de Ctrl+C + Ctrl+V
+                <button type="submit" class="btn btn-outline-warning btn-lg"
+                        title="Sadece server PC'nin kendi ekraninda calisir">
+                  <i class="bi bi-pc-display"></i> Server PC'de yapistir
                 </button>
               </form>
-            """
+                """
             share_tools = f"""
               {native_tool}
-              {local_paste_tool}
-              <button type="button" id="ykWaCopyPrepared" class="btn btn-outline-success btn-lg">
-                <i class="bi bi-clipboard-check"></i> Tarayici resim panosu (yedek)
+              <button type="button" id="ykWaSharePrepared" class="btn btn-primary btn-lg">
+                <i class="bi bi-share"></i> Bu cihazdan paylas
               </button>
-              <button type="button" id="ykWaSharePrepared" class="btn btn-outline-primary btn-lg">
-                <i class="bi bi-share"></i> Cihazdan paylas
+              <button type="button" id="ykWaCopyPrepared" class="btn btn-outline-success btn-lg">
+                <i class="bi bi-clipboard-check"></i> Bu cihaz panosuna kopyala
               </button>
               <a id="ykWaFilesOpen" class="btn btn-outline-secondary btn-lg"
                  href="{safe_attr(prepared_manifest_url)}" target="_blank" rel="noopener">
                 Dosya listesini ac
               </a>
+              {local_paste_tool}
               <div id="ykWaPreparedStatus" class="small text-muted w-100 mt-2"></div>
             """
         helper_text = (
             "ZIP'i indirip WhatsApp sohbetindeki atac simgesiyle ekleyin."
             if prepared_mode == "zip" else
-            "Windows/hybrid yardimcisi NAS klasorundeki dosyalari indirmeden tek seferde dosya panosuna kopyalar; WhatsApp sohbetinde otomatik Ctrl+V dener.")
+            "WebShell varsa paylasim bu terminalin yerel yardimcisinda calisir; normal tarayicida Web Share, cihaz panosu veya ZIP kullanilir.")
         count_text = f"{safe_html(prepared_count)} dosya hazir." if prepared_count else "Dosyalar hazir."
         client_launch_html = f"""
         <div class="alert alert-success border-0 shadow-sm mb-3" data-whatsapp-client-open="1">
           <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
             <div>
-              <b>WhatsApp istemci modunda acilacak</b>
-              <div class="small">{count_text} WhatsApp bu oturumda acilir; dosyalar panoya alinir ve Ctrl+V denenir.</div>
+              <b>WhatsApp bu cihazda acilacak</b>
+              <div class="small">{count_text} Server ekranina gitmeden bu terminal/tarayici uzerinden paylasilir.</div>
               <div class="small text-muted">{helper_text}</div>
             </div>
             <div class="d-flex gap-2 flex-wrap">
@@ -80100,13 +80452,9 @@ def whatsapp_link(patient_key):
               }}
             }});
             if (!link) return;
-            // B210: Doktor "WhatsApp App zor ise Web'den yapalim" dedi. Artik
-            // varsayilan WhatsApp Web yeni sekmede acilir. Server tarafi
-            // dosyalari panoya kopyalama denemesi yine de yapilir (background);
-            // doktor tarayici sekmesinde acilan WhatsApp Web sohbetinde Ctrl+V
-            // (resim) ya da Ek > Dosya butonuyla dosya seciyor.
-            // Hibrit WebShell senaryosunda native helper varsa onu DA dener
-            // (Qt bridge ile yerel App acabilir).
+            // D300 terminal-guvenli akis: server PC'de WhatsApp/clipboard
+            // tetiklenmez. WebShell varsa yerel helper bu terminalde calisir;
+            // normal tarayicida WhatsApp Web + Web Share/clipboard/ZIP kullanilir.
             var phoneDigits = {_json.dumps(digits)};
             var waWebUrl = 'https://web.whatsapp.com/send?phone=' + encodeURIComponent(phoneDigits);
             if (window.YK_CLIENT_WHATSAPP_NATIVE) {{
@@ -80122,7 +80470,7 @@ def whatsapp_link(patient_key):
                   // Native yok -> direkt Web ac
                   window.open(waWebUrl, '_blank', 'noopener');
                   setShareStatus(
-                    'WhatsApp Web yeni sekmede acildi. Sohbet kutusuna Ctrl+V ile dosyalari yapistirin.',
+                    'WhatsApp Web bu cihazda acildi. Dosyalari Web Share, pano veya ZIP ile ekleyin.',
                     false
                   );
                 }}
@@ -80133,7 +80481,7 @@ def whatsapp_link(patient_key):
             setTimeout(function() {{
               window.open(waWebUrl, '_blank', 'noopener');
               setShareStatus(
-                'WhatsApp Web yeni sekmede acildi. Dosyalar panoda hazir - sohbet kutusuna Ctrl+V yapin.',
+                'WhatsApp Web bu cihazda acildi. Dosyalari bu sayfadaki paylas/pano/ZIP dugmeleriyle ekleyin.',
                 false
               );
             }}, 250);
@@ -95972,6 +96320,14 @@ def api_print_jpeg_photo_file():
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
         payload = request.form.to_dict() if request.form else {}
+    if not _is_local_browser_request_a100():
+        return jsonify({
+            "ok": False,
+            "message": (
+                "Foto server PC'de yazdirilmadi. Terminalde tarayici "
+                "yazdirma/WebShell yerel baski yolunu kullanin."),
+            "client_mode": True,
+        }), 409
     src = str(payload.get("src") or "").strip()
     if (not src or not src.startswith("/") or src.startswith("//")
             or "\n" in src or "\r" in src):
@@ -96029,7 +96385,10 @@ def api_open_jpeg_photo_preview():
     if not _is_local_browser_request_a100():
         return jsonify({
             "ok": False,
-            "message": "Bu islem sadece klinik LAN'i icinden tetiklenebilir.",
+            "message": (
+                "Foto server PC'de acilmadi. Terminalde resim bu cihazdaki "
+                "tarayici/WebShell ile acilir."),
+            "client_mode": True,
         }), 403
     src = str(payload.get("src") or "").strip()
     if (not src or not src.startswith("/") or src.startswith("//")
@@ -96078,6 +96437,14 @@ def api_open_video_in_default_player():
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
         payload = request.form.to_dict() if request.form else {}
+    if not _is_local_browser_request_a100():
+        return jsonify({
+            "ok": False,
+            "message": (
+                "Video server PC'de acilmadi. Terminalde medya dosyasi "
+                "tarayici veya WebShell yerel oynatici ile acilir."),
+            "client_mode": True,
+        }), 409
     src = str(payload.get("src") or "").strip()
     if (not src or not src.startswith("/") or src.startswith("//")
             or "\n" in src or "\r" in src):
@@ -138272,6 +138639,7 @@ def dicom_dashboard():
         <a class="btn btn-outline-success" href="/dicom-alisveris">DICOM alisveris durumu</a>
       </div>
     </div>
+    {_bk_voluson_context_panel_html(request.args.get("patient", "") or "")}
     {body}
     </div>
     """
@@ -139873,6 +140241,7 @@ def patient_dicom_ai_page(patient_key):
     <a href="/hasta/{q_patient}" class="btn btn-secondary mb-3">Hasta karti</a>
     <h2>DICOM / USG Zeka - {sh(display)}</h2>
     <div class="alert alert-warning">{sh(_DICOM_AI_GUARDRAIL)}</div>
+    {_bk_voluson_context_panel_html(patient_key)}
     <div class="yk-dicom-ai-toolbar">
       <button type="button" class="btn btn-success" id="dicomWorklistSendBtn">Voluson'a hasta gonder</button>
       <button type="button" class="btn btn-outline-success" id="dicomWorklistRefreshPatientBtn">Voluson hasta bilgisini yenile</button>
@@ -158591,6 +158960,10 @@ window.ykOpenMediaViewer = function(card) {
       paper: 'PHOTO_6X8'
     };
     if(await ykFxTryNativePhotoPrint(payload)) return;
+    window.location.href = '/yk-print-media?kind=image&src=' + encodeURIComponent(src) +
+      '&title=' + encodeURIComponent(title || 'YazKlinik Medya') +
+      '&profile=photo&paper=PHOTO_6X8&autoprint=1';
+    return;
     try {
       var serverData = await ykFxPostJson('/api/medya/jpeg-foto-yazdir', payload);
       if(serverData && serverData.ok) return;
@@ -158629,6 +159002,8 @@ window.ykOpenMediaViewer = function(card) {
         }
       } catch(e) {}
     }
+    ykFxOpenRawMediaOnThisDevice(src);
+    return;
     try {
       var serverData = await ykFxPostJson('/api/medya/jpeg-foto-onizleme-ac', payload);
       if(serverData && serverData.ok) return;
