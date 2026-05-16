@@ -23,6 +23,7 @@ import sqlite3
 import ssl
 import urllib.request
 import urllib.error
+import urllib.parse
 from pathlib import Path
 
 # ----------------------------------------------------------------------
@@ -66,6 +67,28 @@ def err(msg):
 
 def section(name):
     print(f"\n{CYAN}=== {name} ==={RESET}")
+
+
+def _smoke_login_credentials():
+    """Smoke test icin sifreyi ekrana basmadan yerel kaynaktan bul."""
+    user = (os.environ.get("YAZKLINIK_SMOKE_USER")
+            or os.environ.get("CODEX_QUICK_CHECK_USER")
+            or "doktor").strip() or "doktor"
+    password = (os.environ.get("YAZKLINIK_SMOKE_PASSWORD")
+                or os.environ.get("CODEX_QUICK_CHECK_PASSWORD")
+                or "").strip()
+    if not password:
+        try:
+            users_path = ROOT / "users.json"
+            if users_path.exists():
+                data = json.loads(users_path.read_text(encoding="utf-8"))
+                if isinstance(data, dict):
+                    item = data.get(user) or {}
+                    if isinstance(item, dict):
+                        password = str(item.get("password") or "").strip()
+        except Exception as ex:
+            warn(f"users.json smoke sifresi okunamadi: {ex}")
+    return user, password or "1234"
 
 
 # ----------------------------------------------------------------------
@@ -242,8 +265,12 @@ if server_alive:
                 urllib.request.HTTPSHandler(
                     context=ssl._create_unverified_context()))
         opener = urllib.request.build_opener(*handlers)
-        # Login POST
-        body = b"username=doktor&password=1234"
+        # Login POST - sifre degistirildiyse users.json/env'den alinir.
+        smoke_user, smoke_password = _smoke_login_credentials()
+        body = urllib.parse.urlencode({
+            "username": smoke_user,
+            "password": smoke_password,
+        }).encode("utf-8")
         req = urllib.request.Request(
             f"{server_url}/giris", data=body,
             headers={"Content-Type": "application/x-www-form-urlencoded"})

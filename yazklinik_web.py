@@ -40131,7 +40131,17 @@ def _render_fixed_base_html(**context):
 @app.route("/yk-core.css")
 def _yk_core_css():
     from flask import Response
-    r = Response(_base_html_core_css(), mimetype="text/css; charset=utf-8")
+    css = _base_html_core_css()
+    if not css.strip():
+        static_css = Path(__file__).parent / "static" / "yk-core.css"
+        if static_css.exists():
+            r = send_file(
+                static_css,
+                mimetype="text/css; charset=utf-8",
+                max_age=604800)
+            r.headers["Cache-Control"] = "public, max-age=604800, immutable"
+            return r
+    r = Response(css, mimetype="text/css; charset=utf-8")
     r.headers["Cache-Control"] = "public, max-age=604800, immutable"
     return r
 
