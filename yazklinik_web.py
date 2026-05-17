@@ -30120,12 +30120,20 @@ BASE_HTML = """<!DOCTYPE html>
  <meta name="theme-color" content="#FAF7F2" media="(prefers-color-scheme: light)">
  <meta name="theme-color" content="#FAF7F2" media="(prefers-color-scheme: dark)">
  <meta name="apple-mobile-web-app-capable" content="yes">
- <meta name="apple-mobile-web-app-status-bar-style" content="default">
+ <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
  <meta name="apple-mobile-web-app-title" content="YazKlinik">
  <meta name="mobile-web-app-capable" content="yes">
  <meta name="format-detection" content="telephone=no">
- <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%232B5F5C' rx='20'/%3E%3Ctext x='50' y='65' font-size='50' text-anchor='middle' fill='white'%3EğŸ©º%3C/text%3E%3C/svg%3E">
- <meta name="theme-color" content="#FAF7F2">
+ <!-- D300 2026-05-17: iOS Safari icin gercek PNG apple-touch-icon (eski SVG bozuktu) -->
+ <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon-180.png">
+ <link rel="apple-touch-icon" sizes="167x167" href="/static/icons/apple-touch-icon-167.png">
+ <link rel="apple-touch-icon" sizes="152x152" href="/static/icons/apple-touch-icon-152.png">
+ <link rel="apple-touch-icon" sizes="120x120" href="/static/icons/apple-touch-icon-120.png">
+ <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/favicon-32.png">
+ <link rel="icon" type="image/png" sizes="16x16" href="/static/icons/favicon-16.png">
+ <link rel="manifest" href="/manifest.webmanifest">
+ <link rel="stylesheet" href="/static/yk-ios-mobile.css?v=d300-ios-2026-05-17">
+ <meta name="theme-color" content="#1769aa">
  <title>{{ title or 'YazKlinik' }}</title>
  <!-- D250 2026-05-12 v3: SIFIRDAN BAGIMSIZ TEMA MODALI.
       Mevcut #themePanel HTML'ine bagimli degil - kendi modalini dinamik

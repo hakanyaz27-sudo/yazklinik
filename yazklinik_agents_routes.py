@@ -3325,26 +3325,49 @@ def uyumluluk_page():
     return render_template_string(_COMPLIANCE_PAGE)
 
 
-_COMPLIANCE_PAGE = r"""<!doctype html><html lang="tr"><head><meta charset="utf-8">
+_COMPLIANCE_PAGE = r"""<!doctype html><html lang="tr"><head>
+<meta charset="utf-8">
 <title>ISO 27001 / KVKK Uyumluluk - YazKlinik</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1769aa">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Uyumluluk">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/static/yk-ios-mobile.css?v=d300-ios-2026-05-17">
 <style>
-body{font-family:-apple-system,Segoe UI,sans-serif;background:#f5f8fb;color:#122236;
-padding:18px;max-width:1100px;margin:0 auto}
-h1{margin:0 0 12px;color:#1769aa}
-.banner{background:#fff;border:1px solid #cdd9e3;border-radius:12px;padding:18px;
-margin-bottom:18px;display:flex;align-items:center;gap:24px}
-.score-big{font-size:48px;font-weight:900}
+:root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html,body{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;margin:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f8fb;color:#122236;
+padding:calc(20px + var(--safe-top)) 18px calc(20px + var(--safe-bottom));max-width:1100px;margin:0 auto;
+min-height:100vh;min-height:100dvh}
+h1{margin:0 0 14px;color:#1769aa;font-size:22px}
+.banner{background:#fff;border:1px solid #cdd9e3;border-radius:14px;padding:18px;
+margin-bottom:18px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.banner > div:first-child{min-width:120px}
+.score-big{font-size:42px;font-weight:900;line-height:1}
 .grade-A{color:#16815f}.grade-B{color:#1769aa}.grade-C{color:#b87333}
 .grade-D,.grade-F{color:#b3261e}
 table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #cdd9e3;
-border-radius:8px;overflow:hidden}
-th,td{padding:10px;text-align:left;border-bottom:1px solid #eef3f8;font-size:13px}
-th{background:#eff5fb;font-weight:700}
+border-radius:10px;overflow:hidden;display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+th,td{padding:11px 10px;text-align:left;border-bottom:1px solid #eef3f8;font-size:13px;white-space:nowrap}
+th{background:#eff5fb;font-weight:700;color:#0d4f8b;text-transform:uppercase;letter-spacing:.3px;font-size:11px}
 .s-pass{color:#16815f;font-weight:700}.s-fail{color:#b3261e;font-weight:700}
 .s-warn{color:#b87333;font-weight:700}.s-unknown{color:#888}
-.recs{margin-top:18px;background:#fffbe5;border-left:4px solid #f0b400;padding:12px}
-button{background:#1769aa;color:#fff;border:0;padding:10px 18px;border-radius:6px;
-cursor:pointer;font-weight:700}
+.recs{margin-top:18px;background:#fffbe5;border-left:4px solid #f0b400;padding:14px;border-radius:0 8px 8px 0}
+button{background:#1769aa;color:#fff;border:0;padding:12px 20px;border-radius:8px;
+cursor:pointer;font-weight:700;min-height:44px;font-size:14px;touch-action:manipulation;-webkit-appearance:none}
+button:active{background:#0d4f8b}
+@media(max-width:600px){
+  body{padding-left:12px;padding-right:12px}
+  .banner{padding:14px;gap:12px}
+  .score-big{font-size:36px}
+  th,td{padding:9px 7px;font-size:12px}
+  th{font-size:10px}
+}
+@media(display-mode:standalone){body{padding-top:calc(40px + var(--safe-top))}}
 </style></head><body>
 <h1>ISO 27001 + KVKK Uyumluluk Panosu</h1>
 <div class="banner">

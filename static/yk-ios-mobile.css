@@ -1,0 +1,265 @@
+/* YazKlinik iOS Safari Optimizasyonu - additive overlay
+ * Tarih: 2026-05-17
+ * Amac: iOS Safari + iPad Safari + Android Chrome'de gercek mobile-first deneyim.
+ * Mevcut desktop CSS'i BOZMAZ (sadece <= 900px ekranlarda devreye girer).
+ *
+ * Kapsam:
+ *   - Safe area insets (iPhone notch/home indicator)
+ *   - Touch targets >= 44pt
+ *   - 100dvh viewport fix (Safari adres cubuğu büyür/kuçulurken)
+ *   - Form input zoom prevention (font-size >= 16px)
+ *   - tap-highlight kaldirma + smooth scroll
+ *   - Bottom-sheet style modallar
+ *   - Stack layout < 900px
+ *   - Dark mode tutarli
+ */
+
+/* ============================================================
+   ROOT - safe-area + dvh
+   ============================================================ */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --vh-full: 100vh;
+  --tap-min: 44px;  /* Apple HIG dokunma minimumu */
+}
+
+@supports (height: 100dvh) {
+  :root { --vh-full: 100dvh; }
+}
+
+/* ============================================================
+   GLOBAL - tap highlight + smooth + font-smooth
+   ============================================================ */
+html {
+  -webkit-text-size-adjust: 100%;  /* Safari zoom on landscape */
+  -webkit-tap-highlight-color: rgba(23, 105, 170, 0.15);
+  text-size-adjust: 100%;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* iOS overscroll bounce kapali (PWA mode) */
+  overscroll-behavior-y: contain;
+}
+
+/* Tum sayfalarda safe-area saygi */
+@media (max-width: 900px) {
+  body {
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
+    padding-bottom: var(--safe-bottom);
+  }
+}
+
+/* ============================================================
+   FORM INPUTS - 16px+ font (iOS zoom on focus prevention)
+   ============================================================ */
+input[type="text"], input[type="email"], input[type="tel"],
+input[type="number"], input[type="password"], input[type="search"],
+input[type="date"], input[type="datetime-local"], input[type="time"],
+input[type="url"], textarea, select {
+  font-size: 16px !important;  /* iOS auto-zoom 16px alti */
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 8px;
+}
+
+@media (max-width: 900px) {
+  input, textarea, select, button {
+    min-height: var(--tap-min);
+    padding: 12px 14px;
+  }
+}
+
+/* Spesifik input tipi optimizasyonu */
+input[type="tel"] { font-variant-numeric: tabular-nums; }
+input[type="number"] { -moz-appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none; margin: 0;
+}
+
+/* ============================================================
+   TOUCH TARGETS - butonlar min 44pt
+   ============================================================ */
+button, a.btn, .btn, [role="button"], .yk-btn {
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  cursor: pointer;
+  touch-action: manipulation;  /* 300ms tap delay kaldir */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+a {
+  /* Mobil link tap area genislet */
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+/* ============================================================
+   RESPONSIVE GRID - 900px alti tek kolon
+   ============================================================ */
+@media (max-width: 900px) {
+  /* Yaygin grid container'lari single column'a indir */
+  .grid, .grid-2, .grid-3, .grid-4, .columns,
+  .yk-grid, .yk-cards, .card-row {
+    grid-template-columns: 1fr !important;
+    display: grid !important;
+    gap: 12px !important;
+  }
+  /* Tablolar yatay kaydirilabilir */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+  table thead { position: sticky; top: 0; z-index: 1; background: #fff; }
+  /* Container padding mobil */
+  .container, main, .main {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  h1 { font-size: 22px; }
+  h2 { font-size: 18px; }
+  h3 { font-size: 16px; }
+  /* Header iki satira sigmasin */
+  .header, .navbar, .topbar { flex-wrap: wrap; }
+}
+
+/* ============================================================
+   ALEX BAR - mobilde alt+ortali ve buyuk
+   ============================================================ */
+@media (max-width: 900px) {
+  .yk-alex-bar, #yk-alex-bar, .alex-bar {
+    position: fixed !important;
+    bottom: calc(8px + var(--safe-bottom)) !important;
+    left: 50% !important;
+    right: auto !important;
+    top: auto !important;
+    transform: translateX(-50%) !important;
+    width: calc(100% - 24px) !important;
+    max-width: 480px !important;
+    min-height: 56px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 32px rgba(15,35,55,0.18) !important;
+    z-index: 9999 !important;
+  }
+}
+
+/* Suruklenebilir Alex bar mobilde KILITLI (ortala) */
+@media (max-width: 900px) {
+  .yk-alex-bar.draggable { cursor: default !important; }
+}
+
+/* ============================================================
+   YENI SESSION 7 SAYFALARI (status, uyumluluk, stok, vs)
+   ============================================================ */
+@media (max-width: 900px) {
+  /* Status page banner */
+  .banner { font-size: 18px !important; padding: 14px !important; }
+
+  /* Compliance stats grid */
+  .stats { grid-template-columns: repeat(2, 1fr) !important; }
+  @media (max-width: 480px) {
+    .stats { grid-template-columns: 1fr !important; }
+  }
+
+  /* Tablolarda gecikme/durum kolonu siralanir */
+  .stat .n { font-size: 24px !important; }
+  .stat .l { font-size: 11px !important; }
+}
+
+/* ============================================================
+   BOTTOM SHEET MODAL (iOS native hissi)
+   ============================================================ */
+.yk-bottom-sheet {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: 0;
+  max-height: 85vh;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 16px 16px calc(16px + var(--safe-bottom));
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.15);
+  z-index: 10000;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.yk-bottom-sheet.open { transform: translateY(0); }
+.yk-bottom-sheet .handle {
+  width: 40px; height: 4px;
+  background: #d0d7e0;
+  border-radius: 2px;
+  margin: 0 auto 12px;
+}
+
+/* ============================================================
+   PWA STANDALONE MODE - iOS Add to Home Screen
+   ============================================================ */
+@media (display-mode: standalone) {
+  body {
+    padding-top: var(--safe-top);  /* Status bar paneli */
+  }
+  /* Browser cubugu yok, daha fazla yer */
+  .header, .navbar {
+    padding-top: calc(8px + var(--safe-top));
+  }
+  /* Geri butonu gerek (browser back yok) */
+  .yk-pwa-back {
+    display: inline-flex !important;
+  }
+}
+
+.yk-pwa-back { display: none; }
+
+/* ============================================================
+   DARK MODE - iOS otomatik
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  /* Sadece ozellikle dark-mode-aware classlar */
+  .yk-bottom-sheet { background: #1a2233; color: #e6edf5; }
+  .yk-bottom-sheet .handle { background: #3a4555; }
+}
+
+/* ============================================================
+   ACCESSIBILITY - reduced motion + high contrast
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   PRINT - mobil PDF cikti
+   ============================================================ */
+@media print {
+  .yk-alex-bar, #yk-alex-bar, .yk-agent-shortcuts,
+  button, .btn, nav { display: none !important; }
+  body { padding: 0 !important; color: #000 !important; }
+}
+
+/* ============================================================
+   SCROLLBAR - iOS hidden auto
+   ============================================================ */
+@media (max-width: 900px) {
+  ::-webkit-scrollbar { width: 0; height: 0; }
+}
+
+/* ============================================================
+   SELECTION color
+   ============================================================ */
+::selection { background: rgba(23, 105, 170, 0.25); }
+::-moz-selection { background: rgba(23, 105, 170, 0.25); }
