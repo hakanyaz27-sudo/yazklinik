@@ -36,6 +36,11 @@ from flask import Blueprint, jsonify, render_template_string, request, session, 
 
 
 agents_bp = Blueprint("agents", __name__)
+_CRON_TOKEN = os.environ.get("YAZKLINIK_CRON_TOKEN", "").strip()
+
+
+def _cron_auth_ok() -> bool:
+    return bool(_CRON_TOKEN and request.headers.get("X-Cron-Token") == _CRON_TOKEN)
 
 
 @agents_bp.after_request
@@ -129,6 +134,37 @@ instagram_mod = _safe_import("yazklinik_instagram_agent")
 ceviri_mod = _safe_import("yazklinik_ceviri_agent")
 konsult_mod = _safe_import("yazklinik_konsult_agent")
 
+# --- Session 7: 29 yeni ajan ---
+vision_mod = _safe_import("yazklinik_vision_usg_agent")
+soap_mod = _safe_import("yazklinik_soap_agent")
+icd10_mod = _safe_import("yazklinik_icd10_agent")
+gebelik_mod = _safe_import("yazklinik_gebelik_takvim_agent")
+risk_mod = _safe_import("yazklinik_risk_skor_agent")
+ddi_mod = _safe_import("yazklinik_ddi_agent")
+voice_cmd_mod = _safe_import("yazklinik_voice_command_agent")
+burnout_mod = _safe_import("yazklinik_anti_burnout_agent")
+hatira_mod = _safe_import("yazklinik_hatira_usg_agent")
+orchestrator_mod = _safe_import("yazklinik_orchestrator_agent")
+portal_mod = _safe_import("yazklinik_hasta_portal_agent")
+twofa_mod = _safe_import("yazklinik_2fa_agent")
+phq9_mod = _safe_import("yazklinik_phq9_agent")
+stok_mod = _safe_import("yazklinik_stok_agent")
+konsey_mod = _safe_import("yazklinik_konsey_agent")
+payment_mod = _safe_import("yazklinik_payment_agent")
+enabiz_mod = _safe_import("yazklinik_enabiz_kts_agent")
+mhrs_mod = _safe_import("yazklinik_mhrs_agent")
+medula_mod = _safe_import("yazklinik_medula_agent")
+lab_duzen_mod = _safe_import("yazklinik_lab_duzen_agent")
+iot_mod = _safe_import("yazklinik_iot_bluetooth_agent")
+plugin_mod = _safe_import("yazklinik_plugin_loader")
+smear_mod = _safe_import("yazklinik_smear_hpv_agent")
+memnuniyet_mod = _safe_import("yazklinik_memnuniyet_agent")
+pubmed_cron_mod = _safe_import("yazklinik_pubmed_cron_agent")
+compliance_mod = _safe_import("yazklinik_compliance_agent")
+status_mod = _safe_import("yazklinik_status_page_agent")
+celery_mod = _safe_import("yazklinik_celery_worker")
+sentry_mod = _safe_import("yazklinik_sentry_init")
+
 # Registry (opsiyonel)
 try:
     from yazklinik_integration_agents import get_integration_agents as _get_registry
@@ -163,6 +199,12 @@ def _require_session():
         return _flask_redirect("/giris?next=" + next_url)
     except Exception:
         return jsonify({"ok": False, "error": "auth_required"}), 401
+
+
+def _require_session_or_cron():
+    if _cron_auth_ok():
+        return None
+    return _require_session()
 
 
 def _to_jsonable(value: Any) -> Any:
@@ -244,6 +286,35 @@ def api_agents_manifest():
         "instagram": instagram_mod is not None,
         "ceviri": ceviri_mod is not None,
         "konsult": konsult_mod is not None,
+        "vision_usg": vision_mod is not None,
+        "soap": soap_mod is not None,
+        "icd10": icd10_mod is not None,
+        "gebelik_takvim": gebelik_mod is not None,
+        "risk_skor": risk_mod is not None,
+        "ddi": ddi_mod is not None,
+        "smear_hpv": smear_mod is not None,
+        "phq9": phq9_mod is not None,
+        "konsey": konsey_mod is not None,
+        "hatira_usg": hatira_mod is not None,
+        "voice_command": voice_cmd_mod is not None,
+        "anti_burnout": burnout_mod is not None,
+        "orchestrator": orchestrator_mod is not None,
+        "hasta_portal": portal_mod is not None,
+        "2fa": twofa_mod is not None,
+        "stok": stok_mod is not None,
+        "plugin_loader": plugin_mod is not None,
+        "compliance": compliance_mod is not None,
+        "status_page": status_mod is not None,
+        "celery_worker": celery_mod is not None,
+        "sentry": sentry_mod is not None,
+        "memnuniyet": memnuniyet_mod is not None,
+        "pubmed_cron": pubmed_cron_mod is not None,
+        "payment": payment_mod is not None,
+        "enabiz_kts": enabiz_mod is not None,
+        "mhrs": mhrs_mod is not None,
+        "medula": medula_mod is not None,
+        "lab_duzen": lab_duzen_mod is not None,
+        "iot_bluetooth": iot_mod is not None,
     }
     return jsonify(payload)
 
@@ -309,6 +380,137 @@ load();
 </script>
 </body></html>
 """
+
+_SESSION7_AGENT_CARDS = [
+    {"cat": "Klinik AI", "icon": "USG", "name": "USG Vision", "desc": "USG goruntusunu lokal vision model ile yorumlar.", "method": "POST", "url": "/api/agents/vision-usg/analyze", "payload": {"image_path": ""}},
+    {"cat": "Klinik AI", "icon": "SOAP", "name": "SOAP Not", "desc": "Kisa klinik notu SOAP formatina genisletir.", "method": "POST", "url": "/api/agents/soap/expand", "payload": {"note": "Gebelik kontrolu, tansiyon normal, sikayet yok."}},
+    {"cat": "Klinik AI", "icon": "ICD", "name": "ICD-10 Oneri", "desc": "Klinik nottan uygun ICD-10 kodlarini onerir.", "method": "POST", "url": "/api/agents/icd10/suggest", "payload": {"note": "Gebelikte hipertansiyon takibi", "top_k": 5}},
+    {"cat": "Klinik AI", "icon": "DDI", "name": "Ilac Etkilesim", "desc": "Ilac etkilesimi ve gebelik uyarilarini tarar.", "method": "POST", "url": "/api/agents/ddi/check", "payload": {"drugs": ["warfarin", "aspirin"], "is_pregnant": False}},
+    {"cat": "Klinik AI", "icon": "HPV", "name": "Smear/HPV Takip", "desc": "Smear ve HPV sonucuna gore takip plani uretir.", "method": "POST", "url": "/api/agents/smear-hpv/followup", "payload": {"patient_id": "demo", "age": 35, "smear_result": "ASCUS", "hpv_result": "positive"}},
+    {"cat": "Klinik AI", "icon": "PHQ", "name": "PHQ-9 Skor", "desc": "9 cevapla depresyon tarama skorunu hesaplar.", "method": "POST", "url": "/api/agents/phq9/score", "payload": {"patient_id": "demo", "answers": [2, 2, 2, 2, 2, 2, 2, 1, 1]}},
+    {"cat": "Klinik AI", "icon": "KNS", "name": "Konsey Sunum", "desc": "Olgu icin konsey sunumu taslagi hazirlar.", "method": "POST", "url": "/api/agents/konsey/build", "payload": {"patient_id": "demo", "patient_initials": "D.H.", "age": 35, "diagnosis": "Infertilite", "clinical_summary": "Primer infertilite degerlendirme", "questions": ["Tedavi plani?"]}},
+    {"cat": "Klinik AI", "icon": "HAT", "name": "Hatira USG", "desc": "USG hatira gorseli ve WhatsApp taslagi hazirlar.", "method": "POST", "url": "/api/agents/hatira-usg/prepare", "payload": {"patient_id": "demo", "patient_name": "Demo Hasta", "usg_pdf_or_image": "", "consent_acknowledged": True}},
+    {"cat": "Klinik AI", "icon": "PRE", "name": "Preeklampsi Risk", "desc": "Tansiyon ve klinik bulgularla risk skoru verir.", "method": "POST", "url": "/api/agents/risk/preeklampsi", "payload": {"systolic": 145, "diastolic": 95, "proteinuria": "+"}},
+    {"cat": "Klinik AI", "icon": "HEL", "name": "HELLP Risk", "desc": "Trombosit, AST, ALT ve LDH ile HELLP riskini hesaplar.", "method": "POST", "url": "/api/agents/risk/hellp", "payload": {"thrombocyte": 95000, "ast": 80, "alt": 75, "ldh": 650, "bilirubin": 1.4}},
+    {"cat": "Klinik AI", "icon": "BIS", "name": "Bishop Skor", "desc": "Dogum indiksiyonu icin Bishop skorunu hesaplar.", "method": "POST", "url": "/api/agents/risk/bishop", "payload": {"dilation_cm": 2, "effacement_pct": 50, "station": -2, "consistency": "medium", "position": "mid"}},
+    {"cat": "Klinik AI", "icon": "VTE", "name": "VTE Padua", "desc": "VTE profilaksi ihtiyaci icin Padua skorunu hesaplar.", "method": "POST", "url": "/api/agents/risk/vte", "payload": {"age_60_plus": True, "reduced_mobility": True}},
+    {"cat": "Sistem", "icon": "SES", "name": "Ses Komut Parse", "desc": "Konusulan komutu olcum, not veya navigasyona cevirir.", "method": "POST", "url": "/api/agents/voice-command/parse", "payload": {"text": "BPD 85"}},
+    {"cat": "Sistem", "icon": "DR", "name": "Anti Burnout", "desc": "Gunluk tempo ve klinik yuk icin rapor uretir.", "method": "GET", "url": "/api/agents/burnout/report", "payload": {}},
+    {"cat": "Sistem", "icon": "VIS", "name": "Tam Muayene Orkestrator", "desc": "Klinik vaka metninden zincir calisma baslatir.", "method": "POST", "url": "/api/agents/orchestrator/full-visit", "payload": {"case_text": "28 yas, gebelik kontrolu, sikayet yok."}},
+    {"cat": "Sistem", "icon": "PUB", "name": "PubMed Paket", "desc": "PubMed arastirma paketi ve ozet zinciri olusturur.", "method": "POST", "url": "/api/agents/orchestrator/pubmed-pack", "payload": {"query": "preeclampsia 2025 review", "max_articles": 2}},
+    {"cat": "Sistem", "icon": "PIPE", "name": "USG Pipeline", "desc": "USG goruntu analizi ve hasta dosyasi zinciri icin hazir.", "method": "POST", "url": "/api/agents/orchestrator/usg-pipeline", "payload": {"image_path": "", "patient_key": "demo"}},
+    {"cat": "Sistem", "icon": "PRT", "name": "Hasta Portal Link", "desc": "Hasta icin sureli magic-link uretir.", "method": "POST", "url": "/api/agents/portal/issue-link", "payload": {"patient_id": "demo", "phone": "05550000000"}},
+    {"cat": "Sistem", "icon": "2FA", "name": "2FA Kurulum API", "desc": "Doktor kullanicisi icin TOTP kurulumu baslatir.", "method": "POST", "url": "/api/agents/2fa/setup", "payload": {}},
+    {"cat": "Sistem", "icon": "STK", "name": "Stok Rapor", "desc": "Azalan ve miadi yaklasan stoklari listeler.", "method": "GET", "url": "/api/agents/stok/report", "payload": {}},
+    {"cat": "Sistem", "icon": "PLG", "name": "Plugin Listesi", "desc": "Yerel plugin klasorlerini tarar ve listeler.", "method": "GET", "url": "/api/agents/plugins/list", "payload": {}},
+    {"cat": "Compliance + Status", "icon": "KVK", "name": "Uyumluluk Kontrolu", "desc": "ISO/KVKK kontrol listesini ve notunu hesaplar.", "method": "GET", "url": "/api/agents/compliance/run", "payload": {}},
+    {"cat": "Compliance + Status", "icon": "STS", "name": "Public Status", "desc": "Klinik servis durumunu JSON olarak verir.", "method": "GET", "url": "/api/status", "payload": {}},
+    {"cat": "Compliance + Status", "icon": "PWA", "name": "Manifest", "desc": "PWA manifest dosyasini kontrol eder.", "method": "GET", "url": "/manifest.webmanifest", "payload": {}},
+    {"cat": "Compliance + Status", "icon": "SW", "name": "Service Worker", "desc": "PWA service worker dosyasini kontrol eder.", "method": "GET", "url": "/sw.js", "payload": {}},
+    {"cat": "Cron + Stub", "icon": "ANK", "name": "Memnuniyet Anketi", "desc": "Dunku hastalar icin anket gorevini baslatir.", "method": "POST", "url": "/api/agents/memnuniyet/survey-yesterday", "payload": {}},
+    {"cat": "Cron + Stub", "icon": "BD", "name": "Dogum Gunu Tebrik", "desc": "Bugunku dogum gunu mesajlarini hazirlar.", "method": "POST", "url": "/api/agents/memnuniyet/birthday-today", "payload": {}},
+    {"cat": "Cron + Stub", "icon": "PM", "name": "PubMed Cron", "desc": "Planli PubMed taramasini calistirir.", "method": "POST", "url": "/api/agents/pubmed-cron/scan", "payload": {"queries": ["preeclampsia"], "max_per_query": 1}},
+    {"cat": "Cron + Stub", "icon": "PAY", "name": "Odeme Baslat", "desc": "Odeme saglayici stub akisina test istegi atar.", "method": "POST", "url": "/api/agents/payment/initiate", "payload": {"patient_id": "demo", "amount_try": 100, "description": "Demo islem"}},
+    {"cat": "Cron + Stub", "icon": "ENB", "name": "e-Nabiz Health", "desc": "e-Nabiz/KTS entegrasyon durumunu okur.", "method": "GET", "url": "/api/agents/enabiz/health", "payload": {}},
+    {"cat": "Cron + Stub", "icon": "MHR", "name": "MHRS Health", "desc": "MHRS entegrasyon saglik bilgisini okur.", "method": "GET", "url": "/api/agents/mhrs/health", "payload": {}},
+    {"cat": "Cron + Stub", "icon": "MED", "name": "Medula Provizyon", "desc": "SGK provizyon stub sorgusunu calistirir.", "method": "POST", "url": "/api/agents/medula/provizyon", "payload": {"tc": "11111111110"}},
+    {"cat": "Cron + Stub", "icon": "LAB", "name": "Lab Duzen", "desc": "Laboratuvar entegrasyon stub sonucunu getirir.", "method": "POST", "url": "/api/agents/lab-duzen/fetch", "payload": {"patient_tc": "11111111110"}},
+    {"cat": "Cron + Stub", "icon": "IOT", "name": "IoT Bluetooth", "desc": "Bluetooth cihaz tarama stub akisina istek atar.", "method": "POST", "url": "/api/agents/iot/scan", "payload": {"timeout_sec": 2}},
+]
+
+_SESSION7_AGENT_ADDON = """
+<style id="session7-agent-cards-css">
+  .s7-head { margin: 26px 0 12px; display:flex; justify-content:space-between; gap:12px; align-items:end; flex-wrap:wrap; }
+  .s7-head h2 { margin:0; font-size:18px; color:#e6edf3; }
+  .s7-tabs { display:flex; gap:8px; flex-wrap:wrap; margin: 8px 0 16px; }
+  .s7-tab { border:1px solid #30363d; background:#161b22; color:#c9d1d9; border-radius:999px; padding:7px 11px; cursor:pointer; font-size:12px; font-weight:800; }
+  .s7-tab.active { background:#1f6feb; border-color:#58a6ff; color:white; }
+  .session7-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
+  .agent-card { background:#111820; border:1px solid #2f4155; border-radius:14px; padding:14px; box-shadow:0 12px 28px rgba(0,0,0,.18); }
+  .agent-card h3 { margin:0; font-size:15px; color:#79c0ff; }
+  .agent-card p { min-height:36px; }
+  .agent-ico { min-width:42px; height:32px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; background:#0d419d; color:#fff; font-size:11px; font-weight:900; letter-spacing:.02em; }
+  .agent-card-top { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .agent-card-actions { display:flex; gap:8px; align-items:center; margin-top:10px; }
+  .agent-run { padding:7px 11px; background:#238636; color:white; border:0; border-radius:8px; cursor:pointer; font-weight:800; font-size:12px; }
+  .agent-copy { padding:7px 9px; background:#21262d; color:#c9d1d9; border:1px solid #30363d; border-radius:8px; cursor:pointer; font-size:12px; }
+  .agent-result { margin-top:10px; background:#010409; border:1px solid #30363d; border-radius:8px; padding:9px; min-height:42px; max-height:220px; overflow:auto; white-space:pre-wrap; font-size:11px; color:#c9d1d9; }
+  .agent-result.ok { border-color:#238636; }
+  .agent-result.fail { border-color:#da3633; color:#ffd5d5; }
+</style>
+<section id="session7-agents">
+  <div class="s7-head">
+    <div>
+      <h2>Session 7 ajanlari</h2>
+      <p style="margin:4px 0 0;color:#8b949e;font-size:12px;">29 yeni modulu kapsayan calistirilabilir aksiyon kartlari.</p>
+    </div>
+    <a class="btn" href="/uyumluluk">Uyumluluk panosu</a>
+  </div>
+  <div class="s7-tabs" id="s7Tabs"></div>
+  <div class="session7-grid" id="session7Grid"></div>
+</section>
+<script id="session7-agent-cards-js">
+const SESSION7_AGENT_CARDS = __SESSION7_CARDS__;
+let s7ActiveCat = 'Klinik AI';
+function s7Escape(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function s7RenderTabs() {
+  const cats = [...new Set(SESSION7_AGENT_CARDS.map(c => c.cat))];
+  document.getElementById('s7Tabs').innerHTML = cats.map(cat =>
+    '<button class="s7-tab '+(cat===s7ActiveCat?'active':'')+'" onclick="s7ActiveCat=\\''+cat+'\\';s7RenderTabs();s7RenderCards();">'+cat+'</button>'
+  ).join('');
+}
+function s7RenderCards() {
+  const cards = SESSION7_AGENT_CARDS.filter(c => c.cat === s7ActiveCat);
+  document.getElementById('session7Grid').innerHTML = cards.map((c, i) => `
+    <div class="agent-card" data-cat="${s7Escape(c.cat)}">
+      <div class="agent-card-top"><span class="agent-ico">${s7Escape(c.icon)}</span><h3>${s7Escape(c.name)}</h3></div>
+      <p>${s7Escape(c.desc)}</p>
+      <div class="meta"><code>${s7Escape(c.method)}</code> <code>${s7Escape(c.url)}</code></div>
+      <div class="agent-card-actions">
+        <button class="agent-run" onclick="s7RunCard(${SESSION7_AGENT_CARDS.indexOf(c)})">Calistir</button>
+        <button class="agent-copy" onclick="navigator.clipboard && navigator.clipboard.writeText(JSON.stringify(SESSION7_AGENT_CARDS[${SESSION7_AGENT_CARDS.indexOf(c)}].payload,null,2))">Payload kopyala</button>
+      </div>
+      <pre class="agent-result" id="s7res-${SESSION7_AGENT_CARDS.indexOf(c)}">(bekliyor)</pre>
+    </div>`).join('');
+}
+async function s7RunCard(idx) {
+  const c = SESSION7_AGENT_CARDS[idx];
+  const out = document.getElementById('s7res-' + idx);
+  out.className = 'agent-result';
+  out.textContent = 'Calisiyor...';
+  try {
+    const opt = {credentials:'same-origin', headers:{'Accept':'application/json'}};
+    if (c.method !== 'GET') {
+      opt.method = c.method;
+      opt.headers['Content-Type'] = 'application/json';
+      opt.body = JSON.stringify(c.payload || {});
+    }
+    const r = await fetch(c.url, opt);
+    const text = await r.text();
+    let data;
+    try { data = JSON.parse(text); }
+    catch (_) { data = {status:r.status, body:text.slice(0,1600)}; }
+    out.classList.add(r.ok ? 'ok' : 'fail');
+    out.textContent = JSON.stringify(data, null, 2);
+  } catch(e) {
+    out.classList.add('fail');
+    out.textContent = 'Hata: ' + e.message;
+  }
+}
+s7RenderTabs();
+s7RenderCards();
+</script>
+"""
+
+_AGENTS_PAGE = _AGENTS_PAGE.replace(
+    '<h2 style="margin-top: 28px; font-size: 16px;">Manifest</h2>',
+    _SESSION7_AGENT_ADDON.replace(
+        "__SESSION7_CARDS__",
+        json.dumps(_SESSION7_AGENT_CARDS, ensure_ascii=True)
+    ) + '<h2 style="margin-top: 28px; font-size: 16px;">Manifest</h2>'
+)
 
 
 @agents_bp.route("/ajanlar", methods=["GET"])
@@ -2432,4 +2634,750 @@ document.getElementById('searchQuery').addEventListener('keydown', e => { if (e.
 </script>
 </body></html>
 """
+
+
+# ============================================================================
+# Session 7: 29 yeni ajan endpointleri (Mayis 2026)
+# ============================================================================
+
+# --- Vision USG (llama3.2-vision) ---
+@agents_bp.route("/api/agents/vision-usg/analyze", methods=["POST"])
+def api_vision_usg_analyze():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(vision_mod, "vision_usg")
+    if err: return err
+    p = _payload()
+    image_path = p.get("image_path") or ""
+    if not image_path:
+        return jsonify({"ok": False, "error": "image_path gerekli"}), 400
+    return _wrap_call("vision_usg", vision_mod.analyze_image,
+                       {"image_path": image_path})
+
+
+# --- SOAP genisletici ---
+@agents_bp.route("/api/agents/soap/expand", methods=["POST"])
+def api_soap_expand():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(soap_mod, "soap")
+    if err: return err
+    p = _payload()
+    note = (p.get("note") or p.get("text") or "").strip()
+    if not note:
+        return jsonify({"ok": False, "error": "note gerekli"}), 400
+    return _wrap_call("soap", soap_mod.expand_to_soap,
+                       {"short_note": note, "prefer": p.get("prefer", "ollama")})
+
+
+# --- ICD-10 oner ---
+@agents_bp.route("/api/agents/icd10/suggest", methods=["POST"])
+def api_icd10_suggest():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(icd10_mod, "icd10")
+    if err: return err
+    p = _payload()
+    note = (p.get("note") or p.get("text") or "").strip()
+    return _wrap_call("icd10", icd10_mod.suggest_codes,
+                       {"note": note, "top_k": int(p.get("top_k", 5)),
+                        "prefer": p.get("prefer", "ollama")})
+
+
+# --- Gebelik takvimi ---
+@agents_bp.route("/api/agents/gebelik/plan", methods=["POST"])
+def api_gebelik_plan():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(gebelik_mod, "gebelik_takvim")
+    if err: return err
+    p = _payload()
+    lmp = p.get("lmp") or ""
+    if not lmp:
+        return jsonify({"ok": False, "error": "lmp (YYYY-MM-DD) gerekli"}), 400
+    return _wrap_call("gebelik_takvim", gebelik_mod.compute_plan,
+                       {"lmp_iso": lmp})
+
+
+# --- Risk skorlari (preeklampsi/HELLP/Bishop) ---
+@agents_bp.route("/api/agents/risk/preeklampsi", methods=["POST"])
+def api_risk_preeklampsi():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(risk_mod, "risk_skor")
+    if err: return err
+    return _wrap_call("risk_preeklampsi", risk_mod.preeklampsi_risk, _payload())
+
+
+@agents_bp.route("/api/agents/risk/hellp", methods=["POST"])
+def api_risk_hellp():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(risk_mod, "risk_skor")
+    if err: return err
+    return _wrap_call("risk_hellp", risk_mod.hellp_risk, _payload())
+
+
+@agents_bp.route("/api/agents/risk/bishop", methods=["POST"])
+def api_risk_bishop():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(risk_mod, "risk_skor")
+    if err: return err
+    return _wrap_call("risk_bishop", risk_mod.bishop_score, _payload())
+
+
+@agents_bp.route("/api/agents/risk/vte", methods=["POST"])
+def api_risk_vte():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(risk_mod, "risk_skor")
+    if err: return err
+    return _wrap_call("risk_vte", risk_mod.vte_padua_score, _payload())
+
+
+# --- DDI Drug interaction ---
+@agents_bp.route("/api/agents/ddi/check", methods=["POST"])
+def api_ddi_check():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(ddi_mod, "ddi")
+    if err: return err
+    p = _payload()
+    drugs = p.get("drugs") or []
+    if isinstance(drugs, str):
+        drugs = [d.strip() for d in drugs.split(",") if d.strip()]
+    return _wrap_call("ddi", ddi_mod.check_interactions, {
+        "drugs": drugs,
+        "is_pregnant": bool(p.get("is_pregnant", False)),
+        "trimester": p.get("trimester")})
+
+
+# --- Voice command ---
+@agents_bp.route("/api/agents/voice-command/parse", methods=["POST"])
+def api_voice_command_parse():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(voice_cmd_mod, "voice_command")
+    if err: return err
+    p = _payload()
+    text = p.get("text") or p.get("spoken_text") or ""
+    return _wrap_call("voice_command", voice_cmd_mod.parse, {"spoken_text": text})
+
+
+# --- Anti-burnout dashboard ---
+@agents_bp.route("/api/agents/burnout/report", methods=["GET", "POST"])
+def api_burnout_report():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(burnout_mod, "anti_burnout")
+    if err: return err
+    return _wrap_call("anti_burnout", burnout_mod.compute_report, {})
+
+
+# --- Hatira USG WhatsApp ---
+@agents_bp.route("/api/agents/hatira-usg/prepare", methods=["POST"])
+def api_hatira_prepare():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(hatira_mod, "hatira_usg")
+    if err: return err
+    p = _payload()
+    return _wrap_call("hatira_prepare", hatira_mod.prepare, {
+        "patient_id": p.get("patient_id", ""),
+        "patient_name": p.get("patient_name", ""),
+        "patient_phone": p.get("patient_phone", ""),
+        "usg_pdf_or_image": p.get("usg_pdf_or_image", ""),
+        "ga_text": p.get("ga_text", ""),
+        "template_index": int(p.get("template_index", 0)),
+        "consent_acknowledged": bool(p.get("consent_acknowledged", False))})
+
+
+@agents_bp.route("/api/agents/hatira-usg/send", methods=["POST"])
+def api_hatira_send():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(hatira_mod, "hatira_usg")
+    if err: return err
+    p = _payload()
+    if not p.get("consent_acknowledged"):
+        return jsonify({"ok": False, "error": "consent zorunlu"}), 400
+    # Onceden prepare() ile uretilen job dict'i kabul et
+    try:
+        from yazklinik_hatira_usg_agent import HatiraJob
+        job = HatiraJob(**{k: v for k, v in p.items()
+                            if k in HatiraJob.__dataclass_fields__})
+        out = hatira_mod.send(job)
+        return jsonify({"ok": True, "result": asdict(out)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# --- Orchestrator (chain) ---
+@agents_bp.route("/api/agents/orchestrator/full-visit", methods=["POST"])
+def api_orch_full_visit():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(orchestrator_mod, "orchestrator")
+    if err: return err
+    p = _payload()
+    case = p.get("case_text") or ""
+    if not case:
+        return jsonify({"ok": False, "error": "case_text gerekli"}), 400
+    return _wrap_call("orchestrator_full_visit", orchestrator_mod.full_visit,
+                       {"case_text": case, "prefer": p.get("prefer", "ollama")})
+
+
+@agents_bp.route("/api/agents/orchestrator/pubmed-pack", methods=["POST"])
+def api_orch_pubmed_pack():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(orchestrator_mod, "orchestrator")
+    if err: return err
+    p = _payload()
+    q = p.get("query") or ""
+    if not q:
+        return jsonify({"ok": False, "error": "query gerekli"}), 400
+    return _wrap_call("orchestrator_pubmed_pack", orchestrator_mod.pubmed_research_pack,
+                       {"query": q, "max_articles": int(p.get("max_articles", 3))})
+
+
+@agents_bp.route("/api/agents/orchestrator/usg-pipeline", methods=["POST"])
+def api_orch_usg_pipeline():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(orchestrator_mod, "orchestrator")
+    if err: return err
+    p = _payload()
+    image = p.get("image_path") or ""
+    if not image:
+        return jsonify({"ok": False, "error": "image_path gerekli"}), 400
+    return _wrap_call("orchestrator_usg_pipeline", orchestrator_mod.usg_full_pipeline,
+                       {"image_path": image, "patient_key": p.get("patient_key", ""),
+                        "lmp": p.get("lmp")})
+
+
+# --- Hasta Portal ---
+@agents_bp.route("/api/agents/portal/issue-link", methods=["POST"])
+def api_portal_issue_link():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(portal_mod, "hasta_portal")
+    if err: return err
+    p = _payload()
+    return _wrap_call("portal_issue", portal_mod.issue_magic_link, {
+        "patient_id": p.get("patient_id", ""),
+        "phone": p.get("phone", ""),
+        "base_url": p.get("base_url", "https://127.0.0.1:5443"),
+        "ttl_hours": int(p.get("ttl_hours", 24))})
+
+
+@agents_bp.route("/hasta-portal/giris", methods=["GET"])
+def hasta_portal_giris():
+    err = _agent_or_503(portal_mod, "hasta_portal")
+    if err: return err
+    token = request.args.get("token", "")
+    if not token:
+        return "Token eksik", 400
+    res = portal_mod.verify_token(token)
+    if not res.ok:
+        return f"Hata: {res.error}", 403
+    session["portal_patient_id"] = res.session.patient_id
+    return render_template_string(
+        "<html><body style='font-family:sans-serif;padding:24px'>"
+        "<h2>Hosgeldiniz</h2><p>Giris basarili. "
+        "<a href='/hasta-portal'>Portal ana sayfa</a></p></body></html>")
+
+
+@agents_bp.route("/hasta-portal", methods=["GET"])
+def hasta_portal_home():
+    pid = session.get("portal_patient_id")
+    if not pid:
+        return "Once magic link ile giris yapin", 401
+    visits = []
+    if portal_mod:
+        visits = portal_mod.list_my_visits(pid)
+    return render_template_string(
+        "<html><body style='font-family:sans-serif;padding:24px'>"
+        "<h2>Ziyaretleriniz</h2>"
+        "{% for v in visits %}<div style='border:1px solid #ccc;padding:8px;margin:8px'>"
+        "<b>{{v.visit_date}}</b> - {{v.visit_type}}<br>{{v.diagnosis}}"
+        "</div>{% endfor %}</body></html>", visits=visits)
+
+
+# --- 2FA TOTP ---
+@agents_bp.route("/api/agents/2fa/setup", methods=["POST"])
+def api_2fa_setup():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(twofa_mod, "2fa")
+    if err: return err
+    user = (session.get("user") or session.get("username") or "doktor")
+    return _wrap_call("2fa_setup", twofa_mod.setup, {"user": user})
+
+
+@agents_bp.route("/api/agents/2fa/enable", methods=["POST"])
+def api_2fa_enable():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(twofa_mod, "2fa")
+    if err: return err
+    p = _payload()
+    user = (session.get("user") or session.get("username") or "doktor")
+    ok = twofa_mod.enable(user, p.get("code", ""))
+    return jsonify({"ok": True, "result": {"enabled": ok}})
+
+
+@agents_bp.route("/api/agents/2fa/verify", methods=["POST"])
+def api_2fa_verify():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(twofa_mod, "2fa")
+    if err: return err
+    p = _payload()
+    user = (session.get("user") or session.get("username") or "doktor")
+    ok = twofa_mod.verify(user, p.get("code", ""))
+    return jsonify({"ok": True, "result": {"verified": ok}})
+
+
+@agents_bp.route("/2fa-setup", methods=["GET"])
+def two_fa_setup_page():
+    auth = _require_session()
+    if auth:
+        return auth
+    return render_template_string(r"""<!doctype html><html lang="tr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2FA Kurulum - YazKlinik</title>
+<style>
+body{font-family:-apple-system,Segoe UI,Arial,sans-serif;background:#eef5fb;color:#16243a;margin:0;padding:24px}
+.shell{max-width:980px;margin:0 auto}.top{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:18px}
+.card{background:#fff;border:1px solid #cbddeb;border-radius:12px;padding:18px;box-shadow:0 14px 32px rgba(21,69,105,.08)}
+h1{margin:0;color:#15395c}h2{font-size:17px;margin:0 0 10px}.muted{color:#63758a;font-size:13px;line-height:1.45}
+button,.btn{border:0;background:#1769aa;color:white;border-radius:9px;padding:10px 14px;font-weight:800;cursor:pointer;text-decoration:none;display:inline-flex;gap:8px;align-items:center}
+button.secondary{background:#eef4fa;color:#17324a;border:1px solid #c4d7e8}input,textarea{width:100%;box-sizing:border-box;border:1px solid #bfd0df;border-radius:9px;padding:10px;font:inherit}
+textarea{min-height:84px;font-family:Consolas,monospace;font-size:12px}.qrbox{background:#f6fbff;border:1px dashed #9ab9d4;border-radius:12px;padding:12px;word-break:break-all;font-family:Consolas,monospace;font-size:12px}
+.ok{color:#15803d;font-weight:800}.fail{color:#b42318;font-weight:800}.codes{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px}.code{background:#f2f6fb;border-radius:8px;padding:7px;text-align:center;font-family:Consolas,monospace}
+</style></head><body><main class="shell">
+<div class="top"><div><h1>2FA Kurulum</h1><p class="muted">Doktor hesabi icin TOTP/Authenticator kurulumu.</p></div><a class="btn" href="/ajanlar">Ajanlara don</a></div>
+<div class="steps">
+<section class="card"><h2>1. Kurulumu baslat</h2><p class="muted">Secret uretilir, QR yerine otpauth URL kopyalanabilir.</p><button onclick="startSetup()">Setup baslat</button><div id="setupStatus" class="muted" style="margin-top:10px"></div></section>
+<section class="card"><h2>2. Authenticator'a ekle</h2><p class="muted">Google/Microsoft Authenticator'da manuel anahtar veya otpauth URL ile ekleyin.</p><label>Secret</label><input id="secret" readonly><label style="margin-top:8px;display:block">otpauth URL</label><textarea id="otpauth" readonly></textarea><button class="secondary" onclick="copyOtp()">URL kopyala</button></section>
+<section class="card"><h2>3. 6 hane kodu dogrula</h2><p class="muted">Uygulamadaki 6 haneli kodu yazin ve 2FA'yi aktif edin.</p><input id="code" inputmode="numeric" maxlength="6" placeholder="123456"><button style="margin-top:10px" onclick="enable2fa()">Aktif et</button><div id="verifyStatus" style="margin-top:10px"></div><h2 style="margin-top:18px">Backup kodlari</h2><div id="codes" class="codes"></div><button class="secondary" style="margin-top:10px" onclick="downloadCodes()">Backup kodlarini indir</button></section>
+</div>
+</main><script>
+let setupData=null;
+async function postJson(url, body){const r=await fetch(url,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})}); const d=await r.json(); if(!r.ok||!d.ok) throw new Error((d&&d.error)||r.status); return d.result||d;}
+async function startSetup(){const st=document.getElementById('setupStatus'); st.textContent='Hazirlaniyor...'; try{setupData=await postJson('/api/agents/2fa/setup',{}); document.getElementById('secret').value=setupData.secret_b32||''; document.getElementById('otpauth').value=setupData.qr_url||''; document.getElementById('codes').innerHTML=(setupData.backup_codes||[]).map(c=>'<div class="code">'+c+'</div>').join(''); st.innerHTML='<span class="ok">Setup hazir.</span>'; }catch(e){st.innerHTML='<span class="fail">'+e.message+'</span>';}}
+async function enable2fa(){const box=document.getElementById('verifyStatus'); box.textContent='Kontrol ediliyor...'; try{const res=await postJson('/api/agents/2fa/enable',{code:document.getElementById('code').value}); box.innerHTML=res.enabled?'<span class="ok">2FA aktif edildi.</span>':'<span class="fail">Kod gecersiz.</span>'; }catch(e){box.innerHTML='<span class="fail">'+e.message+'</span>';}}
+function copyOtp(){const t=document.getElementById('otpauth'); t.select(); document.execCommand('copy');}
+function downloadCodes(){const codes=(setupData&&setupData.backup_codes)||[]; const blob=new Blob([codes.join('\\n')],{type:'text/plain'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='yazklinik-2fa-backup-codes.txt'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+</script></body></html>""")
+
+
+# --- PHQ-9 ---
+@agents_bp.route("/api/agents/phq9/score", methods=["POST"])
+def api_phq9_score():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(phq9_mod, "phq9")
+    if err: return err
+    p = _payload()
+    answers = p.get("answers") or []
+    if isinstance(answers, str):
+        answers = [int(x) for x in answers.replace(",", " ").split()]
+    return _wrap_call("phq9_score", phq9_mod.score,
+                       {"patient_id": p.get("patient_id", ""), "answers": answers})
+
+
+@agents_bp.route("/api/agents/phq9/questionnaire", methods=["GET"])
+def api_phq9_questionnaire():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(phq9_mod, "phq9")
+    if err: return err
+    return jsonify({"ok": True, "result": phq9_mod.get_questionnaire()})
+
+
+# --- Stok ---
+@agents_bp.route("/api/agents/stok/report", methods=["GET"])
+def api_stok_report():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(stok_mod, "stok")
+    if err: return err
+    return _wrap_call("stok_report", stok_mod.generate_report, {})
+
+
+@agents_bp.route("/api/agents/stok/upsert", methods=["POST"])
+def api_stok_upsert():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(stok_mod, "stok")
+    if err: return err
+    p = _payload()
+    try:
+        from yazklinik_stok_agent import StockItem
+        item = StockItem(**{k: v for k, v in p.items()
+                             if k in StockItem.__dataclass_fields__})
+        ok = stok_mod.upsert_item(item)
+        return jsonify({"ok": True, "result": {"upserted": ok}})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@agents_bp.route("/api/agents/stok/movement", methods=["POST"])
+def api_stok_movement():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(stok_mod, "stok")
+    if err: return err
+    p = _payload()
+    ok = stok_mod.record_movement(
+        code=p.get("code", ""), direction=p.get("direction", "out"),
+        quantity=int(p.get("quantity", 1)), note=p.get("note", ""))
+    return jsonify({"ok": True, "result": {"recorded": ok}})
+
+
+@agents_bp.route("/stok", methods=["GET"])
+def stok_page():
+    auth = _require_session()
+    if auth:
+        return auth
+    return render_template_string(r"""<!doctype html><html lang="tr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stok - YazKlinik</title>
+<style>
+body{font-family:-apple-system,Segoe UI,Arial,sans-serif;background:#eef5fb;color:#13243a;margin:0;padding:22px}
+.shell{max-width:1180px;margin:0 auto}.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+h1{margin:0;color:#15395c}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-top:16px}.card{background:#fff;border:1px solid #cbddeb;border-radius:12px;padding:16px;box-shadow:0 14px 32px rgba(21,69,105,.08)}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}label{display:block;font-size:12px;font-weight:800;color:#415873;margin-top:8px}
+input,select{width:100%;box-sizing:border-box;border:1px solid #bfd0df;border-radius:9px;padding:9px;font:inherit}button,.btn{border:0;background:#1769aa;color:white;border-radius:9px;padding:9px 12px;font-weight:800;cursor:pointer;text-decoration:none}
+button.secondary{background:#edf4fa;color:#17324a;border:1px solid #c4d7e8}table{width:100%;border-collapse:collapse;margin-top:10px}th,td{padding:9px;border-bottom:1px solid #e6eef5;text-align:left;font-size:13px}th{background:#f3f8fc}
+.alerts{display:grid;gap:8px}.alert{border-radius:9px;padding:10px;background:#fff7ed;border:1px solid #fed7aa}.critical{background:#fef2f2;border-color:#fecaca}.muted{color:#66788c;font-size:13px}.ok{color:#15803d}.fail{color:#b42318}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.chart{display:grid;gap:6px;margin-top:10px}.bar{display:grid;grid-template-columns:120px 1fr 42px;gap:8px;align-items:center}.bar span:nth-child(2){height:10px;background:#dbeafe;border-radius:999px;overflow:hidden}.bar i{display:block;height:10px;background:#1769aa}
+</style></head><body><main class="shell">
+<div class="top"><div><h1>Stok Yonetimi</h1><p class="muted">Ilac ve sarf stoklari, miat ve azalan uyarilari.</p></div><a class="btn" href="/ajanlar">Ajanlara don</a></div>
+<div class="grid">
+<section class="card"><h2>Stok raporu</h2><div id="summary" class="muted">Yukleniyor...</div><div id="alerts" class="alerts"></div><table><thead><tr><th>Kod</th><th>Ad</th><th>Kategori</th><th>Adet</th><th>Esik</th><th>Miat</th></tr></thead><tbody id="items"></tbody></table><h3>Aylik tuketim</h3><div id="chart" class="chart"></div></section>
+<section class="card"><h2>Yeni urun / guncelle</h2><label>Kod</label><input id="code" value="OXY-10IU"><label>Ad</label><input id="name" value="Oxytocin 10IU ampul"><div class="row"><div><label>Kategori</label><select id="category"><option>ilac</option><option>sarf</option><option>cihaz</option><option>egitim</option></select></div><div><label>Adet</label><input id="qty" type="number" value="4"></div></div><div class="row"><div><label>Esik</label><input id="threshold" type="number" value="5"></div><div><label>Miat</label><input id="expiry" type="date"></div></div><label>Tedarikci</label><input id="supplier" value="Klinik tedarikci"><label>Birim maliyet</label><input id="cost" type="number" step="0.01" value="45"><button style="margin-top:12px" onclick="saveItem()">Urunu kaydet</button><hr><h2>Hareket kaydet</h2><div class="row"><div><label>Yon</label><select id="direction"><option value="out">Cikis</option><option value="in">Giris</option></select></div><div><label>Adet</label><input id="moveQty" type="number" value="1"></div></div><label>Not</label><input id="note" value="Muayene kullanimi"><button class="secondary" style="margin-top:12px" onclick="saveMovement()">Hareket kaydet</button><div id="msg" class="muted" style="margin-top:10px"></div></section>
+</div></main><script>
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+async function api(url, body){const opt={credentials:'same-origin',headers:{'Accept':'application/json'}}; if(body!==undefined){opt.method='POST';opt.headers['Content-Type']='application/json';opt.body=JSON.stringify(body);} const r=await fetch(url,opt); const d=await r.json(); if(!r.ok||!d.ok) throw new Error((d&&d.error)||r.status); return d.result||d;}
+async function loadReport(){try{const r=await api('/api/agents/stok/report'); document.getElementById('summary').textContent='Kalem: '+r.total_items+' | Deger: '+r.total_value_try+' TRY | '+r.generated_at; document.getElementById('alerts').innerHTML=(r.alerts||[]).map(a=>'<div class="alert '+(a.severity==='critical'?'critical':'')+'"><b>'+esc(a.item_name)+'</b><br>'+esc(a.message)+'<br><small>'+esc(a.suggested_action)+'</small></div>').join('') || '<p class="ok">Aktif stok uyarisi yok.</p>'; document.getElementById('items').innerHTML=(r.items||[]).map(i=>'<tr><td>'+esc(i.code)+'</td><td>'+esc(i.name)+'</td><td>'+esc(i.category)+'</td><td>'+esc(i.quantity_on_hand)+'</td><td>'+esc(i.reorder_threshold)+'</td><td>'+esc(i.expiry_date)+'</td></tr>').join('') || '<tr><td colspan="6" class="muted">Kayitli stok yok.</td></tr>'; const cons=r.monthly_consumption_estimate||{}; const max=Math.max(1,...Object.values(cons)); document.getElementById('chart').innerHTML=Object.entries(cons).map(([k,v])=>'<div class="bar"><b>'+esc(k)+'</b><span><i style="width:'+(v/max*100)+'%"></i></span><em>'+v+'</em></div>').join('') || '<p class="muted">Son 30 gunde cikis yok.</p>'; }catch(e){document.getElementById('summary').innerHTML='<span class="fail">'+e.message+'</span>';}}
+function formItem(){return {code:code.value,name:name.value,category:category.value,quantity_on_hand:Number(qty.value||0),reorder_threshold:Number(threshold.value||0),expiry_date:expiry.value,supplier:supplier.value,cost_per_unit:Number(cost.value||0)}}
+async function saveItem(){const m=document.getElementById('msg'); try{await api('/api/agents/stok/upsert',formItem()); m.innerHTML='<span class="ok">Urun kaydedildi.</span>'; loadReport();}catch(e){m.innerHTML='<span class="fail">'+e.message+'</span>';}}
+async function saveMovement(){const m=document.getElementById('msg'); try{await api('/api/agents/stok/movement',{code:code.value,direction:direction.value,quantity:Number(moveQty.value||1),note:note.value}); m.innerHTML='<span class="ok">Hareket kaydedildi.</span>'; loadReport();}catch(e){m.innerHTML='<span class="fail">'+e.message+'</span>';}}
+(function(){const d=new Date(); d.setDate(d.getDate()+20); expiry.value=d.toISOString().slice(0,10); loadReport();})();
+</script></body></html>""")
+
+
+# --- Konsey vaka sunum ---
+@agents_bp.route("/api/agents/konsey/build", methods=["POST"])
+def api_konsey_build():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(konsey_mod, "konsey")
+    if err: return err
+    p = _payload()
+    try:
+        from yazklinik_konsey_agent import ConseyVakaInput
+        case = ConseyVakaInput(**{k: v for k, v in p.items()
+                                   if k in ConseyVakaInput.__dataclass_fields__})
+        sunum = konsey_mod.build_presentation(case, use_rag=bool(p.get("use_rag", True)))
+        return jsonify({"ok": True, "result": asdict(sunum)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+# --- Payment ---
+@agents_bp.route("/api/agents/payment/initiate", methods=["POST"])
+def api_payment_initiate():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(payment_mod, "payment")
+    if err: return err
+    p = _payload()
+    try:
+        from yazklinik_payment_agent import PaymentRequest
+        req = PaymentRequest(**{k: v for k, v in p.items()
+                                 if k in PaymentRequest.__dataclass_fields__})
+        out = payment_mod.initiate(req)
+        return jsonify({"ok": True, "result": asdict(out)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@agents_bp.route("/api/agents/payment/webhook/<provider>", methods=["POST"])
+def api_payment_webhook(provider):
+    err = _agent_or_503(payment_mod, "payment")
+    if err: return err
+    return jsonify({"ok": True,
+                     "result": payment_mod.confirm_webhook(
+                         provider, request.get_json(silent=True) or {},
+                         signature=request.headers.get("X-Signature", ""))})
+
+
+@agents_bp.route("/api/agents/payment/recent", methods=["GET"])
+def api_payment_recent():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(payment_mod, "payment")
+    if err: return err
+    return jsonify({"ok": True, "result": payment_mod.list_recent(limit=50)})
+
+
+# --- Health/info for stubs (e-Nabiz, MHRS, Medula, Duzen, IoT) ---
+@agents_bp.route("/api/agents/enabiz/health", methods=["GET"])
+def api_enabiz_health():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(enabiz_mod, "enabiz")
+    if err: return err
+    return jsonify({"ok": True, "result": enabiz_mod.health_check()})
+
+
+@agents_bp.route("/api/agents/mhrs/health", methods=["GET"])
+def api_mhrs_health():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(mhrs_mod, "mhrs")
+    if err: return err
+    return jsonify({"ok": True, "result": mhrs_mod.health_check()})
+
+
+@agents_bp.route("/api/agents/medula/health", methods=["GET"])
+def api_medula_health():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(medula_mod, "medula")
+    if err: return err
+    return jsonify({"ok": True, "result": medula_mod.health_check()})
+
+
+@agents_bp.route("/api/agents/medula/provizyon", methods=["POST"])
+def api_medula_provizyon():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(medula_mod, "medula")
+    if err: return err
+    p = _payload()
+    out = medula_mod.query_provizyon(p.get("tc", ""))
+    return jsonify({"ok": True, "result": asdict(out)})
+
+
+@agents_bp.route("/api/agents/lab-duzen/health", methods=["GET"])
+def api_lab_duzen_health():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(lab_duzen_mod, "lab_duzen")
+    if err: return err
+    return jsonify({"ok": True, "result": lab_duzen_mod.health_check()})
+
+
+@agents_bp.route("/api/agents/lab-duzen/fetch", methods=["POST"])
+def api_lab_duzen_fetch():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(lab_duzen_mod, "lab_duzen")
+    if err: return err
+    p = _payload()
+    out = lab_duzen_mod.fetch_results(p.get("patient_tc", ""))
+    return jsonify({"ok": True, "result": asdict(out)})
+
+
+@agents_bp.route("/api/agents/iot/scan", methods=["POST"])
+def api_iot_scan():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(iot_mod, "iot_bluetooth")
+    if err: return err
+    p = _payload()
+    out = iot_mod.scan_for_devices(int(p.get("timeout_sec", 5)))
+    return jsonify({"ok": True, "result": asdict(out)})
+
+
+# --- Plugin loader ---
+@agents_bp.route("/api/agents/plugins/list", methods=["GET"])
+def api_plugins_list():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(plugin_mod, "plugin_loader")
+    if err: return err
+    plugin_mod.scan_and_load()
+    return jsonify({"ok": True, "result": plugin_mod.list_plugins()})
+
+
+@agents_bp.route("/api/agents/plugins/call", methods=["POST"])
+def api_plugins_call():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(plugin_mod, "plugin_loader")
+    if err: return err
+    p = _payload()
+    return jsonify({"ok": True,
+                     "result": plugin_mod.call_plugin(
+                         p.get("plugin", ""), p.get("func", ""),
+                         *p.get("args", []), **p.get("kwargs", {}))})
+
+
+# --- Smear/HPV takip ---
+@agents_bp.route("/api/agents/smear-hpv/followup", methods=["POST"])
+def api_smear_followup():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(smear_mod, "smear_hpv")
+    if err: return err
+    p = _payload()
+    try:
+        from yazklinik_smear_hpv_agent import SmearRecord
+        rec = SmearRecord(**{k: v for k, v in p.items()
+                              if k in SmearRecord.__dataclass_fields__})
+        plan = smear_mod.compute_followup(rec)
+        return jsonify({"ok": True, "result": asdict(plan)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+# --- Memnuniyet + dogum gunu ---
+@agents_bp.route("/api/agents/memnuniyet/survey-yesterday", methods=["POST"])
+def api_memnuniyet_survey():
+    auth = _require_session_or_cron()
+    if auth: return auth
+    err = _agent_or_503(memnuniyet_mod, "memnuniyet")
+    if err: return err
+    return _wrap_call("memnuniyet_survey", memnuniyet_mod.send_survey_for_yesterday, {})
+
+
+@agents_bp.route("/api/agents/memnuniyet/birthday-today", methods=["POST"])
+def api_birthday_today():
+    auth = _require_session_or_cron()
+    if auth: return auth
+    err = _agent_or_503(memnuniyet_mod, "memnuniyet")
+    if err: return err
+    return _wrap_call("birthday_today", memnuniyet_mod.send_birthday_today, {})
+
+
+# --- PubMed cron tarama ---
+@agents_bp.route("/api/agents/pubmed-cron/scan", methods=["POST"])
+def api_pubmed_cron_scan():
+    auth = _require_session_or_cron()
+    if auth: return auth
+    err = _agent_or_503(pubmed_cron_mod, "pubmed_cron")
+    if err: return err
+    p = _payload()
+    return _wrap_call("pubmed_cron_scan", pubmed_cron_mod.scan, {
+        "queries": p.get("queries"),
+        "max_per_query": int(p.get("max_per_query", 3)),
+        "send_to_doctor": bool(p.get("send_to_doctor", True))})
+
+
+# --- Compliance dashboard ---
+@agents_bp.route("/api/agents/compliance/run", methods=["GET", "POST"])
+def api_compliance_run():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(compliance_mod, "compliance")
+    if err: return err
+    return _wrap_call("compliance", compliance_mod.run_checks, {})
+
+
+@agents_bp.route("/uyumluluk", methods=["GET"])
+def uyumluluk_page():
+    auth = _require_session()
+    if auth: return auth
+    return render_template_string(_COMPLIANCE_PAGE)
+
+
+_COMPLIANCE_PAGE = r"""<!doctype html><html lang="tr"><head><meta charset="utf-8">
+<title>ISO 27001 / KVKK Uyumluluk - YazKlinik</title>
+<style>
+body{font-family:-apple-system,Segoe UI,sans-serif;background:#f5f8fb;color:#122236;
+padding:18px;max-width:1100px;margin:0 auto}
+h1{margin:0 0 12px;color:#1769aa}
+.banner{background:#fff;border:1px solid #cdd9e3;border-radius:12px;padding:18px;
+margin-bottom:18px;display:flex;align-items:center;gap:24px}
+.score-big{font-size:48px;font-weight:900}
+.grade-A{color:#16815f}.grade-B{color:#1769aa}.grade-C{color:#b87333}
+.grade-D,.grade-F{color:#b3261e}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #cdd9e3;
+border-radius:8px;overflow:hidden}
+th,td{padding:10px;text-align:left;border-bottom:1px solid #eef3f8;font-size:13px}
+th{background:#eff5fb;font-weight:700}
+.s-pass{color:#16815f;font-weight:700}.s-fail{color:#b3261e;font-weight:700}
+.s-warn{color:#b87333;font-weight:700}.s-unknown{color:#888}
+.recs{margin-top:18px;background:#fffbe5;border-left:4px solid #f0b400;padding:12px}
+button{background:#1769aa;color:#fff;border:0;padding:10px 18px;border-radius:6px;
+cursor:pointer;font-weight:700}
+</style></head><body>
+<h1>ISO 27001 + KVKK Uyumluluk Panosu</h1>
+<div class="banner">
+<div><div class="score-big" id="grade">?</div><div id="scoretxt">Yukleniyor...</div></div>
+<div style="flex:1"><div id="criticalbox" style="font-size:14px;color:#b3261e"></div></div>
+<button onclick="runCheck()">Yeniden Calistir</button>
+</div>
+<table><thead><tr><th>Kod</th><th>Kontrol</th><th>Standart</th><th>Durum</th><th>Detay</th></tr></thead>
+<tbody id="checks"></tbody></table>
+<div class="recs" id="recs" style="display:none"></div>
+<script>
+async function runCheck(){
+  const r = await fetch('/api/agents/compliance/run',{credentials:'same-origin'});
+  const d = await r.json(); const res = d.result || d;
+  document.getElementById('grade').textContent = res.grade;
+  document.getElementById('grade').className = 'score-big grade-' + (res.grade||'?').replace('+','');
+  document.getElementById('scoretxt').textContent =
+    res.score + '/' + res.max_score + ' (' + res.pct + '%)';
+  document.getElementById('criticalbox').textContent =
+    res.critical_failures>0 ? ('KRITIK: '+res.critical_failures+' onemli eksik') : 'Kritik eksik yok';
+  const tb = document.getElementById('checks'); tb.innerHTML='';
+  for(const c of res.checks){
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>'+c.code+'</td><td>'+c.title+'</td><td>'+c.standard+'</td>'+
+      '<td class="s-'+c.status+'">'+c.status.toUpperCase()+'</td><td>'+c.detail+'</td>';
+    tb.appendChild(tr);
+  }
+  if(res.recommendations_top && res.recommendations_top.length){
+    document.getElementById('recs').style.display='block';
+    document.getElementById('recs').innerHTML = '<b>Ilk Oneriler:</b><ul>'+
+      res.recommendations_top.map(r=>'<li>'+r+'</li>').join('')+'</ul>';
+  }
+}
+runCheck();
+</script></body></html>"""
+
+
+# --- Status page (PUBLIC - auth gerek YOK) ---
+@agents_bp.route("/api/status", methods=["GET"])
+def api_status_public():
+    """PUBLIC - hastalar gorebilir."""
+    if status_mod is None:
+        return jsonify({"ok": False, "error": "status modul yuk olamadi"}), 503
+    rpt = status_mod.build_report()
+    return jsonify({"ok": True, "result": asdict(rpt)})
+
+
+@agents_bp.route("/status", methods=["GET"])
+def status_public_page():
+    """PUBLIC HTML status sayfasi."""
+    if status_mod is None:
+        return "Status modul yuk olamadi", 503
+    rpt = status_mod.build_report()
+    return status_mod.render_html(rpt), 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+# --- PWA: manifest + service worker (no auth) ---
+@agents_bp.route("/manifest.webmanifest", methods=["GET"])
+def pwa_manifest():
+    return send_file(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                     "static", "manifest.json"),
+        mimetype="application/manifest+json")
+
+
+@agents_bp.route("/sw.js", methods=["GET"])
+def pwa_sw():
+    return send_file(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                     "static", "sw.js"),
+        mimetype="application/javascript")
 

@@ -260,7 +260,6 @@ class ConsultationResult:
     requires_doctor_review: bool = True
     agent_version: str = AGENT_VERSION
     finalized_at: str = ""
-    rag_citations: List[Dict[str, Any]] = field(default_factory=list)
 
 
 # --- Adim 1: EXTRACT - Serbest metni yapilandir ---
@@ -367,11 +366,8 @@ def _build_ddx_prompt(case: CaseStructured) -> str:
         """)
 
 
-def generate_differential(case: CaseStructured, prefer: str = "ollama",
-                            extra_context: str = "") -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def generate_differential(case: CaseStructured, prefer: str = "ollama") -> Tuple[Dict[str, Any], Dict[str, Any]]:
     prompt = _build_ddx_prompt(case)
-    if extra_context:
-        prompt = prompt + "\n" + extra_context
     text, err, method = _llm_call(prompt, prefer=prefer, json_mode=True, step="ddx")
     trace = {"step": "ddx", "method": method, "error": err}
     if not text:
@@ -521,39 +517,9 @@ def recommend_followup(case: CaseStructured, ddx: Dict[str, Any],
 
 # --- TAM KONSULTASYON ---
 
-def _find_similar_cases(case: CaseStructured, top_k: int = 3) -> List[Dict[str, Any]]:
-    """RAG'tan benzer gecmis vakalari ve klinik bilgileri cek (PubMed makaleleri,
-    eski USG raporlari, alex_facts). D300 2026-05-17.
-    """
-    try:
-        import yazklinik_rag as _rag
-    except Exception:
-        return []
-    # Sorgu: en bilgilendirici alanlardan composite metin
-    parts = [case.presenting_complaint or "", case.duration or ""]
-    parts.extend(case.associated_symptoms or [])
-    parts.extend(case.risk_factors or [])
-    if case.gebelik_haftasi:
-        parts.append(f"gebelik {case.gebelik_haftasi} hafta")
-    query = " ".join(p for p in parts if p)[:500]
-    if not query.strip():
-        return []
-    try:
-        # Hibrit + threshold biraz gevsek (gecmis vaka aramasi)
-        results = _rag.search(query, top_k=top_k, threshold=0.75, hybrid=True)
-        return results
-    except Exception:
-        return []
-
-
 def full_consultation(free_text: str, prefer: str = "ollama",
-                       skip_steps: Optional[List[str]] = None,
-                       use_rag: bool = True) -> ConsultationResult:
-    """Tum zinciri calistir. skip_steps ile asama atlanabilir.
-
-    use_rag=True: extract sonrasi RAG'tan benzer vakalar/PubMed makaleleri cekilir,
-    DDx promptuna inject edilir. Kapatmak icin use_rag=False.
-    """
+                       skip_steps: Optional[List[str]] = None) -> ConsultationResult:
+    """Tum zinciri calistir. skip_steps ile asama atlanabilir."""
     skip = set(skip_steps or [])
     result = ConsultationResult(case=CaseStructured())
     trace_log: List[str] = []
@@ -573,36 +539,9 @@ def full_consultation(free_text: str, prefer: str = "ollama",
         result.finalized_at = datetime.now().isoformat(timespec="seconds")
         return result  # caller bakacak missing_critical_info'ya
 
-    # 1.5. RAG: benzer vakalar / PubMed makaleleri / klinik facts
-    rag_context = ""
-    if use_rag and "rag" not in skip:
-        sim = _find_similar_cases(case, top_k=3)
-        if sim:
-            citations = []
-            for i, r in enumerate(sim, 1):
-                kind = r.get("cite_kind", "doc")
-                src = r.get("cite_source", "")
-                text = (r.get("text") or "")[:300]
-                citations.append(f"[{i}] ({kind}) {src}\n    {text}")
-            rag_context = "\n\nBENZER VAKA / KLINIK BILGI (RAG):\n" + "\n".join(citations)
-            trace_log.append(f"rag: {len(sim)} ilgili belge bulundu, ddx prompt'una inject")
-            # Sonuca da koy
-            result.reasoning_trace.append("RAG inject: " + str(len(sim)) + " belge")
-            # Citations alanini ekle (yapilandirma)
-            if not hasattr(result, "rag_citations"):
-                result.rag_citations = []
-            for r in sim:
-                result.rag_citations.append({
-                    "id": r.get("id"),
-                    "kind": r.get("cite_kind"),
-                    "source": r.get("cite_source"),
-                    "score": r.get("score"),
-                    "text_preview": (r.get("text") or "")[:200],
-                })
-
-    # 2. DDx (RAG inject ile)
+    # 2. DDx
     if "ddx" not in skip:
-        ddx_data, t2 = generate_differential(case, prefer=prefer, extra_context=rag_context)
+        ddx_data, t2 = generate_differential(case, prefer=prefer)
         trace_log.append(f"ddx: {t2.get('method')} err={t2.get('error')}")
         if t2.get("error"):
             result.errors.append("ddx: " + str(t2["error"]))

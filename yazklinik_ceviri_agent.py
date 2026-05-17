@@ -51,7 +51,18 @@ NCBI_TIMEOUT = 15
 USER_AGENT = "YazKlinik/D300 (+https://ucandoktor.com)"
 
 # Ollama defaults (config.env ile uyumlu)
-DEFAULT_OLLAMA_URL = os.environ.get("YAZKLINIK_OLLAMA_URL") or os.environ.get("OLLAMA_URL") or "http://localhost:11434"
+def _normalize_ollama_base_url(raw: str) -> str:
+    """Accept either Ollama root or a full API endpoint from config.env."""
+    url = (raw or "http://localhost:11434").strip().rstrip("/")
+    for suffix in ("/api/generate", "/api/chat", "/api/tags"):
+        if url.lower().endswith(suffix):
+            return url[: -len(suffix)].rstrip("/")
+    return url
+
+
+DEFAULT_OLLAMA_URL = _normalize_ollama_base_url(
+    os.environ.get("YAZKLINIK_OLLAMA_URL") or os.environ.get("OLLAMA_URL")
+    or "http://localhost:11434")
 DEFAULT_OLLAMA_MODEL = os.environ.get("YAZKLINIK_OLLAMA_MODEL") or "qwen2.5:32b"
 DEFAULT_OLLAMA_KEEP_ALIVE = os.environ.get("YAZKLINIK_OLLAMA_KEEP_ALIVE") or "5m"
 DEFAULT_OLLAMA_TIMEOUT = int(os.environ.get("YAZKLINIK_OLLAMA_TIMEOUT") or 180)

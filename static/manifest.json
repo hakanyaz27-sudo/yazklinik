@@ -1,0 +1,57 @@
+{
+  "name": "YazKlinik - Op. Dr. Hakan Yaz",
+  "short_name": "YazKlinik",
+  "description": "Op. Dr. Hakan Yaz Kadin Hastaliklari ve Dogum Klinik Yonetim Sistemi",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b1d3a",
+  "theme_color": "#1976d2",
+  "lang": "tr",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/static/icons/screenshot-1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
+  "categories": ["medical", "health", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Yeni Hasta",
+      "short_name": "Yeni",
+      "description": "Yeni hasta kayit",
+      "url": "/yeni-hasta",
+      "icons": [{"src": "/static/icons/icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Randevular",
+      "short_name": "Takvim",
+      "description": "Bugunun randevulari",
+      "url": "/randevular",
+      "icons": [{"src": "/static/icons/icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Panel",
+      "description": "Klinik dashboard",
+      "url": "/dashboard",
+      "icons": [{"src": "/static/icons/icon-192.png", "sizes": "192x192"}]
+    }
+  ]
+}

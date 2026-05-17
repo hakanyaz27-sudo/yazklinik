@@ -1,0 +1,108 @@
+{
+  "name": "YazKlinik WhatsApp Chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-incoming",
+        "options": {}
+      },
+      "id": "webhook-incoming",
+      "name": "WhatsApp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {"name": "from", "value": "={{$json[\"body\"][\"From\"]}}"},
+            {"name": "body", "value": "={{$json[\"body\"][\"Body\"]}}"},
+            {"name": "ts", "value": "={{$now}}"}
+          ]
+        }
+      },
+      "id": "parse-msg",
+      "name": "Mesaj Parse",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {"value1": "={{$json[\"body\"].toLowerCase()}}", "operation": "contains", "value2": "randevu"}
+          ]
+        }
+      },
+      "id": "if-randevu",
+      "name": "Randevu mu?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:5443/api/whatsapp/randevu-talep",
+        "method": "POST",
+        "options": {"allowUnauthorizedCerts": true},
+        "jsonParameters": true,
+        "bodyParametersJson": "={\"from\": \"{{$json.from}}\", \"text\": \"{{$json.body}}\"}"
+      },
+      "id": "call-yazklinik",
+      "name": "YazKlinik API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [800, 220]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:11434/api/chat",
+        "method": "POST",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\"model\": \"qwen2.5:32b\", \"messages\": [{\"role\": \"system\", \"content\": \"Sen Op. Dr. Hakan Yaz klinik asistanisin. Kisa, nazik, Turkce cevap ver. Randevu disindaki sorulara kisaca cevap ver, tibbi tani VERME.\"}, {\"role\": \"user\", \"content\": \"{{$json.body}}\"}], \"stream\": false}"
+      },
+      "id": "ollama-chat",
+      "name": "Ollama (yaz)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [800, 380]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:5443/api/whatsapp/send",
+        "method": "POST",
+        "options": {"allowUnauthorizedCerts": true},
+        "jsonParameters": true,
+        "bodyParametersJson": "={\"to\": \"{{$node['Mesaj Parse'].json.from}}\", \"text\": \"{{$json.message?.content || $json.reply || 'Mesajiniz alindi.'}}\"}"
+      },
+      "id": "send-reply",
+      "name": "WhatsApp Yanit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1000, 300]
+    }
+  ],
+  "connections": {
+    "WhatsApp Webhook": {"main": [[{"node": "Mesaj Parse", "type": "main", "index": 0}]]},
+    "Mesaj Parse": {"main": [[{"node": "Randevu mu?", "type": "main", "index": 0}]]},
+    "Randevu mu?": {
+      "main": [
+        [{"node": "YazKlinik API", "type": "main", "index": 0}],
+        [{"node": "Ollama (yaz)", "type": "main", "index": 0}]
+      ]
+    },
+    "YazKlinik API": {"main": [[{"node": "WhatsApp Yanit", "type": "main", "index": 0}]]},
+    "Ollama (yaz)": {"main": [[{"node": "WhatsApp Yanit", "type": "main", "index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"},
+  "versionId": "1.0",
+  "id": "whatsapp-chatbot-yazklinik",
+  "meta": {
+    "instanceId": "yazklinik-d300"
+  },
+  "tags": [{"name": "yazklinik", "id": "tag-yazklinik"}]
+}

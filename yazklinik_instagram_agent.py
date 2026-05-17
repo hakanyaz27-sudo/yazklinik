@@ -64,6 +64,9 @@ SCORE_WEIGHTS = {
     "filename_hint": 0.10,
 }
 
+DEFAULT_WALK_MAX_FILES = int(os.environ.get("YAZKLINIK_INSTAGRAM_SCAN_MAX_FILES", "5000") or "5000")
+DEFAULT_DETAIL_OPEN_LIMIT = int(os.environ.get("YAZKLINIK_INSTAGRAM_DETAIL_OPEN_LIMIT", "180") or "180")
+
 # Dosya adi ipuclari (4D/HD/MD genelde daha gosterisli kareler)
 FILENAME_GOOD_HINTS = ("4d", "hd", "md", "5d", "render", "face", "profile",
                        "yuz", "el", "ayak", "kalp")
@@ -183,6 +186,29 @@ def _walk_files(root: Path, include_pdf: bool, max_files: int = 5000):
                 seen += 1
                 if seen >= max_files:
                     return
+
+
+def _rough_score_candidate(c: ImageCandidate, now: datetime) -> float:
+    """Fast NAS-friendly pre-score without opening the image/PDF bytes."""
+    score = 0.0
+    try:
+        mt = datetime.fromisoformat(c.modified_at)
+        days = max(0, (now - mt).days)
+        score += max(0.0, 1.0 - (days / 365.0)) * 0.34
+    except Exception:
+        pass
+    if c.size_bytes > 0:
+        kb = c.size_bytes / 1024.0
+        score += max(0.0, min(1.0, (kb - 80) / 1500.0)) * 0.28
+    name_low = c.filename.lower()
+    hint = 0.5
+    if any(h in name_low for h in FILENAME_GOOD_HINTS):
+        hint += 0.4
+    if any(h in name_low for h in FILENAME_BAD_HINTS):
+        hint -= 0.4
+    score += max(0.0, min(1.0, hint)) * 0.22
+    score += (0.06 if c.is_pdf else 0.16)
+    return round(max(0.0, min(1.0, score)), 4)
 
 
 def _extract_visit_date(path: Path) -> str:
@@ -339,10 +365,11 @@ def scan_archive(root: str, max_candidates: int = 60, include_pdf: bool = True,
         result["error"] = f"Klasor bulunamadi: {root_path}"
         return result
 
+    lightweight: List[ImageCandidate] = []
     candidates: List[ImageCandidate] = []
     skipped: Dict[str, int] = {}
 
-    for path in _walk_files(root_path, include_pdf=include_pdf):
+    for path in _walk_files(root_path, include_pdf=include_pdf, max_files=DEFAULT_WALK_MAX_FILES):
         result["scanned_count"] += 1
         try:
             st = path.stat()
@@ -365,7 +392,22 @@ def scan_archive(root: str, max_candidates: int = 60, include_pdf: bool = True,
             skipped["too_small"] = skipped.get("too_small", 0) + 1
             continue
 
-        # Image meta + sharpness
+        lightweight.append(c)
+
+    now = datetime.now()
+    lightweight.sort(key=lambda item: _rough_score_candidate(item, now), reverse=True)
+    detail_limit = min(
+        len(lightweight),
+        max(max_candidates, min(DEFAULT_DETAIL_OPEN_LIMIT, max(80, max_candidates * 3))),
+    )
+    if len(lightweight) > detail_limit:
+        skipped["preselect_over_limit"] = len(lightweight) - detail_limit
+
+    for c in lightweight[:detail_limit]:
+        path = Path(c.path)
+
+        # Image meta + sharpness. This is the expensive NAS step, so only the
+        # best metadata preselect is opened in detail.
         img = _open_image(path)
         if img is None:
             if not c.is_pdf:
@@ -407,6 +449,9 @@ def scan_archive(root: str, max_candidates: int = 60, include_pdf: bool = True,
     result["skipped_reasons"] = skipped
     result["finished_at"] = datetime.now().isoformat(timespec="seconds")
     result["count_returned"] = len(candidates)
+    result["evaluated_count"] = detail_limit
+    result["walk_max_files"] = DEFAULT_WALK_MAX_FILES
+    result["detail_open_limit"] = DEFAULT_DETAIL_OPEN_LIMIT
     return result
 
 

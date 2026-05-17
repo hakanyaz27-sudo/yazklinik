@@ -194,7 +194,7 @@ if "%YAZKLINIK_ENABLE_HTTPS%"=="1" (
   echo  HTTPS   : kapali - %YAZKLINIK_WEB_PORT% SSL'siz HTTP olarak calisir
   echo  Dis URL : http://176.236.92.142:65187  ^(modem dis 65187 -^> ic %YAZKLINIK_WEB_PORT%^)
 )
-echo  Giris   : doktor / 1234
+echo  Giris   : doktor / users.json guncel sifre
 echo  NAS     : %YAZKLINIK_NAS_ROOT%
 echo  DB      : %YAZKLINIK_DB_PATH%
 echo.

@@ -15769,10 +15769,12 @@ def _load_patient_listing(limit=200, include_full_path=False):
     max_limit = 50000 if include_full_path else 1000
     limit = max(1, min(int(limit or 200), max_limit))
     query_limit = max(limit, min(max_limit, limit * 3))
-    # D300 2026-05-16: cache versionunu artirdik; hasta listesi artik
-    # once Voluson/manuel kaynak, sonra son muayene/kontrol gelisine gore
-    # siralanir. BulutKlinik DB-only mirror kayitlari kaynak onceliginde arkada.
-    cache_key = f"terminal_patients_v6_source_visit_order_{limit}_{int(bool(include_full_path))}"
+    # D300 2026-05-17: hasta listesinde kaynak onceligi en basta.
+    # Voluson klasorunden gelenler en ustte, kendi icinde en son gelen once;
+    # manuel/local kayitlar sonra, BulutKlinik DB-only mirror kayitlari arkada.
+    today_iso = datetime.now().strftime("%Y-%m-%d")
+    listing_today_iso = today_iso
+    cache_key = f"terminal_patients_v8_voluson_arrival_order_{today_iso}_{limit}_{int(bool(include_full_path))}"
     ttl_key = "terminal_patient_listing" if include_full_path else "web_patient_listing"
     cached = cache_get(cache_key)
     if cached is not None:
@@ -15948,19 +15950,19 @@ def _load_patient_listing(limit=200, include_full_path=False):
                    COALESCE(pts.has_pdf_gynecologic, 0) AS has_pdf_gynecologic,
                    COALESCE(ohs.has_obstetric_hint, 0) AS has_obstetric_hint,
                    CASE
-                     WHEN COALESCE(pt.is_manual, 0) = 1 THEN 2
                      WHEN COALESCE(p.folder_key, '') LIKE 'BK_%'
                        OR LOWER(COALESCE(p.full_path, '')) LIKE '%_bk_imported%'
                      THEN 0
-                     WHEN COALESCE(p.full_path, '') <> '' THEN 2
+                     WHEN COALESCE(p.full_path, '') <> '' THEN 3
+                     WHEN COALESCE(pt.is_manual, 0) = 1 THEN 2
                      ELSE 1
                    END AS source_priority,
                    CASE
-                     WHEN COALESCE(pt.is_manual, 0) = 1 THEN 'manual'
                      WHEN COALESCE(p.folder_key, '') LIKE 'BK_%'
                        OR LOWER(COALESCE(p.full_path, '')) LIKE '%_bk_imported%'
                      THEN 'bulutklinik'
                      WHEN COALESCE(p.full_path, '') <> '' THEN 'voluson'
+                     WHEN COALESCE(pt.is_manual, 0) = 1 THEN 'manual'
                      ELSE 'local'
                    END AS source_bucket
             FROM patients p
@@ -16092,6 +16094,27 @@ def _load_patient_listing(limit=200, include_full_path=False):
         fallback_arrival_candidates = [
             v for v in (folder_visit_sort, folder_mtime_sort, first_seen_sort) if v
         ]
+        source_bucket = str(item.get("source_bucket") or "").strip().lower()
+        if source_bucket == "voluson":
+            voluson_arrival_candidates = [
+                v for v in (
+                    last_visit_sort, last_pdf_sort, folder_visit_sort,
+                    folder_mtime_sort, first_seen_sort
+                ) if v
+            ]
+            final_arrival = (
+                max(voluson_arrival_candidates)
+                if voluson_arrival_candidates else "")
+        else:
+            final_arrival = (
+                max(sort_arrival_candidates)
+                if sort_arrival_candidates
+                else (max(fallback_arrival_candidates) if fallback_arrival_candidates else ""))
+        is_today_visit = 1 if listing_today_iso in {
+            last_visit_date, last_pdf_date, folder_visit_iso
+        } else 0
+        item["is_today_visit"] = is_today_visit
+        item["_sort_today_visit"] = is_today_visit
         item["_sort_pdf_date"] = last_pdf_date
         item["_sort_visit_date"] = effective_visit_date
         item["_sort_visit_rowid"] = last_visit_rowid
@@ -16100,12 +16123,10 @@ def _load_patient_listing(limit=200, include_full_path=False):
             item["_sort_source_priority"] = int(item.get("source_priority") or 0)
         except Exception:
             item["_sort_source_priority"] = 0
-        # En son gelen hasta en ustte: once gercek muayene/kontrol gelisi,
-        # sonra PDF gelisi; hasta klasor/ilk import tarihleri yalniz yedektir.
-        item["_sort_arrival"] = (
-            max(sort_arrival_candidates)
-            if sort_arrival_candidates
-            else (max(fallback_arrival_candidates) if fallback_arrival_candidates else ""))
+        # Kaynak onceligi icinde en son gelen hasta en ustte.
+        # Voluson icin NAS klasor tarihi/mtime de gelis sinyali sayilir.
+        item["_sort_arrival"] = final_arrival
+        item["_sort_has_visit"] = 1 if final_arrival else 0
         if not include_full_path:
             item.pop("full_path", None)
         item.pop("_full_path_for_filter", None)
@@ -19829,6 +19850,54 @@ def _log_audit(action, entity_type=None, entity_id=None,
             con.commit()
     except Exception as ex:
         print(f"audit log: {ex}")
+
+
+def web_audit_log(action="", payload=None):
+    """Agent/cron katmani icin hafif audit_log helper'i."""
+    try:
+        try:
+            ip = (request.headers.get("X-Forwarded-For", request.remote_addr)
+                  or "unknown")
+        except Exception:
+            ip = "system"
+        try:
+            user = session.get("user") or session.get("username") or "system"
+        except Exception:
+            user = "system"
+        try:
+            payload_json = json.dumps(payload or {}, ensure_ascii=False, default=str)
+        except Exception:
+            payload_json = str(payload or {})
+        with db_conn() as con:
+            con.execute("""
+                CREATE TABLE IF NOT EXISTS audit_log (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  ts TEXT NOT NULL,
+                  user TEXT,
+                  action TEXT,
+                  payload_json TEXT,
+                  ip TEXT
+                )
+            """)
+            con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log(ts)"
+            )
+            con.execute(
+                "INSERT INTO audit_log(ts, user, action, payload_json, ip) "
+                "VALUES(?,?,?,?,?)",
+                (datetime.now().isoformat(sep=" ", timespec="seconds"),
+                 user, str(action or ""), payload_json, ip)
+            )
+            con.commit()
+        try:
+            _log_audit(str(action or ""), entity_type="agent",
+                       details=payload_json[:4000])
+        except Exception:
+            pass
+        return True
+    except Exception as ex:
+        print(f"audit_log helper: {ex}")
+        return False
 
 
 def _smart_guide_ensure_tables():
@@ -30067,6 +30136,7 @@ BASE_HTML = """<!DOCTYPE html>
  (function() {
     var PALETTES_INNER = [
       ["classic-premium", "Premium Klasik", "#12324D", "#A7B4C2"],
+      ["medical-clinic", "Medikal Klinik", "#1769AA", "#0C7488"],
       ["desktop", "Masaustu Mavi", "#0078D4", "#CCE4F7"],
       ["windows-baseline", "Windows Baseline", "#FFFFFF", "#D1D5DB"],
       ["viewpoint6", "ViewPoint 6", "#0078D7", "#00B7C3"],
@@ -30125,6 +30195,7 @@ BASE_HTML = """<!DOCTYPE html>
    // localStorage server'da yeniden okunur ve TUM CSS taze yuklenir.
    function sidebarForPalette(p) {
      if (p === "midnight-clinic" || p === "midnight-pro") return "midnight";
+     if (p === "medical-clinic") return "pearl";
      if (p === "windows-baseline" || p === "macos" || p === "iphone" || p === "ipad") return "light";
      return "";
    }
@@ -31122,7 +31193,7 @@ document.documentElement.classList.add("yk-win-chrome");
  <link rel="preconnect" href="https://fonts.googleapis.com">
  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/yk-core.css?v=d250-40-checkbox-select">
+  <link rel="stylesheet" href="/static/yk-core.css?v=d300-mojibake-dicom-2026-05-17">
 </head>
 <body>
  {% if session.get('user') %}
@@ -32220,6 +32291,11 @@ onclick="setExperienceMode('advanced')">
  <span class="theme-swatch-dot" style="--dot-a:#12324D;--dot-b:#A7B4C2;"></span>
  <span><strong>Premium Klasik</strong><small>sakin, kurumsal, ust duzey klinik</small></span>
  </button>
+ <button type="button" class="theme-swatch" data-palette="medical-clinic"
+ onclick="setPalette('medical-clinic')">
+ <span class="theme-swatch-dot" style="--dot-a:#1769AA;--dot-b:#0C7488;"></span>
+ <span><strong>Medikal Klinik</strong><small>hasta kartlari, toolbar ve klinik akisa ozel</small></span>
+ </button>
  <button type="button" class="theme-swatch" data-palette="desktop"
  onclick="setPalette('desktop')">
  <span class="theme-swatch-dot" style="--dot-a:#0078D4;--dot-b:#CCE4F7;"></span>
@@ -32823,7 +32899,7 @@ ensureHost();
 })();
 
 // Premium theme studio
-const YK_THEME_PALETTES = ['classic-premium', 'desktop', 'windows-baseline', 'viewpoint6', 'macos', 'iphone', 'ipad', 'pearl', 'mint', 'sapphire', 'rose', 'contrast', 'forest', 'amber', 'lavender', 'midnight-clinic', 'midnight-pro', 'ocean-wave', 'sunset-glow'];
+const YK_THEME_PALETTES = ['classic-premium', 'medical-clinic', 'desktop', 'windows-baseline', 'viewpoint6', 'macos', 'iphone', 'ipad', 'pearl', 'mint', 'sapphire', 'rose', 'contrast', 'forest', 'amber', 'lavender', 'midnight-clinic', 'midnight-pro', 'ocean-wave', 'sunset-glow'];
 
  function readThemeMode() {
  if (window.ykIsMobileLightForced && window.ykIsMobileLightForced()) return 'light';
@@ -32883,6 +32959,7 @@ const YK_THEME_PALETTES = ['classic-premium', 'desktop', 'windows-baseline', 'vi
    const sidebarPair = {
      'midnight-clinic': 'midnight',
      'midnight-pro': 'midnight',
+     'medical-clinic': 'pearl',
      'windows-baseline': 'light',
      'macos': 'light',
      'iphone': 'light',
@@ -36615,7 +36692,8 @@ function stopAll() {
  if (sendBtn) sendBtn.disabled = false;
  if (quickSend) quickSend.disabled = false;
  try {
- if (window.ykSpeakStop) window.ykSpeakStop();
+ if (window.ykStopAllAlexAudio) window.ykStopAllAlexAudio();
+ else if (window.ykSpeakStop) window.ykSpeakStop();
  else window.speechSynthesis.cancel();
  } catch (e) {}
  setTimeout(function(){ try { window.speechSynthesis.cancel(); } catch(e) {} }, 80);
@@ -38929,6 +39007,19 @@ var _ykNaturalSpeakAvailable = true;
 var _ykSpeakAudio = null;
 var _ykSpeakAudioUrl = '';
 var _YK_NATURAL_TTS_TIMEOUT_MS = 9000;
+var _ykAlexAudioOwner = 'yk-' + Date.now().toString(36) + '-' +
+  Math.random().toString(36).slice(2);
+
+function _ykClaimAlexAudio(reason) {
+  try {
+    localStorage.setItem('ykAlexSpeakingLock', JSON.stringify({
+      owner: _ykAlexAudioOwner,
+      ts: Date.now(),
+      reason: String(reason || 'alex')
+    }));
+  } catch (_) {}
+}
+window._ykClaimAlexAudio = _ykClaimAlexAudio;
 
 // D300: play-blocked durumunda kullaniciya GORUNUR "Ses ac" butonu
 function _ykShowAudioUnlockButton(audioToPlay) {
@@ -39045,6 +39136,44 @@ function _ykShowAudioUnlockButton(audioToPlay) {
   } catch (_) {}
   _ykSpeakAudioUrl = '';
   }
+  function _ykStopVoiceTurnAudio() {
+  try {
+  var a = window._ykActiveVoiceAudio;
+  if (a) {
+  a.onended = null;
+  a.onerror = null;
+  a.pause();
+  a.src = '';
+  try { a.load(); } catch (_) {}
+  }
+  } catch (_) {}
+  window._ykActiveVoiceAudio = null;
+  try {
+  if (window._ykActiveVoiceAudioUrl) {
+  URL.revokeObjectURL(window._ykActiveVoiceAudioUrl);
+  }
+  } catch (_) {}
+  window._ykActiveVoiceAudioUrl = '';
+  }
+  window.ykStopAllAlexAudio = function (opts) {
+  opts = opts || {};
+  if (!opts.keepVoiceTurn) _ykStopVoiceTurnAudio();
+  if (!opts.keepNatural) {
+  _ykSpeakSerial += 1;
+  _ykStopNaturalAudio();
+  try { window.speechSynthesis.cancel(); } catch (_) {}
+  }
+  };
+  window.addEventListener('storage', function (ev) {
+  if (!ev || ev.key !== 'ykAlexSpeakingLock' || !ev.newValue) return;
+  try {
+  var info = JSON.parse(ev.newValue);
+  if (!info || info.owner === _ykAlexAudioOwner) return;
+  if (Date.now() - Number(info.ts || 0) > 20000) return;
+  if (window.ykStopAllAlexAudio) window.ykStopAllAlexAudio({skipLock:true});
+  else try { window.speechSynthesis.cancel(); } catch (_) {}
+  } catch (_) {}
+  });
   // D300 RTX 5090: XTTS-v2 lokal voice clone - POST /api/phone/tts (full WAV blob).
   // Browser chunked WAV streaming'i progressive play etmiyor; blob ile guvenli + calar.
   // Server tarafinda /api/phone/tts XTTS-first (lokal Emel/Ahmet) + Edge TTS fallback.
@@ -39563,19 +39692,27 @@ function _ykShowAudioUnlockButton(audioToPlay) {
      playing = true;
      var item = audioQueue.shift();
      try {
+       try {
+         if (window._ykClaimAlexAudio) window._ykClaimAlexAudio('voice-turn');
+         if (window.ykStopAllAlexAudio) window.ykStopAllAlexAudio();
+         else if (window.ykSpeakStop) window.ykSpeakStop();
+       } catch(_){}
        var bytes = Uint8Array.from(atob(item.audio_b64), function(c){ return c.charCodeAt(0); });
        var blob = new Blob([bytes], {type:'audio/wav'});
        var url = URL.createObjectURL(blob);
        var a = new Audio(url);
        window._ykActiveVoiceAudio = a;
+       window._ykActiveVoiceAudioUrl = url;
        a.onended = function() {
          URL.revokeObjectURL(url);
          if (window._ykActiveVoiceAudio === a) window._ykActiveVoiceAudio = null;
+         if (window._ykActiveVoiceAudioUrl === url) window._ykActiveVoiceAudioUrl = '';
          playNext();
        };
        a.onerror = function() {
          URL.revokeObjectURL(url);
          if (window._ykActiveVoiceAudio === a) window._ykActiveVoiceAudio = null;
+         if (window._ykActiveVoiceAudioUrl === url) window._ykActiveVoiceAudioUrl = '';
          playNext();
        };
        var p = a.play();
@@ -39593,7 +39730,8 @@ function _ykShowAudioUnlockButton(audioToPlay) {
      stopped = true;
      audioQueue.length = 0;
      try {
-       if (window._ykActiveVoiceAudio) {
+       if (window.ykStopAllAlexAudio) window.ykStopAllAlexAudio();
+       else if (window._ykActiveVoiceAudio) {
          window._ykActiveVoiceAudio.pause();
          window._ykActiveVoiceAudio = null;
        }
@@ -39759,13 +39897,19 @@ function _ykShowAudioUnlockButton(audioToPlay) {
      playing = true;
      var item = audioQueue.shift();
      try {
+       try {
+         if (window._ykClaimAlexAudio) window._ykClaimAlexAudio('voice-turn-text');
+         if (window.ykStopAllAlexAudio) window.ykStopAllAlexAudio();
+         else if (window.ykSpeakStop) window.ykSpeakStop();
+       } catch(_){}
        var bytes = Uint8Array.from(atob(item.audio_b64), function(c){return c.charCodeAt(0);});
        var blob = new Blob([bytes], {type:'audio/wav'});
        var url = URL.createObjectURL(blob);
        var a = new Audio(url);
        window._ykActiveVoiceAudio = a;
-       a.onended = function(){ URL.revokeObjectURL(url); if (window._ykActiveVoiceAudio===a) window._ykActiveVoiceAudio=null; setTimeout(playNext, 30); };
-       a.onerror = function(){ URL.revokeObjectURL(url); if (window._ykActiveVoiceAudio===a) window._ykActiveVoiceAudio=null; setTimeout(playNext, 30); };
+       window._ykActiveVoiceAudioUrl = url;
+       a.onended = function(){ URL.revokeObjectURL(url); if (window._ykActiveVoiceAudio===a) window._ykActiveVoiceAudio=null; if (window._ykActiveVoiceAudioUrl===url) window._ykActiveVoiceAudioUrl=''; setTimeout(playNext, 30); };
+       a.onerror = function(){ URL.revokeObjectURL(url); if (window._ykActiveVoiceAudio===a) window._ykActiveVoiceAudio=null; if (window._ykActiveVoiceAudioUrl===url) window._ykActiveVoiceAudioUrl=''; setTimeout(playNext, 30); };
        var p = a.play();
        if (p && p.catch) p.catch(function(){ try { _ykShowAudioUnlockButton(a); } catch(_){} setTimeout(playNext, 100); });
      } catch(err) { console.warn('[voice-turn-text] play HATA:', err); setTimeout(playNext, 30); }
@@ -39773,7 +39917,10 @@ function _ykShowAudioUnlockButton(audioToPlay) {
    function stopAll() {
      stopped = true;
      audioQueue.length = 0;
-     try { if (window._ykActiveVoiceAudio) { window._ykActiveVoiceAudio.pause(); window._ykActiveVoiceAudio=null; } } catch(_){}
+     try {
+       if (window.ykStopAllAlexAudio) window.ykStopAllAlexAudio();
+       else if (window._ykActiveVoiceAudio) { window._ykActiveVoiceAudio.pause(); window._ykActiveVoiceAudio=null; }
+     } catch(_){}
      try { if (reader) reader.cancel(); } catch(_){}
      cleanupBarge();
      hideInterruptButton();
@@ -39870,6 +40017,10 @@ function _ykShowAudioUnlockButton(audioToPlay) {
  }
  var raw = String(text == null ? '' : text).slice(0, 1500);
  if (!raw.trim()) return Promise.resolve({ok: true, reason: 'empty'});
+ try {
+ _ykClaimAlexAudio('ykSpeak');
+ _ykStopVoiceTurnAudio();
+ } catch (_) {}
  // D300 akici muhabbet: 100+ char cevaplari cumlelere bol, ilk cumle anlik calsin
  if (!opts._chunk && raw.length > 100) {
  var chunks = _ykSplitSpeakText(raw, 220);
@@ -40011,6 +40162,7 @@ u.lang = opts.lang || 'tr-TR';
   window.ykSpeakStop = function () {
   _ykSpeakSerial += 1;
   _ykStopNaturalAudio();
+  _ykStopVoiceTurnAudio();
   try { window.speechSynthesis.cancel(); } catch (_) {}
   setSpeakChip('ready', _ykVoiceCache.tr ? 'Sesli (TR)' : 'Sesli');
   };
@@ -41287,7 +41439,7 @@ def _base_html_core_js():
 def _externalize_base_assets(html):
     if not html:
         return html
-    css_link = '<link rel="stylesheet" href="/yk-core.css?v=D250-checkbox-select-40" id="yk-core-css">'
+    css_link = '<link rel="stylesheet" href="/yk-core.css?v=D300-mojibake-dicom-2026-05-17" id="yk-core-css">'
     js_link = '<script src="/yk-core.js?v=D250-checkbox-select-40" id="yk-core-js"></script>'
     html = _BASE_HTML_CORE_STYLE_RE.sub(css_link, html, count=1)
     html = _BASE_HTML_CORE_SCRIPT_RE.sub(js_link, html, count=1)
@@ -41534,7 +41686,7 @@ def render(content, title=None):
         if html and isinstance(html, str) and "yk-medical-theme-css" not in html:
             inject = (
                 '<link rel="stylesheet" '
-                'href="/static/yk-medical-theme.css?v=d300-medical-2026-05-16" '
+                'href="/static/yk-medical-theme.css?v=d300-medical-2026-05-17" '
                 'id="yk-medical-theme-css">'
             )
             if "</head>" in html:
@@ -42631,9 +42783,9 @@ def login():
  border-top:1px solid var(--hairline);
  font-size:13px;color:#2E4B67;font-weight:600;">
  <strong style="color:#123553;">Ilk kurulum:</strong><br>
- <code style="font-size:12px;">doktor / 1234</code> Â· tam yetki<br>
- <code style="font-size:12px;">asistan / 1234</code> Â· klinik<br>
- <code style="font-size:12px;">sekreter / 1234</code> Â· kayÄ±t
+ <code style="font-size:12px;">doktor / ----</code> Â· tam yetki<br>
+ <code style="font-size:12px;">asistan / ----</code> Â· klinik<br>
+ <code style="font-size:12px;">sekreter / ----</code> Â· kayÄ±t
  </div>
  </div>
  </div>
@@ -49378,13 +49530,13 @@ _AI_PHONE_LIVE_ASR_EMPTY_GUARD = {}
 
 AI_PHONE_TTS_VOICES = OrderedDict([
     ("tr_lokal_piper", {
-        "label": "Lokal Turkce Net - Piper DFKI",
+        "label": "Lokal Türkçe Net - Piper DFKI",
         "engine": "piper",
         "voice": "tr_TR-dfki-medium",
         "rate": "1.00",
         "pitch": "+0Hz",
         "volume": "+0%",
-        "desc": "Aksansiz Turkce icin lokal, hizli ve internet bagimsiz ses.",
+        "desc": "Aksansız Türkçe için lokal, hızlı ve internet bağımsız ses.",
         "recommended": True,
     }),
     ("tr_premium_kadin", {
@@ -49578,6 +49730,33 @@ def _ai_phone_settings():
         "ai_phone_voice_auto_listen": "0",
         "ai_phone_voice_rate": "1.00",
     }
+    # D300: Bu ekrandaki varsayilanlar hasta/klinik tarafinda duyuluyor;
+    # eski ASCII/mojibake metinler yerine dogru Turkce saklansin.
+    defaults.update({
+        "ai_phone_greeting": (
+            "Merhaba, Op. Dr. Hakan YAZ kliniğine hoş geldiniz. "
+            "Ben klinik yapay zeka telesekreterinizim. "
+            "Acil kanama, şiddetli ağrı, bayılma veya nefes darlığı varsa lütfen 112'yi arayın. "
+            "Randevu, sonuç, reçete ve doktor notu için sizi yönlendirebilirim. "
+            "Mesajınızı bırakırsanız mesai saatleri içinde klinik ekibi size geri döner."
+        ),
+        "ai_phone_emergency_text": (
+            "Bu anlattıklarınız acil olabilir. Lütfen 112'yi arayın veya en yakın "
+            "acil servise başvurun. Klinik ekibine de not bırakıyorum."
+        ),
+        "ai_phone_escalation_text": (
+            "Bu konuyu klinik ekibine aktarıyorum. Telefon numaranız ve mesajınız "
+            "kaydedildi; uygun zamanda size geri dönüş yapılacak."
+        ),
+        "ai_phone_live_assistant_text": (
+            "Sizi gerçek asistana aktarıyorum. Kısa bir özet ve telefon numaranız "
+            "ekibe düştü; müsait olan ilk kişi size geri dönüş yapacak."
+        ),
+        "ai_phone_handoff_keywords": (
+            "asistan,sekreter,operatör,gerçek kişi,canlı destek,"
+            "doktorla görüş,beni arayın,geri arayın,bağla,insana bağla"
+        ),
+    })
     return {key: _db_get_setting(key, defaults[key]) for key in AI_PHONE_SETTING_KEYS}
 
 
@@ -52399,6 +52578,17 @@ def _ai_phone_normalize_tts_text(text):
     # Tek karakterlik orphan punctuation -> sil (sentence end'de hanging .)
     s = _re.sub(r"\s+[,;:]+\s*$", ".", s)
     # === 1) Unvan birlesimleri (Op. Dr. ozellikle - 'op' ayri okunmasin) ===
+    # Noktali/noktasiz unvanlari once ASCII guvenli metne cevir.
+    robust_title_pairs = [
+        (r"\bOp\.?\s*Dr\.?\s*", "Operator Doktor "),
+        (r"\bUzm\.?\s*Dr\.?\s*", "Uzman Doktor "),
+        (r"\bProf\.?\s*Dr\.?\s*", "Profesor Doktor "),
+        (r"\bDo[cÃ§]\.?\s*Dr\.?\s*", "Docent Doktor "),
+        (r"\bYrd\.?\s*Do[cÃ§]\.?\s*Dr\.?\s*", "Yardimci Docent Doktor "),
+        (r"\bAsist\.?\s*Dr\.?\s*", "Asistan Doktor "),
+    ]
+    for pat, rep in robust_title_pairs:
+        s = _re.sub(pat, rep, s, flags=_re.IGNORECASE)
     title_pairs = [
         (r"\bOp\.\s*Dr\.\s*", "Operatör Doktor "),
         (r"\bUzm\.\s*Dr\.\s*", "Uzman Doktor "),
@@ -52424,6 +52614,30 @@ def _ai_phone_normalize_tts_text(text):
     ]
     for pat, rep in single_titles:
         s = _re.sub(pat, rep, s, flags=_re.IGNORECASE)
+    robust_single_titles = [
+        (r"\bOp(?:\.|\s+)", "Operator "),
+        (r"\bDr(?:\.|\s+)", "Doktor "),
+        (r"\bUzm(?:\.|\s+)", "Uzman "),
+        (r"\bProf(?:\.|\s+)", "Profesor "),
+        (r"\bDo[cÃ§](?:\.|\s+)", "Docent "),
+        (r"\bSn(?:\.|\s+)", "Sayin "),
+    ]
+    for pat, rep in robust_single_titles:
+        s = _re.sub(pat, rep, s, flags=_re.IGNORECASE)
+    # Eski mojibake stringler TTS'e giderse aksan bozulur; ASCII guvenli hale getir.
+    for bad, good in {
+        "OperatÃ¶r": "Operator",
+        "ProfesÃ¶r": "Profesor",
+        "DoÃ§ent": "Docent",
+        "YardÄ±mcÄ±": "Yardimci",
+        "SayÄ±n": "Sayin",
+        "Ã¶rnek": "ornek",
+        "bakÄ±nÄ±z": "bakiniz",
+        "gÃ¼n": "gun",
+        "yÃ¼zde": "yuzde",
+        "atÄ±m": "atim",
+    }.items():
+        s = s.replace(bad, good)
     # === 2) Klinik kisaltmalari harf harf (USG -> U S G) ===
     letter_acronyms = {
         "USG": "U S G", "TSH": "T S H", "FSH": "F S H", "LH": "L H",
@@ -52602,6 +52816,10 @@ def _ai_phone_edge_tts_stream_generator(text, voice="tr-TR-EmelNeural",
 
     if not text:
         return
+    try:
+        text = _ai_phone_normalize_tts_text(text)
+    except Exception:
+        pass
     q = queue.Queue(maxsize=64)
     SENTINEL = object()
 
@@ -52663,6 +52881,10 @@ def _ai_phone_piper_tts_bytes(text):
         port = int(os.environ.get("YAZKLINIK_PIPER_SERVICE_PORT", "9001"))
     except Exception:
         port = 9001
+    try:
+        text = _ai_phone_normalize_tts_text(text)
+    except Exception:
+        pass
     url = f"http://127.0.0.1:{port}/tts"
     body = _json.dumps({"text": text}).encode("utf-8")
     req = urllib.request.Request(
@@ -52679,6 +52901,10 @@ def _ai_phone_piper_tts_bytes(text):
 def _ai_phone_edge_tts_bytes(text, voice, rate_percent, pitch="+0Hz", volume="+0%"):
     import asyncio
     import edge_tts
+    try:
+        text = _ai_phone_normalize_tts_text(text)
+    except Exception:
+        pass
 
     async def _collect(ssl_mode="certifi"):
         connector = None
@@ -54177,7 +54403,7 @@ def ai_phone_assistant_page():
                     _db_set_setting(key, "1" if key in request.form else "0")
                 elif key in request.form:
                     _db_set_setting(key, request.form.get(key, "").strip())
-            flash("YZ telesekreter ayarlari kaydedildi.", "success")
+            flash("YZ telesekreter ayarları kaydedildi.", "success")
             return redirect(url_for("ai_phone_assistant_page"))
     settings = _ai_phone_settings()
     try:
@@ -54215,7 +54441,7 @@ def ai_phone_assistant_page():
         </tr>
         """
     if not call_rows:
-        call_rows = '<tr><td colspan="3" class="text-muted text-center p-4">Cagri logu yok.</td></tr>'
+        call_rows = '<tr><td colspan="3" class="text-muted text-center p-4">Çağrı kaydı yok.</td></tr>'
     test_html = (
         f'<div class="alert alert-info"><b>Test cevabı ({sh(test_status)}):</b><br>{safe_html(test_reply)}</div>'
         if test_reply else "")
@@ -54268,12 +54494,76 @@ def ai_phone_assistant_page():
     voice_profile_options = ""
     for value, info in AI_PHONE_TTS_VOICES.items():
         selected = "selected" if value == voice_profile_key else ""
-        suffix = " * onerilen" if info.get("recommended") else ""
+        suffix = " - önerilen" if info.get("recommended") else ""
         voice_profile_options += (
             f'<option value="{safe_attr(value)}" {selected}>'
             f'{sh((info.get("label") or value) + suffix)}</option>')
     content = f"""
     <style>
+      .yk-ai-phone-page {{
+        color:#122236;
+        padding-top:64px;
+      }}
+      .yk-ai-phone-page .patient-header {{
+        background:linear-gradient(135deg,#f8fdff,#e9f8fb);
+        border:1px solid rgba(28,83,120,.16);
+        border-radius:18px;
+        box-shadow:0 12px 28px rgba(15,45,70,.10);
+        margin-bottom:14px;
+        padding:18px 20px;
+      }}
+      .yk-ai-phone-page .patient-header h1 {{
+        color:#0F2742 !important;
+        font-size:30px;
+        font-weight:900;
+        letter-spacing:0;
+        margin-bottom:6px;
+      }}
+      .yk-ai-phone-page .patient-header .eyebrow {{
+        color:#116A8D !important;
+        font-weight:850;
+      }}
+      .yk-ai-phone-page .patient-header .lede {{
+        color:#334E68 !important;
+        font-size:15px;
+        line-height:1.55;
+        max-width:960px;
+      }}
+      .yk-ai-phone-page .card,
+      .yk-ai-phone-page .yk-chat-panel,
+      .yk-ai-phone-page .yk-phone-bridge {{
+        color:#122236;
+      }}
+      .yk-ai-phone-page .card-header {{
+        background:linear-gradient(135deg,#eef9ff,#f8fdff);
+        color:#0F2742 !important;
+        font-weight:850;
+      }}
+      .yk-ai-phone-page .form-label {{
+        color:#233B53 !important;
+        font-size:13px;
+        font-weight:850;
+      }}
+      .yk-ai-phone-page .form-control,
+      .yk-ai-phone-page .form-select,
+      .yk-ai-phone-page textarea {{
+        background:#FFFFFF !important;
+        color:#142C44 !important;
+        font-size:15px;
+        line-height:1.5;
+      }}
+      .yk-ai-phone-page textarea {{
+        min-height:112px;
+      }}
+      .yk-ai-phone-page .text-muted,
+      .yk-ai-phone-page small {{
+        color:#52677F !important;
+      }}
+      .yk-ai-phone-page .alert {{
+        color:#27384C;
+        font-size:14px;
+        line-height:1.5;
+      }}
       .yk-dialog-lab {{
         display:grid;
         grid-template-columns:minmax(0,1.3fr) minmax(320px,.7fr);
@@ -54409,18 +54699,23 @@ def ai_phone_assistant_page():
       .yk-codebox {{
         font-family:Consolas,monospace;
         font-size:12px;
-        background:#0F172A;
-        color:#E2E8F0;
+        background:#08111F;
+        color:#F8FAFC !important;
+        border:1px solid #2F4763;
         border-radius:12px;
         padding:10px;
         overflow:auto;
+        overflow-wrap:anywhere;
+        white-space:pre-wrap;
       }}
       @media (max-width:1000px) {{
+        .yk-ai-phone-page {{ padding-top:16px; }}
         .yk-dialog-lab {{ grid-template-columns:1fr; }}
         .yk-chat-input {{ grid-template-columns:1fr 1fr; }}
         .yk-chat-input input {{ grid-column:1 / -1; }}
       }}
     </style>
+    <div class="yk-ai-phone-page">
     <div class="patient-header">
       <span class="eyebrow">IP Telefon / PBX</span>
       <h1>YZ Destekli Telesekreter</h1>
@@ -54486,7 +54781,7 @@ def ai_phone_assistant_page():
             <i class="bi bi-soundwave"></i> Ses testi
           </button>
           <a class="btn btn-outline-secondary" href="/mikrofon-tani">
-            <i class="bi bi-tools"></i> Mikrofon tanı
+            <i class="bi bi-tools"></i> Mikrofonu tanı
           </a>
           <label class="form-check form-switch mb-0 ms-1">
             <input id="ykAutoSpeak" class="form-check-input" type="checkbox">
@@ -54520,7 +54815,7 @@ def ai_phone_assistant_page():
         <div class="yk-bridge-step"><b>2</b><div>Metni YazKlinik webhook'una POST edin. YZ Türkçe cevabı JSON olarak döner.</div></div>
         <div class="yk-bridge-step"><b>3</b><div>Dönen <code>reply</code> metnini TTS ile telefonda okutun veya operatöre aktarıp loglayın.</div></div>
         <div class="mt-3">
-          <label class="form-label">Webhook URL</label>
+          <label class="form-label">Webhook adresi</label>
           <div class="yk-codebox">{safe_html(webhook_url)}</div>
         </div>
         <div class="mt-2">
@@ -54528,7 +54823,7 @@ def ai_phone_assistant_page():
           <div class="yk-codebox">{webhook_sample}</div>
         </div>
         <div class="small text-muted mt-2">
-          Secret değeri ayarlardan değiştirilebilir. Telefon bağlanınca aynı cevap motoru kullanılır.
+          Gizli anahtar ayarlardan değiştirilebilir. Telefon bağlanınca aynı cevap motoru kullanılır.
         </div>
       </aside>
     </div>
@@ -55662,7 +55957,7 @@ def ai_phone_assistant_page():
  <small class="text-muted">Arayan bu ifadeleri söylediğinde kayıt otomatik geri arama/öncelik kuyruğuna düşer.</small>
  </div>
  <div class="col-md-3">
- <label class="form-label">Webhook secret</label>
+ <label class="form-label">Webhook gizli anahtarı</label>
  <input name="ai_phone_webhook_secret" class="form-control"
  value="{sh(settings['ai_phone_webhook_secret'])}">
         </div>
@@ -55736,6 +56031,7 @@ def ai_phone_assistant_page():
           <tbody>{call_rows}</tbody>
         </table>
       </div>
+    </div>
     </div>
     """
     return render(content, title="YZ Telesekreter")
@@ -59044,8 +59340,12 @@ def api_phone_voice_turn():
     voice_param = (request.form.get("voice") or "").strip().lower()
     profile_param = request.form.get("profile") or ""
     voice = ""
+    profile_key = "tr_lokal_piper"
+    voice_info = AI_PHONE_TTS_VOICES.get(profile_key) or {}
+    tts_engine = "piper"
     if voice_param in ("emel", "ahmet"):
         voice = voice_param
+        tts_engine = "xtts"
     else:
         try:
             if profile_param:
@@ -59055,11 +59355,15 @@ def api_phone_voice_turn():
                 profile_key = _ai_phone_tts_profile_key(
                     settings.get("ai_phone_voice_profile"))
             voice_info = AI_PHONE_TTS_VOICES.get(profile_key) or {}
+            tts_engine = str(voice_info.get("engine") or "edge").lower()
             edge_voice = voice_info.get("voice") or "tr-TR-EmelNeural"
             voice = _ai_phone_xtts_voice_from_profile(profile_key, edge_voice)
         except Exception:
             voice = "emel"
-    if voice not in ("emel", "ahmet"):
+            tts_engine = "xtts"
+    if tts_engine == "piper":
+        voice = "piper"
+    elif voice not in ("emel", "ahmet"):
         voice = "emel"
 
     def _stream():
@@ -59595,6 +59899,10 @@ def api_phone_tts_stream():
     text = re.sub(r"\s+", " ", text)
     if len(text) > 2200:
         text = text[:2200].rsplit(" ", 1)[0] + "..."
+    try:
+        text = _ai_phone_normalize_tts_text(text)
+    except Exception:
+        pass
 
     profile_key = _ai_phone_tts_profile_key(profile_param)
     voice_info = AI_PHONE_TTS_VOICES.get(profile_key) or AI_PHONE_TTS_VOICES["tr_premium_kadin"]
@@ -59657,6 +59965,10 @@ def api_phone_tts():
     text = re.sub(r"\s+", " ", text)
     if len(text) > 2200:
         text = text[:2200].rsplit(" ", 1)[0] + "..."
+    try:
+        text = _ai_phone_normalize_tts_text(text)
+    except Exception:
+        pass
     profile_key = _ai_phone_tts_profile_key(
         data.get("profile") or request.form.get("profile"))
     voice_info = AI_PHONE_TTS_VOICES.get(profile_key) or AI_PHONE_TTS_VOICES["tr_premium_kadin"]
@@ -70804,11 +71116,11 @@ def tedavi_planla_destek():
             active = " is-selected" if k in selected else ""
             tid = "t_" + re.sub(r"[^A-Za-z0-9_-]+", "_", str(k))
             checks += f"""
-            <label class="yk-tedavi-dx-option{active}" for="{safe_attr(tid)}">
+            <div class="yk-tedavi-dx-option{active}" data-yk-tedavi-dx-row="1">
                 <input class="form-check-input yk-tedavi-dx-check" type="checkbox" name="tani" value="{safe_attr(k)}" id="{safe_attr(tid)}" {chk}>
                 <span class="yk-tedavi-dx-dot"></span>
-                <span class="yk-tedavi-dx-title"><b>{sh(v['label'])}</b></span>
-            </label>"""
+                <label class="yk-tedavi-dx-title" for="{safe_attr(tid)}"><b>{sh(v['label'])}</b></label>
+            </div>"""
         tani_html += f"""
         <div class="col-md-6 mb-3">
             <div class="card h-100">
@@ -71146,6 +71458,7 @@ def tedavi_planla_destek():
       display: flex;
       align-items: center;
       gap: 10px;
+      position: relative;
       width: 100%;
       margin: 0 0 7px;
       padding: 9px 11px;
@@ -71154,6 +71467,7 @@ def tedavi_planla_destek():
       cursor: pointer;
       color: #20364F;
       background: rgba(255,255,255,0.44);
+      user-select: none;
       transition: background .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease;
     }}
     .yk-tedavi-dx-option:hover {{
@@ -71168,10 +71482,26 @@ def tedavi_planla_destek():
       box-shadow: 0 0 0 3px rgba(16,185,129,.13);
     }}
     .yk-tedavi-dx-option .yk-tedavi-dx-check {{
+      appearance: auto !important;
+      -webkit-appearance: checkbox !important;
+      display: inline-block !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      position: relative !important;
+      z-index: 4 !important;
       width: 20px;
       height: 20px;
       margin: 0;
       flex: 0 0 auto;
+      cursor: pointer;
+    }}
+    #ykTedaviForm input[type="checkbox"].form-check-input {{
+      appearance: auto !important;
+      -webkit-appearance: checkbox !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      position: relative !important;
+      z-index: 4 !important;
     }}
     .yk-tedavi-dx-dot {{
       display: none;
@@ -71179,6 +71509,8 @@ def tedavi_planla_destek():
     .yk-tedavi-dx-title {{
       flex: 1;
       line-height: 1.25;
+      cursor: pointer;
+      margin: 0;
     }}
     .yk-rx-card-title {{
       display: flex;
@@ -71308,6 +71640,22 @@ def tedavi_planla_destek():
         document.addEventListener('change', function(ev) {{
           var t = ev.target;
           if (t && t.classList && t.classList.contains('yk-tedavi-dx-check')) syncDxOptions();
+        }});
+        document.addEventListener('click', function(ev) {{
+          var opt = ev.target && ev.target.closest ? ev.target.closest('[data-yk-tedavi-dx-row="1"]') : null;
+          if (!opt) return;
+          var form = document.getElementById('ykTedaviForm');
+          if (!form || !form.contains(opt)) return;
+          var cb = opt.querySelector('.yk-tedavi-dx-check');
+          if (!cb || cb.disabled) return;
+          if (ev.target === cb || (ev.target.closest && ev.target.closest('label'))) {{
+            setTimeout(syncDxOptions, 0);
+            return;
+          }}
+          ev.preventDefault();
+          cb.checked = !cb.checked;
+          cb.dispatchEvent(new Event('change', {{bubbles:true}}));
+          syncDxOptions();
         }});
         document.addEventListener('reset', function(ev) {{
           if (ev.target && ev.target.id === 'ykTedaviForm') setTimeout(syncDxOptions, 0);
@@ -71567,8 +71915,24 @@ def diyet_rehberi_destek():
       box-shadow: 0 8px 20px rgba(37,99,235,.08);
     }
     .yk-diet-scenario-option .form-check-input {
+      appearance: auto !important;
+      -webkit-appearance: checkbox !important;
+      accent-color: #2563EB;
+      display: inline-block !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      position: relative !important;
+      z-index: 4 !important;
       width: 1.28em; height: 1.28em; margin: 0; flex: 0 0 auto;
       cursor: pointer; border-color: #93C5FD;
+    }
+    #ykDietScenarioForm input[type="checkbox"].yk-diet-scenario-check {
+      appearance: auto !important;
+      -webkit-appearance: checkbox !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      position: relative !important;
+      z-index: 4 !important;
     }
     .yk-diet-scenario-option .yk-diet-scenario-title {
       cursor: pointer; color: #1F3448; line-height: 1.25;
@@ -71737,6 +72101,19 @@ def diyet_rehberi_destek():
         ykDietSyncScenarioChecks();
       }
     });
+    document.addEventListener('click', function(ev) {
+      var row = ev.target && ev.target.closest ? ev.target.closest('.yk-diet-scenario-option') : null;
+      if (!row) return;
+      var cb = row.querySelector('.yk-diet-scenario-check');
+      if (!cb || cb.disabled) return;
+      if (ev.target === cb) {
+        setTimeout(ykDietSyncScenarioChecks, 0);
+        return;
+      }
+      ev.preventDefault();
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event('change', { bubbles: true }));
+    });
     document.addEventListener('DOMContentLoaded', ykDietSyncScenarioChecks);
     setTimeout(ykDietSyncScenarioChecks, 80);
     </script>
@@ -71756,7 +72133,7 @@ def diyet_rehberi_destek():
         suplement ve KACINILACAK listesi. Diyetisyen seviyesinden ote: kanit-temelli klinik
         oneri (ACOG, ADA, AND, ESHRE).
       </p>
-      <form method="POST" action="/diyet-rehberi" class="card mb-3">
+      <form id="ykDietScenarioForm" method="POST" action="/diyet-rehberi" class="card mb-3">
         <div class="card-header bg-light"><b>Senaryo Sec (birden fazla)</b></div>
         <div class="card-body">{checks}
           <div class="mt-3"><button type="submit" class="btn btn-primary"><i class="bi bi-list-check"></i> Diyet Hazirla</button></div>
@@ -142101,6 +142478,42 @@ def dicom_settings():
     cur_url, cur_user, _, _ = _get_orthanc_config()
 
     content = f"""
+ <script>
+ document.addEventListener('DOMContentLoaded', function() {{
+   if (location.pathname !== '/dicom-ayar') return;
+   document.querySelectorAll('.alert').forEach(function(el) {{
+     if ((el.textContent || '').indexOf('DICOM') !== -1) {{
+       el.innerHTML = '<i class="bi bi-check2-circle"></i> DICOM ayarlar&#305; kaydedildi.';
+     }}
+   }});
+   var backBtn = document.querySelector('a[href="/dicom"].btn-secondary');
+   if (backBtn) backBtn.innerHTML = '<i class="bi bi-arrow-left"></i> DICOM';
+   var title = document.querySelector('h2.mb-3');
+   if (title) title.innerHTML = '<i class="bi bi-hdd-network"></i> DICOM/Orthanc Ayarlar&#305;';
+   var labels = document.querySelectorAll('form label.form-label');
+   if (labels[1]) labels[1].innerHTML = 'Kullan&#305;c&#305; *';
+   if (labels[2]) labels[2].innerHTML = '&#350;ifre *';
+   var pass = document.querySelector('input[name="password"]');
+   if (pass) pass.setAttribute('placeholder', '(bo&#351; = de&#287;i&#351;mez)');
+   var hint = document.querySelector('input[name="url"] + small');
+   if (hint) hint.innerHTML = 'Varsay&#305;lan Orthanc: <code>{sh(ORTHANC_URL)}</code> &middot; Ayn&#305; a&#287;da farkl&#305; IP/port yazabilirsiniz.';
+   var submit = document.querySelector('button[type="submit"].btn-primary');
+   if (submit) submit.innerHTML = '<i class="bi bi-save"></i> Kaydet';
+   var allSettings = document.querySelector('a[href="/tum-ayarlar?filter=orthanc"]');
+   if (allSettings) allSettings.innerHTML = 'T&uuml;m DICOM ayar anahtarlar&#305;n&#305; a&ccedil;';
+   var services = document.querySelector('a[href="/dicom-servisleri"]');
+   if (services) services.innerHTML = 'DICOM servisleri ve eklentileri a&ccedil;';
+   var work = document.querySelector('.alert-info');
+   if (work) {{
+     var h = work.querySelector('h5');
+     if (h) h.innerHTML = '<i class="bi bi-broadcast-pin"></i> DICOM Worklist (USG cihaz&#305; i&ccedil;in)';
+     var p = work.querySelector('p');
+     if (p) p.innerHTML = 'USG cihaz&#305;n&#305;z hasta listesini Orthanc\\'tan &ccedil;ekebilir (Modality Worklist - MWL). Bu sayede sekreter cihazda manuel hasta yazmaz, tek t&#305;kla se&ccedil;er.';
+     var a = work.querySelector('a[href="/dicom-worklist"]');
+     if (a) a.innerHTML = '<i class="bi bi-clipboard-data"></i> Worklist Y&ouml;netimi';
+   }}
+ }});
+ </script>
  <a href="/dicom" class="btn btn-secondary mb-3"><- DICOM</a>
  <h2 class="mb-3">âš™ DICOM/Orthanc AyarlarÄ±</h2>
 
@@ -162154,10 +162567,10 @@ if __name__ == "__main__":
     else:
         print(f"  LAN:    {local_scheme}://<bu-pc-nin-ip-si>:{port}")
     print()
-    print("  GIRIS SIFRELERI:")
-    print("     doktor / 1234     (TAM YETKI)")
-    print("     asistan / 1234    (Klinik isler)")
-    print("     sekreter / 1234   (Sadece kayit + WhatsApp)")
+    print("  GIRIS:")
+    print("     doktor / users.json guncel sifre")
+    print("     asistan / users.json guncel sifre")
+    print("     sekreter / users.json guncel sifre")
     print()
     print("  URETIMDE sifreleri DEGISTIRIN! (USERS dict)")
     print()

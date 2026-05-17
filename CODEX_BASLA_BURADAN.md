@@ -33,6 +33,15 @@ CODEX_D300_QUICK_CHECK_OK
 
 ## Son degisiklikler
 
+- **2026-05-17 (Session 7 SUPER PUSH):** 31 yeni ajan + Flask wire (93 endpoint) + PWA + uyumluluk panosu + status sayfasi + Codex 7 gorev tamam. Detay: **`CODEX_HANDOFF_2026-05-17_SESSION7.md`** + **`CODEX_GOREV_2026-05-17.md`**.
+    - **Claude klinik AI (10):** vision_usg (llama3.2-vision), soap, icd10, gebelik_takvim, risk_skor (preeklampsi/HELLP/Bishop/VTE), ddi, smear_hpv, phq9, konsey, hatira_usg
+    - **Claude sistem (11):** voice_command, anti_burnout, orchestrator (chain), hasta_portal (magic-link), 2fa (TOTP stdlib), stok, plugin_loader, compliance (ISO27001+KVKK), status_page, celery_worker, sentry_init
+    - **Claude cron (2):** memnuniyet+birthday, pubmed_cron
+    - **Claude stub (6):** payment (iyzico/Stripe), enabiz, mhrs, medula, lab_duzen, iot_bluetooth
+    - **Claude sistem altyapisi (2):** db_migrate (11 idempotent tablo), backup_verify (restic+sqlite)
+    - **Codex tamamlananlar:** /ajanlar dashboard kartlari + audit_log/consent migration + PWA ikonlari (192/512/1024) + /2fa-setup HTML + /stok HTML + INSTALL_CRON_TASKS_SESSION7.ps1 + X-Cron-Token endpoint korumasi
+    - Public yeni: `/status` + `/api/status` + `/uyumluluk` + `/hasta-portal/giris?token=...` + `/manifest.webmanifest` + `/sw.js`
+    - SAYISAL: 93 Blueprint endpoint, 31/31 modul import OK, Compliance F (33%) -> C (64.8%)
 - **2026-05-17 (Session 6 - VeriDB):** PostgreSQL + Redis + MeiliSearch eklendi. Detay: **`CODEX_HANDOFF_2026-05-17_SESSION6.md`**.
     - 3 yeni Docker servis: yk-postgres (15432), yk-redis (16379), yk-meilisearch (17700)
     - 3 yeni Python agent + 9 yeni endpoint + `/veridb-merkezi` UI dashboard

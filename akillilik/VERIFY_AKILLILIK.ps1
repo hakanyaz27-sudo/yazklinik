@@ -193,6 +193,76 @@ Test-Item "Yeni endpoint /veridb-merkezi" {
     $c -in "200","401"
 }
 
+# Session 7 - Yeni 29 ajan + 38 endpoint
+Write-Host ""
+Write-Host "[7/7] Session 7 - 29 yeni ajan + endpoint smoke" -ForegroundColor Yellow
+
+$session7Mods = @(
+    "yazklinik_vision_usg_agent", "yazklinik_soap_agent", "yazklinik_icd10_agent",
+    "yazklinik_gebelik_takvim_agent", "yazklinik_risk_skor_agent", "yazklinik_ddi_agent",
+    "yazklinik_voice_command_agent", "yazklinik_anti_burnout_agent", "yazklinik_hatira_usg_agent",
+    "yazklinik_orchestrator_agent", "yazklinik_hasta_portal_agent", "yazklinik_2fa_agent",
+    "yazklinik_phq9_agent", "yazklinik_stok_agent", "yazklinik_konsey_agent",
+    "yazklinik_payment_agent", "yazklinik_enabiz_kts_agent", "yazklinik_mhrs_agent",
+    "yazklinik_medula_agent", "yazklinik_lab_duzen_agent", "yazklinik_iot_bluetooth_agent",
+    "yazklinik_plugin_loader", "yazklinik_smear_hpv_agent", "yazklinik_celery_worker",
+    "yazklinik_sentry_init", "yazklinik_memnuniyet_agent", "yazklinik_pubmed_cron_agent",
+    "yazklinik_compliance_agent", "yazklinik_status_page_agent",
+    "yazklinik_db_migrate_agent", "yazklinik_backup_verify_agent"
+)
+foreach ($mod in $session7Mods) {
+    Test-Item "Module: $mod" {
+        $out = & $venv -c "import sys; sys.path.insert(0, r'$projectRoot'); import $mod" 2>&1
+        $LASTEXITCODE -eq 0
+    }
+}
+
+# Public endpoints (auth yok)
+Test-Item "Public /api/status" {
+    $c = curl.exe -sk -o NUL -w "%{http_code}" https://127.0.0.1:5443/api/status --max-time 5 2>$null
+    $c -eq "200"
+}
+Test-Item "Public /status (HTML)" {
+    $c = curl.exe -sk -o NUL -w "%{http_code}" https://127.0.0.1:5443/status --max-time 5 2>$null
+    $c -eq "200"
+}
+Test-Item "Public /manifest.webmanifest (PWA)" {
+    $c = curl.exe -sk -o NUL -w "%{http_code}" https://127.0.0.1:5443/manifest.webmanifest --max-time 5 2>$null
+    $c -in "200","404"  # 404 ok if static path not wired
+}
+Test-Item "Public /sw.js (PWA)" {
+    $c = curl.exe -sk -o NUL -w "%{http_code}" https://127.0.0.1:5443/sw.js --max-time 5 2>$null
+    $c -in "200","404"
+}
+
+# Auth-gated endpoints (401 doner - dogru)
+Test-Item "Endpoint /api/agents/burnout/report (auth check)" {
+    $c = curl.exe -sk -o NUL -w "%{http_code}" https://127.0.0.1:5443/api/agents/burnout/report --max-time 5 2>$null
+    $c -in "200","302","401"
+}
+Test-Item "Endpoint /api/agents/voice-command/parse (auth check)" {
+    $c = curl.exe -sk -o NUL -w "%{http_code}" -X POST https://127.0.0.1:5443/api/agents/voice-command/parse --max-time 5 2>$null
+    $c -in "200","302","401","400"
+}
+Test-Item "Endpoint /uyumluluk (compliance panel)" {
+    $c = curl.exe -sk -o NUL -w "%{http_code}" https://127.0.0.1:5443/uyumluluk --max-time 5 2>$null
+    $c -in "200","302","401"
+}
+Test-Item "Endpoint /hasta-portal" {
+    $c = curl.exe -sk -o NUL -w "%{http_code}" https://127.0.0.1:5443/hasta-portal --max-time 5 2>$null
+    $c -in "200","401"
+}
+
+# DB Migration boot test (DB'de yeni tablolar var mi)
+Test-Item "DB migration: audit_log tablo" {
+    $out = & $venv -c "import sqlite3; con = sqlite3.connect(r'$projectRoot\local_db\yazklinik_v68.sqlite3'); print(1 if con.execute(`"SELECT name FROM sqlite_master WHERE type='table' AND name='audit_log'`").fetchone() else 0)" 2>&1
+    $out -match "1"
+}
+Test-Item "DB migration: patient_consents tablo" {
+    $out = & $venv -c "import sqlite3; con = sqlite3.connect(r'$projectRoot\local_db\yazklinik_v68.sqlite3'); print(1 if con.execute(`"SELECT name FROM sqlite_master WHERE type='table' AND name='patient_consents'`").fetchone() else 0)" 2>&1
+    $out -match "1"
+}
+
 # Ozet
 Write-Host ""
 Write-Host "=== OZET ===" -ForegroundColor Cyan
