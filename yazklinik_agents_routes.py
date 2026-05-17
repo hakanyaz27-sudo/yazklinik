@@ -3004,6 +3004,42 @@ def api_portal_search_patients():
         con.close()
 
 
+@agents_bp.route("/api/agents/portal/share-options", methods=["GET"])
+def api_portal_share_options():
+    """Doktorun SELECTOR formu icin - bir hasta hakkinda paylasilabilir
+    tum item'lari listele (visits, pdfs, meds, labs)."""
+    auth = _require_session()
+    if auth: return auth
+    pid = request.args.get("patient_id", "").strip()
+    if not pid:
+        return jsonify({"ok": False, "error": "patient_id gerek"}), 400
+    if not portal_mod:
+        return jsonify({"ok": False, "error": "portal_mod yok"}), 503
+
+    out = {"visits": [], "pdfs": [], "meds": [], "labs": []}
+    try:
+        # Tum ziyaretler (selector icin daha cok)
+        try:
+            out["visits"] = portal_mod.list_visit_summaries(pid, limit=15)
+        except Exception:
+            pass
+        try:
+            out["pdfs"] = portal_mod.list_my_pdfs(pid)
+        except Exception:
+            pass
+        try:
+            out["meds"] = portal_mod.list_my_meds(pid)
+        except Exception:
+            pass
+        try:
+            out["labs"] = portal_mod.list_my_labs(pid)
+        except Exception:
+            pass
+        return jsonify({"ok": True, "result": out})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 @agents_bp.route("/api/agents/portal/issue-link", methods=["POST"])
 def api_portal_issue_link():
     auth = _require_session()
@@ -3011,11 +3047,24 @@ def api_portal_issue_link():
     err = _agent_or_503(portal_mod, "hasta_portal")
     if err: return err
     p = _payload()
+    # share_config: doktorun SELECTOR ile sectiklerini iceren JSON
+    share_config = p.get("share_config")
+    if share_config and not isinstance(share_config, dict):
+        try:
+            import json as _json
+            share_config = _json.loads(share_config)
+        except Exception:
+            share_config = None
+    # base_url: Funnel veya local
+    base_url = (p.get("base_url") or
+                 (request.host_url.rstrip("/") if request.host_url else
+                  "https://sam.turkey-orfe.ts.net"))
     return _wrap_call("portal_issue", portal_mod.issue_magic_link, {
         "patient_id": p.get("patient_id", ""),
         "phone": p.get("phone", ""),
-        "base_url": p.get("base_url", "https://127.0.0.1:5443"),
-        "ttl_hours": int(p.get("ttl_hours", 24))})
+        "base_url": base_url,
+        "ttl_hours": int(p.get("ttl_hours", 24)),
+        "share_config": share_config})
 
 
 @agents_bp.route("/hasta-portal/giris", methods=["GET"])
@@ -3043,11 +3092,12 @@ def hasta_portal_giris():
     except Exception:
         pass  # sig dogrulanamadi - eski linkler hala calissin
     session["portal_patient_id"] = res.session.patient_id
+    session["portal_token"] = token  # scopes filter icin
     return render_template_string(
-        "<html lang='tr'><head><meta charset='utf-8'></head>"
+        "<html lang='tr'><head><meta charset='utf-8'><meta http-equiv='refresh' content='0;url=/hasta-portal'></head>"
         "<body style='font-family:sans-serif;padding:24px'>"
-        "<h2>Hoş geldiniz</h2><p>Giriş başarılı. "
-        "<a href='/hasta-portal'>Portal ana sayfa</a></p></body></html>")
+        "<h2>Hoş geldiniz</h2><p>Giriş başarılı, yönlendiriliyorsunuz...</p>"
+        "<p><a href='/hasta-portal'>Tıkla</a></p></body></html>")
 
 
 @agents_bp.route("/hasta-portal/media", methods=["GET"])
@@ -3113,10 +3163,36 @@ def hasta_portal_home():
         visits = []
         pdfs = []
         meds = []
+        labs = []
+        custom_message = ""
+        # Scopes oku - doktor sectiklerini filter et
+        scopes = {"all": True}
+        try:
+            token_used = session.get("portal_token", "")
+            if portal_mod and token_used:
+                scopes = portal_mod.get_token_scopes(token_used)
+        except Exception:
+            pass
+        custom_message = scopes.get("custom_message", "") or ""
+        allowed_visits = scopes.get("visits")  # None = hepsi
+        show_pdfs = scopes.get("show_pdfs", scopes.get("all", True))
+        show_meds = scopes.get("show_meds", scopes.get("all", True))
+        show_labs = scopes.get("show_labs", scopes.get("all", True))
+
         if portal_mod:
             try:
-                visits = portal_mod.list_my_visits(portal_pid)
-                # Her ziyaret icin USG resim listesi ekle
+                all_visits = portal_mod.list_my_visits(portal_pid)
+                # Filter by allowed visit_keys (eger doktor secti ise)
+                if isinstance(allowed_visits, list) and allowed_visits:
+                    # visits tablo visit_key ile select edildi; ama list_my_visits visit_key dondurmuyor
+                    # Bu yuzden full_path veya visit_date+pdf_count match
+                    # En basit: full_path match
+                    visits = []
+                    for v in all_visits:
+                        if v.get("full_path") in allowed_visits or v.get("visit_date") in allowed_visits:
+                            visits.append(v)
+                else:
+                    visits = all_visits
                 for v in visits:
                     fp = v.get("full_path") or ""
                     try:
@@ -3128,16 +3204,18 @@ def hasta_portal_home():
                         v["visit_pdfs"] = []
             except Exception:
                 pass
-            try:
-                pdfs = portal_mod.list_my_pdfs(portal_pid)
-            except Exception:
-                pass
-            try:
-                meds = portal_mod.list_my_meds(portal_pid)
-            except Exception:
-                pass
+            if show_pdfs:
+                try: pdfs = portal_mod.list_my_pdfs(portal_pid)
+                except Exception: pass
+            if show_meds:
+                try: meds = portal_mod.list_my_meds(portal_pid)
+                except Exception: pass
+            if show_labs:
+                try: labs = portal_mod.list_my_labs(portal_pid)
+                except Exception: pass
         return render_template_string(_PORTAL_HASTA_PAGE,
                                        visits=visits, pdfs=pdfs, meds=meds,
+                                       labs=labs, custom_message=custom_message,
                                        pid=portal_pid)
 
     # MOD 2: Doktor login - yonetim paneli
@@ -3214,8 +3292,16 @@ box-shadow:0 1px 3px rgba(0,0,0,.06)}
   <h1>Hoş Geldiniz</h1>
   <p>Hasta dosyanız - son ziyaretler ve raporlar</p>
 </div>
+{% if custom_message %}
+  <div style="background:linear-gradient(135deg,#fff8e1,#fff3c4);border-left:4px solid #f0b400;
+              padding:14px 16px;border-radius:0 8px 8px 0;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:#b87333;margin-bottom:4px">💬 DOKTORDAN MESAJ</div>
+    <div style="font-size:14px;color:#7a5a00;white-space:pre-line">{{custom_message}}</div>
+  </div>
+{% endif %}
+
 {% if visits %}
-  <h3 style="color:#0d4f8b;font-size:16px;margin:14px 0 8px">📋 Son Ziyaretler ({{visits|length}})</h3>
+  <h3 style="color:#0d4f8b;font-size:16px;margin:14px 0 8px">📋 Ziyaretler ({{visits|length}})</h3>
   {% for v in visits %}
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -3279,7 +3365,23 @@ box-shadow:0 1px 3px rgba(0,0,0,.06)}
   {% endfor %}
 {% endif %}
 
-{% if not visits and not pdfs and not meds %}
+{% if labs %}
+  <h3 style="color:#a01e7e;font-size:16px;margin:14px 0 8px">🧪 Laboratuvar Sonuçları ({{labs|length}})</h3>
+  {% for l in labs %}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <b>{{l.test_name or l.test_code}}</b>
+      <span style="font-weight:700;color:{% if l.flag == 'H' or l.flag == 'critical' %}#b3261e{% elif l.flag == 'L' %}#b87333{% else %}#16815f{% endif %}">{{l.value}} {{l.unit or ''}}</span>
+    </div>
+    {% if l.reference_range %}<div class="meta">Referans: {{l.reference_range}}</div>{% endif %}
+    {% if l.sample_date or l.report_date %}
+      <div class="meta">📅 {{l.report_date or l.sample_date}}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+{% endif %}
+
+{% if not visits and not pdfs and not meds and not labs and not custom_message %}
   <div class="card empty">
     Henüz kayıt bulunmamaktadır.<br>
     Klinik ekibimiz veri girdikten sonra burada görünecektir.
@@ -3358,6 +3460,52 @@ font-size:13px;margin-bottom:18px;color:#7a5a00}
     <b style="color:#16815f">✓ Seçili hasta:</b>
     <div id="selected-info" style="margin-top:6px;font-size:14px"></div>
   </div>
+
+  <!-- SELECTOR WIZARD: hasta secince acilir -->
+  <div id="share-wizard" style="display:none;background:#f5f8fb;border:1px solid #cdd9e3;
+       border-radius:10px;padding:14px;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <b style="color:#0d4f8b;font-size:14px">📤 Hasta Ne Görsün? (varsayılan: hepsi)</b>
+      <button type="button" onclick="loadShareOptions()" style="background:#5e7185;font-size:12px;padding:6px 10px">🔄 Yenile</button>
+    </div>
+
+    <!-- Custom message -->
+    <div style="margin-bottom:10px">
+      <label style="font-size:12px;color:#0d4f8b;font-weight:600;display:block;margin-bottom:4px">💬 Hasta için özel mesaj (üst kısımda görünür):</label>
+      <textarea id="custom-message" rows="3" placeholder="Örn: Sayın Ayşe, sonuçlar normal. 2 hafta sonra kontrol için bekliyorum. - Dr. Hakan Yaz"
+                style="width:100%;padding:10px;font-size:14px;border:1px solid #cdd9e3;border-radius:6px;resize:vertical;-webkit-appearance:none"></textarea>
+    </div>
+
+    <!-- Quick toggles -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;font-size:13px">
+      <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="opt-pdfs" checked> 📄 PDF/Rapor Arşivi
+      </label>
+      <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="opt-meds" checked> 💊 İlaç Listesi
+      </label>
+      <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="opt-labs" checked> 🧪 Lab Sonuçları
+      </label>
+    </div>
+
+    <!-- Visit selector -->
+    <div id="visit-list-wrapper" style="display:none;margin-bottom:8px">
+      <div style="font-size:12px;color:#0d4f8b;font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between">
+        <span>📋 Ziyaretler (seçili olanlar paylaşılır)</span>
+        <span>
+          <a href="#" onclick="toggleAllVisits(true);return false" style="font-size:11px;margin-right:8px">Hepsi</a>
+          <a href="#" onclick="toggleAllVisits(false);return false" style="font-size:11px">Hiçbiri</a>
+        </span>
+      </div>
+      <div id="visit-list" style="max-height:200px;overflow-y:auto;background:#fff;padding:8px;border-radius:6px;border:1px solid #cdd9e3"></div>
+    </div>
+
+    <div style="font-size:11px;color:#5e7185;margin-top:6px">
+      ℹ️ Hiçbir ziyaret seçilmezse tüm ziyaretler (default 5) paylaşılır
+    </div>
+  </div>
+
   <div class="form-row">
     <input type="text" id="pid" placeholder="Hasta ID (yukaridan secince doluyor)" autocomplete="off" readonly
            style="background:#f5f8fb">
@@ -3566,10 +3714,85 @@ function selectPatient(p){
     (p.phone ? '<br><small>Tel: ' + escapeHtml(p.phone) + '</small>' :
       '<br><small style="color:#b87333">⚠ Telefon kayitli degil - elle gir</small>');
   document.getElementById('selected-patient').style.display = 'block';
+  document.getElementById('share-wizard').style.display = 'block';
   resultsBox.style.display = 'none';
   searchInput.value = p.name || p.key;
-  // Phone yoksa focus phone'a gec
+  // Visit listesini yukle (selector icin)
+  loadShareOptions();
   if(!p.phone) document.getElementById('phone').focus();
+}
+
+function loadShareOptions(){
+  const pid = document.getElementById('pid').value.trim();
+  if(!pid) return;
+  const wrapper = document.getElementById('visit-list-wrapper');
+  const list = document.getElementById('visit-list');
+  list.innerHTML = '<i style="color:#5e7185">Yukleniyor...</i>';
+  wrapper.style.display = 'block';
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', '/api/agents/portal/share-options?patient_id=' +
+          encodeURIComponent(pid) + '&_t=' + Date.now(), true);
+  xhr.withCredentials = true;
+  xhr.timeout = 10000;
+  xhr.ontimeout = function(){ list.innerHTML = '<span style="color:#b3261e">Timeout</span>'; };
+  xhr.onerror = function(){ list.innerHTML = '<span style="color:#b3261e">Hata</span>'; };
+  xhr.onload = function(){
+    try {
+      const d = JSON.parse(xhr.responseText);
+      if(!d.ok){ list.innerHTML = '<span style="color:#b3261e">' + d.error + '</span>'; return; }
+      const visits = (d.result && d.result.visits) || [];
+      const pdfs = (d.result && d.result.pdfs) || [];
+      const meds = (d.result && d.result.meds) || [];
+      const labs = (d.result && d.result.labs) || [];
+      if(visits.length === 0){
+        list.innerHTML = '<i style="color:#5e7185">Bu hastanin ziyaret kaydi YOK</i>';
+      } else {
+        list.innerHTML = visits.map((v, i) => {
+          const hasMedia = (v.image_count > 0 || v.pdf_count > 0);
+          const label = (v.visit_date || '-') + ' | ' + (v.visit_type || 'muayene');
+          const media = hasMedia ? '<span style="color:#0a8a76;font-size:11px"> 🖼 ' +
+                       (v.image_count||0) + ' resim, 📄 ' + (v.pdf_count||0) + ' pdf</span>' :
+                       '<span style="color:#b87333;font-size:11px"> ⚠ dosyasiz</span>';
+          // Default: ilk 5 secili (dosyali olanlar)
+          const checked = (hasMedia && i < 5) ? 'checked' : '';
+          return '<label style="display:block;padding:6px 4px;border-bottom:1px solid #eef3f8;cursor:pointer;font-size:13px">' +
+            '<input type="checkbox" class="visit-cb" data-key="' + escapeHtml(v.full_path || v.visit_key || '') + '" ' + checked + '> ' +
+            '<b>' + escapeHtml(label) + '</b>' + media + '</label>';
+        }).join('');
+      }
+      // Pdfs / labs counts info
+      let info = [];
+      if(pdfs.length) info.push('📄 ' + pdfs.length + ' arşiv PDF');
+      if(meds.length) info.push('💊 ' + meds.length + ' aktif ilaç');
+      if(labs.length) info.push('🧪 ' + labs.length + ' lab sonuç');
+      if(info.length){
+        list.insertAdjacentHTML('beforeend',
+          '<div style="font-size:11px;color:#5e7185;margin-top:8px;padding-top:6px;border-top:1px solid #eef3f8">Mevcut: ' + info.join(' | ') + '</div>');
+      }
+    } catch(e){
+      list.innerHTML = '<span style="color:#b3261e">Parse hatasi: ' + e.message + '</span>';
+    }
+  };
+  xhr.send();
+}
+
+function toggleAllVisits(state){
+  document.querySelectorAll('.visit-cb').forEach(cb => { cb.checked = state; });
+}
+
+function collectShareConfig(){
+  const selected = [];
+  document.querySelectorAll('.visit-cb:checked').forEach(cb => {
+    if(cb.dataset.key) selected.push(cb.dataset.key);
+  });
+  return {
+    visits: selected.length > 0 ? selected : null,  // null = hepsi default
+    show_pdfs: document.getElementById('opt-pdfs').checked,
+    show_meds: document.getElementById('opt-meds').checked,
+    show_labs: document.getElementById('opt-labs').checked,
+    custom_message: document.getElementById('custom-message').value.trim()
+  };
 }
 
 function clearAll(){
@@ -3577,6 +3800,8 @@ function clearAll(){
   document.getElementById('pid').value = '';
   document.getElementById('phone').value = '';
   document.getElementById('selected-patient').style.display = 'none';
+  document.getElementById('share-wizard').style.display = 'none';
+  document.getElementById('custom-message').value = '';
   document.getElementById('result').classList.remove('show');
   resultsBox.style.display = 'none';
 }
@@ -3652,7 +3877,12 @@ function issueLink(callback){
       if(callback) callback(null);
     }
   };
-  xhr.send(JSON.stringify({patient_id: pid, phone: phone, ttl_hours: ttl}));
+  const shareConfig = collectShareConfig();
+  console.log('[YK-PORTAL] share_config:', shareConfig);
+  xhr.send(JSON.stringify({
+    patient_id: pid, phone: phone, ttl_hours: ttl,
+    share_config: shareConfig
+  }));
 }
 
 function issueAndWhatsApp(){

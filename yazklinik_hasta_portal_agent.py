@@ -72,8 +72,20 @@ def _ensure_table(db_path: str) -> None:
 def issue_magic_link(patient_id: str, phone: str,
                      base_url: str = "https://127.0.0.1:5443",
                      ttl_hours: int = 24,
+                     share_config: Optional[Dict[str, Any]] = None,
                      db_path: Optional[str] = None) -> PortalLoginResult:
-    """Hastaya 24s gecerli magic-link uret. Sonra WhatsApp ile yollanir."""
+    """Hastaya magic-link uret + paylasim konfigurasyonu.
+
+    share_config (opsiyonel JSON):
+        {
+            "visits": [visit_key1, visit_key2, ...],  # secilen ziyaretler
+            "show_pdfs": True,                          # PDF arsiv goster
+            "show_meds": True,                          # ilac listesi goster
+            "show_labs": True,                          # lab sonuc goster
+            "custom_message": "..."                     # doktor mesaji
+        }
+    Hicbiri verilmezse: TUM verileri goster (geriye uyumlu).
+    """
     db_path = db_path or DEFAULT_DB_PATH
     _ensure_table(db_path)
 
@@ -83,19 +95,48 @@ def issue_magic_link(patient_id: str, phone: str,
     sig = hmac.new(PORTAL_SECRET.encode(), f"{patient_id}|{token}".encode(),
                     hashlib.sha256).hexdigest()[:16]
 
+    # scopes JSON (eski "read" string yerine yapilandirilmis config)
+    if share_config and isinstance(share_config, dict):
+        scopes_json = json.dumps(share_config, ensure_ascii=False)
+    else:
+        scopes_json = json.dumps({"all": True}, ensure_ascii=False)
+
     con = sqlite3.connect(db_path)
     try:
         con.execute(
             "INSERT INTO patient_portal_tokens "
             "(token, patient_id, phone, issued_at, expires_at, scopes) VALUES (?, ?, ?, ?, ?, ?)",
             (token, patient_id, phone, now.isoformat(timespec="seconds"),
-             expires.isoformat(timespec="seconds"), "read"))
+             expires.isoformat(timespec="seconds"), scopes_json))
         con.commit()
     finally:
         con.close()
 
     link = f"{base_url}/hasta-portal/giris?token={token}&sig={sig}"
     return PortalLoginResult(ok=True, magic_link=link)
+
+
+def get_token_scopes(token: str, db_path: Optional[str] = None) -> Dict[str, Any]:
+    """Token'in scopes JSON'unu cek. Yoksa {all: True} doner (default).
+
+    Bu fonksiyon HER REQUEST'TE cagrilir - filter etmek icin.
+    """
+    db_path = db_path or DEFAULT_DB_PATH
+    con = sqlite3.connect(db_path)
+    try:
+        r = con.execute(
+            "SELECT scopes FROM patient_portal_tokens WHERE token = ?",
+            (token,)).fetchone()
+        if r and r[0]:
+            try:
+                d = json.loads(r[0])
+                if isinstance(d, dict):
+                    return d
+            except Exception:
+                pass
+    finally:
+        con.close()
+    return {"all": True}
 
 
 def verify_token(token: str, db_path: Optional[str] = None) -> PortalLoginResult:
@@ -248,6 +289,68 @@ def list_my_meds(patient_id: str, db_path: Optional[str] = None) -> List[Dict[st
             "WHERE patient_key = ? AND COALESCE(active, 1) = 1 "
             "ORDER BY start_date DESC LIMIT 20",
             (patient_id,)).fetchall()
+        return [dict(r) for r in rows]
+    except Exception:
+        return []
+    finally:
+        con.close()
+
+
+def list_my_labs(patient_id: str, db_path: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Hastanin lab sonuclari.
+
+    patient_id (folder_key) -> TC ile match veya patient_tc kolonu ile."""
+    db_path = db_path or DEFAULT_DB_PATH
+    con = sqlite3.connect(db_path)
+    con.row_factory = sqlite3.Row
+    out = []
+    try:
+        # Ust olarak patient TC al
+        tc = ""
+        try:
+            r = con.execute(
+                "SELECT tc_no FROM patient_demographics WHERE patient_key = ?",
+                (patient_id,)).fetchone()
+            tc = (r[0] if r else "") or ""
+        except Exception:
+            pass
+        # lab_results: patient_tc + patient_key her ikisinde de bak
+        for col in ("patient_tc", "patient_id", "patient_key"):
+            try:
+                rows = con.execute(
+                    f"SELECT test_code, test_name, value, unit, reference_range, "
+                    f"  flag, sample_date, report_date, source "
+                    f"FROM lab_results WHERE {col} IN (?, ?) "
+                    f"ORDER BY COALESCE(report_date, sample_date) DESC LIMIT 50",
+                    (patient_id, tc)).fetchall()
+                if rows:
+                    out = [dict(r) for r in rows]
+                    break
+            except Exception:
+                continue
+    finally:
+        con.close()
+    return out
+
+
+def list_visit_summaries(patient_id: str, db_path: Optional[str] = None,
+                          limit: int = 15) -> List[Dict[str, Any]]:
+    """Doktor SELECTOR icin - tum ziyaretlerin kisa ozeti (checkbox).
+
+    list_my_visits ile farkli: secim icin TUM ziyaretler (dosyali olsun olmasin),
+    daha cok ziyaret (15) sade key + tarih + tip.
+    """
+    db_path = db_path or DEFAULT_DB_PATH
+    con = sqlite3.connect(db_path)
+    con.row_factory = sqlite3.Row
+    try:
+        rows = con.execute(
+            "SELECT visit_key, visit_date, visit_type, full_path, "
+            "  pdf_count, image_count, source "
+            "FROM visits "
+            "WHERE patient_folder_key = ? AND (archived_at IS NULL OR archived_at = '') "
+            "ORDER BY visit_date DESC LIMIT ?",
+            (patient_id, limit)).fetchall()
         return [dict(r) for r in rows]
     except Exception:
         return []
