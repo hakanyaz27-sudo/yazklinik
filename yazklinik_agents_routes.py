@@ -2859,6 +2859,51 @@ def api_orch_usg_pipeline():
 
 
 # --- Hasta Portal ---
+@agents_bp.route("/api/agents/portal/search-patients", methods=["GET"])
+def api_portal_search_patients():
+    """Hasta arama - portal magic-link uretici icin autocomplete.
+
+    Query: ?q=<arama_metni> (en az 2 char)
+    Donus: [{key, name, phone}, ...] - max 10 sonuc
+    """
+    auth = _require_session()
+    if auth: return auth
+    q = (request.args.get("q") or "").strip()
+    if len(q) < 2:
+        return jsonify({"ok": True, "result": []})
+
+    import sqlite3, os
+    dbp = (os.environ.get("YAZKLINIK_DB_PATH")
+            or r"D:\YazKlinik_Final_D300\local_db\yazklinik_v68.sqlite3")
+    if not os.path.exists(dbp):
+        return jsonify({"ok": False, "error": "db yok"}), 503
+
+    con = sqlite3.connect(dbp)
+    con.row_factory = sqlite3.Row
+    try:
+        # display_name VEYA folder_key LIKE arama
+        rows = con.execute(
+            "SELECT p.folder_key AS key, p.display_name AS name, "
+            "  COALESCE(pd.phone, pt.phone, '') AS phone, "
+            "  COALESCE(pd.age, pt.age, 0) AS age "
+            "FROM patients p "
+            "LEFT JOIN patient_demographics pd ON pd.patient_key = p.folder_key "
+            "LEFT JOIN patient_type pt ON pt.patient_key = p.folder_key "
+            "WHERE (p.display_name LIKE ? OR p.folder_key LIKE ? "
+            "       OR pd.phone LIKE ? OR pd.tc_no LIKE ?) "
+            "  AND p.archived_at IS NULL "
+            "ORDER BY p.updated_at DESC "
+            "LIMIT 12",
+            (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%")
+        ).fetchall()
+        results = [dict(r) for r in rows]
+        return jsonify({"ok": True, "result": results})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+    finally:
+        con.close()
+
+
 @agents_bp.route("/api/agents/portal/issue-link", methods=["POST"])
 def api_portal_issue_link():
     auth = _require_session()
@@ -3055,15 +3100,29 @@ font-size:13px;margin-bottom:18px;color:#7a5a00}
 
 <div class="section">
   <h2><span class="num">1</span> Yeni Magic-Link Üret</h2>
+  <div style="position:relative;margin-bottom:12px">
+    <input type="search" id="patient-search" placeholder="🔍 Hasta ara (ad, telefon, TC, dosya no)..."
+           autocomplete="off" inputmode="search"
+           style="width:100%;padding:14px 16px;font-size:16px;border:2px solid #1769aa;border-radius:10px;-webkit-appearance:none">
+    <div id="patient-results" style="position:absolute;top:100%;left:0;right:0;background:#fff;
+         border:1px solid #cdd9e3;border-radius:0 0 10px 10px;max-height:320px;overflow-y:auto;
+         display:none;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,0.15);margin-top:-2px"></div>
+  </div>
+  <div id="selected-patient" style="display:none;background:#e6f4ea;border:1px solid #16815f;
+       border-radius:10px;padding:14px;margin-bottom:12px">
+    <b style="color:#16815f">✓ Seçili hasta:</b>
+    <div id="selected-info" style="margin-top:6px;font-size:14px"></div>
+  </div>
   <div class="form-row">
-    <input type="text" id="pid" placeholder="Hasta dosya no (ID)" autocomplete="off">
-    <input type="tel" id="phone" placeholder="Telefon (5XXX..)" inputmode="tel" autocomplete="off">
+    <input type="text" id="pid" placeholder="Hasta ID (yukaridan secince doluyor)" autocomplete="off" readonly
+           style="background:#f5f8fb">
+    <input type="tel" id="phone" placeholder="Telefon (5XXX...)" inputmode="tel" autocomplete="off">
     <input type="number" id="ttl" placeholder="Süre (saat)" value="24" min="1" max="168" style="max-width:140px">
   </div>
   <div class="form-row">
     <button onclick="issueLink()">🔗 Link Üret</button>
-    <button class="btn-wa" onclick="issueAndWhatsApp()">📱 Üret + WhatsApp</button>
-    <button class="btn-secondary" onclick="document.getElementById('pid').value='';document.getElementById('phone').value=''">Temizle</button>
+    <button class="btn-wa" onclick="issueAndWhatsApp()">📱 Üret + WhatsApp Gönder</button>
+    <button class="btn-secondary" onclick="clearAll()">Temizle</button>
   </div>
   <div class="result" id="result"></div>
 </div>
@@ -3105,11 +3164,105 @@ font-size:13px;margin-bottom:18px;color:#7a5a00}
 </div>
 
 <script>
+// --- Hasta arama autocomplete ---
+let searchTimer = null;
+const searchInput = document.getElementById('patient-search');
+const resultsBox = document.getElementById('patient-results');
+
+searchInput.addEventListener('input', (e) => {
+  const q = e.target.value.trim();
+  if(searchTimer) clearTimeout(searchTimer);
+  if(q.length < 2){
+    resultsBox.style.display = 'none';
+    return;
+  }
+  searchTimer = setTimeout(async () => {
+    try {
+      const r = await fetch('/api/agents/portal/search-patients?q=' + encodeURIComponent(q),
+        {credentials:'same-origin'});
+      const d = await r.json();
+      const items = (d.result || []);
+      if(items.length === 0){
+        resultsBox.innerHTML = '<div style="padding:14px;color:#5e7185">Hasta bulunamadi</div>';
+        resultsBox.style.display = 'block';
+        return;
+      }
+      resultsBox.innerHTML = items.map(p =>
+        '<div class="patient-item" data-key="' + escapeHtml(p.key) +
+        '" data-name="' + escapeHtml(p.name || '') +
+        '" data-phone="' + escapeHtml(p.phone || '') + '" ' +
+        'style="padding:12px 14px;border-bottom:1px solid #eef3f8;cursor:pointer;touch-action:manipulation">' +
+        '<div style="font-weight:700;color:#0d4f8b">' + escapeHtml(p.name || p.key) + '</div>' +
+        '<div style="font-size:12px;color:#5e7185;margin-top:3px">' +
+          (p.phone ? '📱 ' + escapeHtml(p.phone) + ' • ' : '') +
+          '📁 ' + escapeHtml(p.key) +
+          (p.age ? ' • ' + p.age + 'y' : '') +
+        '</div></div>'
+      ).join('');
+      resultsBox.style.display = 'block';
+
+      // Click handler
+      resultsBox.querySelectorAll('.patient-item').forEach(el => {
+        el.addEventListener('click', () => selectPatient({
+          key: el.dataset.key,
+          name: el.dataset.name,
+          phone: el.dataset.phone
+        }));
+        el.addEventListener('mouseenter', () => el.style.background = '#eff5fb');
+        el.addEventListener('mouseleave', () => el.style.background = '#fff');
+      });
+    } catch(err) {
+      resultsBox.innerHTML = '<div style="padding:14px;color:#b3261e">Arama hatasi: ' + err.message + '</div>';
+      resultsBox.style.display = 'block';
+    }
+  }, 250);
+});
+
+// Disari tiklayinca arama kutusu kapansin
+document.addEventListener('click', (e) => {
+  if(!searchInput.contains(e.target) && !resultsBox.contains(e.target)){
+    resultsBox.style.display = 'none';
+  }
+});
+
+function selectPatient(p){
+  document.getElementById('pid').value = p.key;
+  document.getElementById('phone').value = p.phone || '';
+  document.getElementById('selected-info').innerHTML =
+    '<b>' + escapeHtml(p.name) + '</b><br>' +
+    '<small>Dosya: ' + escapeHtml(p.key) + '</small>' +
+    (p.phone ? '<br><small>Tel: ' + escapeHtml(p.phone) + '</small>' :
+      '<br><small style="color:#b87333">⚠ Telefon kayitli degil - elle gir</small>');
+  document.getElementById('selected-patient').style.display = 'block';
+  resultsBox.style.display = 'none';
+  searchInput.value = p.name || p.key;
+  // Phone yoksa focus phone'a gec
+  if(!p.phone) document.getElementById('phone').focus();
+}
+
+function clearAll(){
+  searchInput.value = '';
+  document.getElementById('pid').value = '';
+  document.getElementById('phone').value = '';
+  document.getElementById('selected-patient').style.display = 'none';
+  document.getElementById('result').classList.remove('show');
+  resultsBox.style.display = 'none';
+}
+
+function escapeHtml(s){
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// --- Magic link uretici ---
 async function issueLink(){
   const pid = document.getElementById('pid').value.trim();
   const phone = document.getElementById('phone').value.trim();
   const ttl = parseInt(document.getElementById('ttl').value || '24');
-  if(!pid){ alert('Hasta ID gerekli'); return; }
+  if(!pid){
+    alert('Once yukaridan hasta sec (arama kutusu)');
+    searchInput.focus();
+    return null;
+  }
   const r = await fetch('/api/agents/portal/issue-link', {
     method:'POST', headers:{'Content-Type':'application/json'},
     credentials:'same-origin',
@@ -3120,10 +3273,12 @@ async function issueLink(){
   result.classList.add('show');
   if(d.ok && d.result && d.result.magic_link){
     const link = d.result.magic_link;
-    result.innerHTML = '<b>Magic Link uretildi:</b><br>'+
-      '<a href="'+link+'" target="_blank">'+link+'</a><br>'+
-      '<button onclick="copyLink(\\''+link+'\\')" style="margin-top:8px;background:#5e7185">Kopyala</button>';
-    setTimeout(() => location.reload(), 2000);
+    result.innerHTML = '<b style="color:#16815f">✓ Magic Link uretildi (24 saat gecerli):</b><br><br>' +
+      '<div style="background:#fff;padding:10px;border-radius:6px;border:1px solid #cdd9e3;word-break:break-all">' +
+      '<a href="' + link + '" target="_blank">' + link + '</a></div><br>' +
+      '<button onclick="copyLink(\'' + link + '\')" style="background:#5e7185">📋 Kopyala</button> ' +
+      '<button onclick="window.open(\'' + link + '\', \'_blank\')" style="background:#1769aa">👁 Onizle</button>';
+    setTimeout(() => location.reload(), 4000);
   } else {
     result.innerHTML = '<b style="color:#b3261e">Hata:</b> ' + (d.error || JSON.stringify(d));
   }
@@ -3132,20 +3287,33 @@ async function issueLink(){
 
 async function issueAndWhatsApp(){
   const phone = document.getElementById('phone').value.trim();
-  if(!phone){ alert('Telefon gerekli'); return; }
+  if(!phone){
+    alert('Telefon gerekli - hasta secince otomatik dolar veya elle gir');
+    return;
+  }
   const d = await issueLink();
   if(d && d.ok && d.result && d.result.magic_link){
-    // WhatsApp aç - clean digit + URL encoded msg
     const cleanPhone = phone.replace(/\D/g, '');
+    // Eger Turk telefonu 0 ile basliyorsa 90 ekle
+    let waPhone = cleanPhone;
+    if(waPhone.startsWith('0')) waPhone = '90' + waPhone.substring(1);
+    else if(!waPhone.startsWith('90') && waPhone.length === 10) waPhone = '90' + waPhone;
     const msg = encodeURIComponent(
-      'Sayin hastamiz, kendi dosyaniza erisim icin:\n' + d.result.magic_link + '\n\n(24 saat gecerli)'
+      'Sayin hastamiz,\n\n' +
+      'Kendi dosyaniza erisim icin asagidaki linke tikkayabilirsiniz:\n' +
+      d.result.magic_link + '\n\n' +
+      'Link 24 saat gecerlidir, tek kullanimliktir.\n\n' +
+      '- Op. Dr. Hakan Yaz Klinigi'
     );
-    window.open('https://wa.me/'+cleanPhone+'?text='+msg, '_blank');
+    window.open('https://wa.me/' + waPhone + '?text=' + msg, '_blank');
   }
 }
 
 function copyLink(text){
-  navigator.clipboard.writeText(text).then(() => alert('Kopyalandi: ' + text));
+  navigator.clipboard.writeText(text).then(
+    () => alert('✓ Link kopyalandi'),
+    () => alert('Kopyalanamadi - elle sec ve kopyala')
+  );
 }
 
 function previewLink(){
