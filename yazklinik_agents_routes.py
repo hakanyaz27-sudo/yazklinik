@@ -2859,12 +2859,39 @@ def api_orch_usg_pipeline():
 
 
 # --- Hasta Portal ---
+def _tr_fold(s: str) -> str:
+    """Turkce harfleri ASCII'ye + lowercase. Arama icin diacritic-insensitive."""
+    if not s:
+        return ""
+    s = str(s).lower()
+    # Turkce harf -> ASCII (Turk'e ozel I/i kuralina dikkat)
+    table = str.maketrans({
+        "ğ": "g", "Ğ": "g",
+        "ü": "u", "Ü": "u",
+        "ş": "s", "Ş": "s",
+        "ı": "i", "İ": "i",
+        "ö": "o", "Ö": "o",
+        "ç": "c", "Ç": "c",
+        "â": "a", "Â": "a",
+        "î": "i", "Î": "i",
+        "û": "u", "Û": "u",
+    })
+    return s.translate(table)
+
+
 @agents_bp.route("/api/agents/portal/search-patients", methods=["GET"])
 def api_portal_search_patients():
-    """Hasta arama - portal magic-link uretici icin autocomplete.
+    """Hasta arama - diacritic + case insensitive Turkish search.
 
     Query: ?q=<arama_metni> (en az 2 char)
-    Donus: [{key, name, phone}, ...] - max 10 sonuc
+    Donus: [{key, name, phone, age}, ...] - max 12 sonuc
+
+    Strateji:
+      1. Sorgu kelimelerini ASCII-fold (Ebru Erdoğan -> ebru erdogan)
+      2. DB'den genis cevre cek (ilk kelime LIKE)
+      3. Python'da her satirin display_name'ini ASCII-fold edip
+         TUM kelimeleri AND ile kontrol et
+      4. Ranking: ad basinda eslesen once
     """
     auth = _require_session()
     if auth: return auth
@@ -2878,26 +2905,60 @@ def api_portal_search_patients():
     if not os.path.exists(dbp):
         return jsonify({"ok": False, "error": "db yok"}), 503
 
+    q_fold = _tr_fold(q)
+    words = [w for w in q_fold.split() if w]
+    if not words:
+        return jsonify({"ok": True, "result": []})
+
+    # DB'den genis cevre cek - her kelime icin OR (asagida Python AND filtreler)
+    first_word = words[0]
+    like_pat = f"%{first_word}%"
+    # Geni cek (telefon/tc'ye de bak)
+    sql = ("SELECT p.folder_key AS key, p.display_name AS name, "
+           "  COALESCE(pd.phone, pt.phone, '') AS phone, "
+           "  COALESCE(pd.age, pt.age, 0) AS age, "
+           "  COALESCE(pd.tc_no, '') AS tc "
+           "FROM patients p "
+           "LEFT JOIN patient_demographics pd ON pd.patient_key = p.folder_key "
+           "LEFT JOIN patient_type pt ON pt.patient_key = p.folder_key "
+           "WHERE (LOWER(p.display_name) LIKE LOWER(?) "
+           "    OR LOWER(p.folder_key) LIKE LOWER(?) "
+           "    OR pd.phone LIKE ? "
+           "    OR pd.tc_no LIKE ?) "
+           "  AND p.archived_at IS NULL "
+           "LIMIT 200")  # genis - Python filtreyecek
     con = sqlite3.connect(dbp)
     con.row_factory = sqlite3.Row
     try:
-        # display_name VEYA folder_key LIKE arama
-        rows = con.execute(
-            "SELECT p.folder_key AS key, p.display_name AS name, "
-            "  COALESCE(pd.phone, pt.phone, '') AS phone, "
-            "  COALESCE(pd.age, pt.age, 0) AS age "
-            "FROM patients p "
-            "LEFT JOIN patient_demographics pd ON pd.patient_key = p.folder_key "
-            "LEFT JOIN patient_type pt ON pt.patient_key = p.folder_key "
-            "WHERE (p.display_name LIKE ? OR p.folder_key LIKE ? "
-            "       OR pd.phone LIKE ? OR pd.tc_no LIKE ?) "
-            "  AND p.archived_at IS NULL "
-            "ORDER BY p.updated_at DESC "
-            "LIMIT 12",
-            (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%")
-        ).fetchall()
-        results = [dict(r) for r in rows]
-        return jsonify({"ok": True, "result": results})
+        rows = con.execute(sql, (like_pat, like_pat, like_pat, like_pat)).fetchall()
+
+        # Python-filtre: TUM kelimeler eslesmel (AND), diacritic-insensitive
+        matches = []
+        for r in rows:
+            name_fold = _tr_fold(r["name"] or "")
+            key_fold = _tr_fold(r["key"] or "")
+            phone = (r["phone"] or "").lower()
+            tc = (r["tc"] or "").lower()
+            haystack = f"{name_fold} {key_fold} {phone} {tc}"
+            if all(w in haystack for w in words):
+                # Ranking: ad basinda eslesen +10, ad iceren +5, key/phone +1
+                score = 0
+                if name_fold.startswith(words[0]):
+                    score += 10
+                if words[0] in name_fold:
+                    score += 5
+                if len(words) > 1 and all(w in name_fold for w in words):
+                    score += 8
+                matches.append((score, dict(r)))
+
+        # Skora gore sirala, top 12
+        matches.sort(key=lambda x: -x[0])
+        results = [m[1] for m in matches[:12]]
+        # tc'yi disari verme (KVKK)
+        for r in results:
+            r.pop("tc", None)
+        return jsonify({"ok": True, "result": results, "query_folded": q_fold,
+                         "raw_hit_count": len(rows), "match_count": len(matches)})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
     finally:
