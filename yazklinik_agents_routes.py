@@ -3074,8 +3074,9 @@ def hasta_portal_home():
     if doktor_user:
         # Son uretilen 20 token + hasta listesi
         recent_tokens = []
+        all_patients = []
         try:
-            import sqlite3, os
+            import sqlite3, os, json as _json
             dbp = (os.environ.get("YAZKLINIK_DB_PATH")
                     or r"D:\YazKlinik_Final_D300\local_db\yazklinik_v68.sqlite3")
             con = sqlite3.connect(dbp)
@@ -3088,11 +3089,29 @@ def hasta_portal_home():
                 recent_tokens = [dict(r) for r in rows]
             except Exception:
                 pass
+            # D300: TUM hastalari sayfaya gomerek arama client-side yapilacak
+            # API stuck oluyor (Funnel/Werkzeug), bu yontem sifir network
+            try:
+                rows2 = con.execute(
+                    "SELECT p.folder_key AS k, p.display_name AS n, "
+                    "  COALESCE(pd.phone, pt.phone, '') AS p, "
+                    "  COALESCE(pd.age, pt.age, 0) AS a "
+                    "FROM patients p "
+                    "LEFT JOIN patient_demographics pd ON pd.patient_key = p.folder_key "
+                    "LEFT JOIN patient_type pt ON pt.patient_key = p.folder_key "
+                    "WHERE p.archived_at IS NULL "
+                    "ORDER BY p.updated_at DESC "
+                    "LIMIT 5000"
+                ).fetchall()
+                all_patients = [dict(r) for r in rows2]
+            except Exception:
+                pass
             con.close()
         except Exception:
             pass
         return render_template_string(_PORTAL_DOKTOR_PAGE,
-                                       doktor=doktor_user, tokens=recent_tokens)
+                                       doktor=doktor_user, tokens=recent_tokens,
+                                       all_patients_json=_json.dumps(all_patients, ensure_ascii=False))
 
     # MOD 3: Hicbir session yok
     return render_template_string(_PORTAL_LANDING_PAGE), 401
@@ -3263,28 +3282,45 @@ font-size:13px;margin-bottom:18px;color:#7a5a00}
 </div>
 
 <script>
-// --- D300 KRITIK: Service Worker'i unregister + cache temizle (eski SW abort sebebi) ---
+// --- D300 v5: TUM HASTALAR SAYFADA GOMULU + 100% CLIENT-SIDE ARAMA ---
+// (Onceki XHR/Fetch versiyonlari Funnel/SW katmaninda stuck oluyordu)
+// SW temizligi defansif:
 (async function nukeSW(){
   try {
     if('serviceWorker' in navigator){
       const regs = await navigator.serviceWorker.getRegistrations();
-      for(const reg of regs){
-        await reg.unregister();
-        console.log('[YK-PORTAL] SW unregistered:', reg.scope);
-      }
-      if('caches' in window){
-        const keys = await caches.keys();
-        for(const k of keys){
-          await caches.delete(k);
-          console.log('[YK-PORTAL] Cache silindi:', k);
-        }
-      }
+      for(const reg of regs){ await reg.unregister(); }
     }
-  } catch(e) { console.warn('[YK-PORTAL] SW nuke hatasi:', e); }
+    if('caches' in window){
+      const keys = await caches.keys();
+      for(const k of keys){ await caches.delete(k); }
+    }
+  } catch(e) {}
 })();
 
-// --- Hasta arama (D300 v4 - SW bypass + xhr fallback) ---
-console.log('[YK-PORTAL] Hasta arama JS yuklendi');
+// SUNUCU GOMULU HASTA LISTESI (3500 hasta, ~300KB)
+const ALL_PATIENTS = {{all_patients_json|safe}};
+console.log('[YK-PORTAL] ' + ALL_PATIENTS.length + ' hasta sayfa yuklendi (client-side arama)');
+
+// Turkce ASCII fold (DB'deki ile ayni mantik)
+function trFold(s){
+  return String(s||'').toLowerCase()
+    .replace(/[ğĞ]/g, 'g')
+    .replace(/[üÜ]/g, 'u')
+    .replace(/[şŞ]/g, 's')
+    .replace(/[ıİiI]/g, 'i')
+    .replace(/[öÖ]/g, 'o')
+    .replace(/[çÇ]/g, 'c')
+    .replace(/[âÂ]/g, 'a')
+    .replace(/[îÎ]/g, 'i')
+    .replace(/[ûÛ]/g, 'u');
+}
+
+// Tum hastalarin search index'i (haystack pre-compute)
+const SEARCH_INDEX = ALL_PATIENTS.map(p => ({
+  k: p.k, n: p.n || '', ph: p.p || '', a: p.a || 0,
+  h: trFold((p.n||'') + ' ' + (p.k||'') + ' ' + (p.p||''))
+}));
 
 let searchTimer = null;
 const searchInput = document.getElementById('patient-search');
@@ -3297,69 +3333,51 @@ if(!resultsBox) console.error('[YK-PORTAL] patient-results div bulunamadi!');
 if(searchInput){
   searchInput.addEventListener('input', (e) => {
     const q = e.target.value.trim();
-    console.log('[YK-PORTAL] Input:', q);
-    if(searchTimer) clearTimeout(searchTimer);
     if(q.length < 2){
       resultsBox.style.display = 'none';
-      statusBox.textContent = '(2 harf yaz)';
+      statusBox.textContent = '(2 harf yaz - lokal arama, ' + ALL_PATIENTS.length + ' hasta)';
       return;
     }
-    statusBox.textContent = 'Araniyor: "' + q + '"...';
-    searchTimer = setTimeout(() => doSearch(q), 250);
+    // ANLIK client-side arama (network gerek YOK)
+    doSearch(q);
   });
 }
 
 function doSearch(q){
-  // XMLHttpRequest kullaniliyor (Service Worker bazi browserlarda bypass edemiyor fetch'i)
-  // Cache buster URL'ye eklenir
-  const url = '/api/agents/portal/search-patients?q=' + encodeURIComponent(q) + '&_t=' + Date.now();
-  console.log('[YK-PORTAL] XHR START:', url);
+  // 100% client-side - sifir network, sifir gecikme
   const t0 = performance.now();
-  const xhr = new XMLHttpRequest();
-  xhr.open('GET', url, true);
-  xhr.withCredentials = true;
-  xhr.setRequestHeader('Cache-Control', 'no-cache, no-store');
-  xhr.setRequestHeader('Pragma', 'no-cache');
-  xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-  xhr.timeout = 10000;  // 10sn
-  xhr.ontimeout = function(){
-    console.warn('[YK-PORTAL] XHR TIMEOUT 10s');
-    statusBox.textContent = '⚠ Sunucu cevap vermedi (10s)';
-    statusBox.style.color = '#b3261e';
-  };
-  xhr.onerror = function(){
-    console.error('[YK-PORTAL] XHR ERROR:', xhr.status, xhr.statusText);
-    statusBox.textContent = '⚠ Ag hatasi - tekrar dene';
-    statusBox.style.color = '#b3261e';
-  };
-  xhr.onload = function(){
-    const dt = Math.round(performance.now() - t0);
-    console.log('[YK-PORTAL] XHR DONE in ' + dt + 'ms, status:', xhr.status);
-    if(xhr.status === 401){
-      statusBox.textContent = '⚠ Yetki YOK - tekrar login yap';
-      statusBox.style.color = '#b3261e';
-      resultsBox.style.display = 'none';
-      return;
+  const qFold = trFold(q);
+  const words = qFold.split(/\s+/).filter(Boolean);
+  if(words.length === 0){
+    resultsBox.style.display = 'none';
+    return;
+  }
+  // Filter + rank
+  const matches = [];
+  for(const p of SEARCH_INDEX){
+    let allMatch = true;
+    for(const w of words){
+      if(!p.h.includes(w)){ allMatch = false; break; }
     }
-    if(xhr.status !== 200){
-      statusBox.textContent = '⚠ HTTP ' + xhr.status;
-      statusBox.style.color = '#b3261e';
-      console.warn('[YK-PORTAL] Body:', xhr.responseText.substring(0, 300));
-      return;
+    if(allMatch){
+      const nameFold = trFold(p.n);
+      let score = 1;
+      if(nameFold.startsWith(words[0])) score += 10;
+      if(nameFold.includes(words[0])) score += 5;
+      if(words.every(w => nameFold.includes(w))) score += 8;
+      matches.push({s: score, p: p});
+      if(matches.length > 100) break; // cok genis arama korumasi
     }
-    let d;
-    try {
-      d = JSON.parse(xhr.responseText);
-    } catch(je) {
-      console.error('[YK-PORTAL] JSON PARSE:', je, 'body:', xhr.responseText.substring(0, 300));
-      statusBox.textContent = '⚠ JSON parse hatasi';
-      statusBox.style.color = '#b3261e';
-      return;
-    }
-    console.log('[YK-PORTAL] Response data:', d);
-    handleSearchResult(d, q);
-  };
-  xhr.send();
+  }
+  matches.sort((a, b) => b.s - a.s);
+  const items = matches.slice(0, 15).map(m => ({
+    key: m.p.k, name: m.p.n, phone: m.p.ph, age: m.p.a
+  }));
+  const dt = Math.round(performance.now() - t0);
+  console.log('[YK-PORTAL] Local search "' + q + '" -> ' + items.length + ' in ' + dt + 'ms');
+  statusBox.style.color = '#5e7185';
+  statusBox.textContent = items.length + ' sonuc (' + dt + 'ms lokal)';
+  handleSearchResult({result: items}, q);
 }
 
 function handleSearchResult(d, q){
