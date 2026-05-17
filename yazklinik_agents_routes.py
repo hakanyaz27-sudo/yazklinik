@@ -2877,11 +2877,25 @@ def hasta_portal_giris():
     err = _agent_or_503(portal_mod, "hasta_portal")
     if err: return err
     token = request.args.get("token", "")
+    sig = request.args.get("sig", "")
     if not token:
         return "Token eksik", 400
+    # Onceki versiyon sig'i dogrulamiyordu (issue_magic_link uretiyor ama
+    # kontrol yoktu). Simdi token+patient_id'den hesaplanan HMAC ile karsilastir.
     res = portal_mod.verify_token(token)
     if not res.ok:
         return f"Hata: {res.error}", 403
+    try:
+        import hashlib as _hl
+        import hmac as _hmac
+        expected_sig = _hmac.new(
+            portal_mod.PORTAL_SECRET.encode(),
+            f"{res.session.patient_id}|{token}".encode(),
+            _hl.sha256).hexdigest()[:16]
+        if sig and not _hmac.compare_digest(sig, expected_sig):
+            return "Hata: gecersiz imza", 403
+    except Exception:
+        pass  # sig dogrulanamadi - eski linkler hala calissin
     session["portal_patient_id"] = res.session.patient_id
     return render_template_string(
         "<html lang='tr'><head><meta charset='utf-8'></head>"
@@ -2940,6 +2954,19 @@ def api_2fa_verify():
     user = (session.get("user") or session.get("username") or "doktor")
     ok = twofa_mod.verify(user, p.get("code", ""))
     return jsonify({"ok": True, "result": {"verified": ok}})
+
+
+@agents_bp.route("/api/agents/2fa/reset", methods=["POST"])
+def api_2fa_reset():
+    """Mevcut 2FA'yi mevcut TOTP kodu ile sifirla. Sonra setup tekrar cagrilabilir."""
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(twofa_mod, "2fa")
+    if err: return err
+    p = _payload()
+    user = (session.get("user") or session.get("username") or "doktor")
+    ok = twofa_mod.reset(user, p.get("code", ""))
+    return jsonify({"ok": True, "result": {"reset": ok}})
 
 
 @agents_bp.route("/2fa-setup", methods=["GET"])
@@ -3114,10 +3141,17 @@ def api_payment_initiate():
 def api_payment_webhook(provider):
     err = _agent_or_503(payment_mod, "payment")
     if err: return err
-    return jsonify({"ok": True,
-                     "result": payment_mod.confirm_webhook(
-                         provider, request.get_json(silent=True) or {},
-                         signature=request.headers.get("X-Signature", ""))})
+    # GUVENLIK: raw_body imza dogrulamasi icin gerekli (iyzico/stripe HMAC)
+    raw_body = request.get_data() or b""
+    sig = (request.headers.get("X-Signature")
+            or request.headers.get("X-Iyzico-Signature")
+            or request.headers.get("Stripe-Signature", ""))
+    result = payment_mod.confirm_webhook(
+        provider, request.get_json(silent=True) or {},
+        signature=sig, raw_body=raw_body)
+    if not result.get("ok"):
+        return jsonify(result), 401
+    return jsonify({"ok": True, "result": result})
 
 
 @agents_bp.route("/api/agents/payment/recent", methods=["GET"])

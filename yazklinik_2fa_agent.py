@@ -68,10 +68,33 @@ def _ensure_table(db_path: str) -> None:
 
 
 def setup(user: str, db_path: Optional[str] = None,
-          issuer: str = "YazKlinik") -> TOTPSetup:
-    """Ilk kez 2FA setup - QR + backup kod uret."""
+          issuer: str = "YazKlinik",
+          allow_overwrite: bool = False) -> TOTPSetup:
+    """Ilk kez 2FA setup - QR + backup kod uret.
+
+    GUVENLIK: Onceki INSERT OR REPLACE mevcut 2FA'yi sifirlayabilirdi.
+    Simdi varolan kayit varsa allow_overwrite=False ise hata mesaji doner.
+    Reset icin: reset(user, verify_code) cagir.
+    """
     db_path = db_path or DEFAULT_DB_PATH
     _ensure_table(db_path)
+
+    # Mevcut kayit kontrolu
+    con = sqlite3.connect(db_path)
+    try:
+        row = con.execute(
+            "SELECT enabled FROM user_2fa WHERE user = ?", (user,)).fetchone()
+    finally:
+        con.close()
+    if row and not allow_overwrite:
+        return TOTPSetup(
+            user=user, secret_b32="",
+            qr_url="ALREADY_REGISTERED",
+            backup_codes=[
+                "Bu kullanici icin 2FA zaten kayitli.",
+                "Sifirlamak icin once mevcut 6-haneli kod ile",
+                "POST /api/agents/2fa/reset endpoint'ini cagir."])
+
     secret = _b32_secret()
     backup = [secrets.token_hex(4) for _ in range(8)]
     backup_hash = hashlib.sha256(",".join(backup).encode()).hexdigest()
@@ -89,6 +112,20 @@ def setup(user: str, db_path: Optional[str] = None,
     finally:
         con.close()
     return TOTPSetup(user=user, secret_b32=secret, qr_url=qr_url, backup_codes=backup)
+
+
+def reset(user: str, verify_code: str, db_path: Optional[str] = None) -> bool:
+    """2FA reset - mevcut kod ile dogrulayip sil. Sonra setup() yeniden cagrilabilir."""
+    if not verify(user, verify_code, db_path=db_path):
+        return False
+    db_path = db_path or DEFAULT_DB_PATH
+    con = sqlite3.connect(db_path)
+    try:
+        con.execute("DELETE FROM user_2fa WHERE user = ?", (user,))
+        con.commit()
+        return True
+    finally:
+        con.close()
 
 
 def enable(user: str, sample_code: str, db_path: Optional[str] = None) -> bool:

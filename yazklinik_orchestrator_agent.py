@@ -101,8 +101,10 @@ def full_visit(case_text: str, prefer: str = "ollama") -> OrchestrationResult:
             note_text = (kons.case.presenting_complaint or "") + " " + (kons.most_likely or "")
             s = _time_step("icd10", suggest_codes, note_text, top_k=5, prefer=prefer)
             out.steps.append(s)
+            if not s.ok: out.overall_ok = False
         except Exception as e:
             out.steps.append(StepResult(step="icd10", ok=False, error=str(e)))
+            out.overall_ok = False
 
     # 3. DDI (treatment'taki ilaclar)
     if kons and kons.treatment:
@@ -112,8 +114,10 @@ def full_visit(case_text: str, prefer: str = "ollama") -> OrchestrationResult:
             is_pregnant = bool(kons.case.gebelik_haftasi)
             s = _time_step("ddi", check_interactions, drugs, is_pregnant=is_pregnant)
             out.steps.append(s)
+            if not s.ok: out.overall_ok = False
         except Exception as e:
             out.steps.append(StepResult(step="ddi", ok=False, error=str(e)))
+            out.overall_ok = False
 
     # 4. SOAP (eger case kisaysa, genislet)
     if kons and len(case_text) < 300:
@@ -121,8 +125,10 @@ def full_visit(case_text: str, prefer: str = "ollama") -> OrchestrationResult:
             from yazklinik_soap_agent import expand_to_soap
             s = _time_step("soap", expand_to_soap, case_text, prefer=prefer)
             out.steps.append(s)
+            if not s.ok: out.overall_ok = False
         except Exception as e:
             out.steps.append(StepResult(step="soap", ok=False, error=str(e)))
+            out.overall_ok = False
 
     out.finished_at = datetime.now().isoformat(timespec="seconds")
     try:

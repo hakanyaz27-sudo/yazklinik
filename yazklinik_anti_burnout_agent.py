@@ -78,10 +78,25 @@ def compute_report(target_date: Optional[date] = None,
             pass
     times.sort()
     # Gun icindeki gaps + longest stretch
+    # FIX: 'longest_stretch_minutes' = en uzun MOLASIZ calisma blogu (sirali!)
+    # Onceki versiyon "10 dakikadan kisa gap'lerin max'i" diyordu - tek gap'i veriyordu.
+    # Yeni: consecutive 10-dakika alti gap'leri toplayip BLOK olarak hesapla.
     if len(times) >= 2:
         gaps = [(times[i+1] - times[i]).total_seconds() / 60 for i in range(len(times)-1)]
         rpt.breaks_count = sum(1 for g in gaps if g >= 10)
-        rpt.longest_stretch_minutes = int(max([g for g in gaps if g < 10], default=0))
+        # Mola-arasi blok hesapla
+        max_block = 0.0
+        cur_block = 0.0
+        for g in gaps:
+            if g < 10:  # mola sayilmiyor, blok devam
+                cur_block += g
+            else:  # mola, blok kapanir
+                if cur_block > max_block:
+                    max_block = cur_block
+                cur_block = 0.0
+        if cur_block > max_block:
+            max_block = cur_block
+        rpt.longest_stretch_minutes = int(max_block)
         total_min = (times[-1] - times[0]).total_seconds() / 60
         rpt.avg_minutes_per_patient = round(total_min / max(1, len(times) - 1), 1)
         rpt.total_screen_hours = round(total_min / 60, 1)

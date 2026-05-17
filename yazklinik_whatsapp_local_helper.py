@@ -663,5 +663,103 @@ def main(argv: list[str]) -> int:
         return 1
 
 
+def _outbox_path() -> Path:
+    """Server-side WhatsApp outbox queue (JSON-Lines).
+    Client helper bunu periyodik okur, WhatsApp Desktop ile gonderir."""
+    base = Path(os.environ.get("YAZKLINIK_WA_OUTBOX",
+                                r"D:\YazKlinik_Final_D300\runtime_state\wa_outbox.jsonl"))
+    base.parent.mkdir(parents=True, exist_ok=True)
+    return base
+
+
+def send_whatsapp_message(phone: str, text: str,
+                            patient_id: str = "",
+                            metadata: dict | None = None) -> dict:
+    """Server-side: WhatsApp mesajini outbox kuyruguna yazar.
+
+    Backend (cron veya WatsapDesktop ajan) outbox'i okuyup gercek gonderim
+    yapar. Asagidaki Session 7 ajanlari bunu cagiriyor:
+        - yazklinik_hatira_usg_agent
+        - yazklinik_memnuniyet_agent
+        - yazklinik_pubmed_cron_agent
+        - yazklinik_backup_verify_agent
+
+    Returns: {ok, queued_at, phone (maskeli), id}
+    """
+    digits = _clean_digits(phone or "")
+    if not digits or not (text or "").strip():
+        return {"ok": False, "error": "phone veya text eksik"}
+    record = {
+        "id": time.strftime("WA%Y%m%d%H%M%S") + str(int(time.time() * 1000))[-4:],
+        "phone": digits,
+        "text": text,
+        "patient_id": patient_id,
+        "metadata": metadata or {},
+        "queued_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "type": "text",
+        "status": "queued",
+    }
+    try:
+        with _outbox_path().open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        log(f"WA queued -> {digits[:3]}***{digits[-2:]}: {text[:40]}")
+        return {"ok": True, "queued_at": record["queued_at"],
+                "phone": f"{digits[:3]}***{digits[-2:]}", "id": record["id"]}
+    except Exception as ex:
+        log(f"WA queue HATA: {ex}")
+        return {"ok": False, "error": str(ex)}
+
+
+def send_whatsapp_message_with_image(phone: str, text: str,
+                                       image_path: str,
+                                       patient_id: str = "") -> dict:
+    """Server-side: Resimli WhatsApp mesajini outbox'a yazar."""
+    digits = _clean_digits(phone or "")
+    if not digits or not (text or "").strip():
+        return {"ok": False, "error": "phone veya text eksik"}
+    if not image_path or not os.path.exists(image_path):
+        return {"ok": False, "error": f"image_path yok: {image_path}"}
+    record = {
+        "id": time.strftime("WA%Y%m%d%H%M%S") + str(int(time.time() * 1000))[-4:],
+        "phone": digits,
+        "text": text,
+        "patient_id": patient_id,
+        "image_path": image_path,
+        "queued_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "type": "image",
+        "status": "queued",
+    }
+    try:
+        with _outbox_path().open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        log(f"WA image queued -> {digits[:3]}***{digits[-2:]}: {image_path}")
+        return {"ok": True, "queued_at": record["queued_at"],
+                "phone": f"{digits[:3]}***{digits[-2:]}", "id": record["id"]}
+    except Exception as ex:
+        log(f"WA image queue HATA: {ex}")
+        return {"ok": False, "error": str(ex)}
+
+
+def read_outbox(limit: int = 50) -> list[dict]:
+    """Cron/Daemon icin: bekleyen mesajlari oku."""
+    out_path = _outbox_path()
+    if not out_path.exists():
+        return []
+    items = []
+    try:
+        with out_path.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    items.append(json.loads(line))
+                except Exception:
+                    pass
+        return items[:limit]
+    except Exception:
+        return []
+
+
 if __name__ == "__main__":
     raise SystemExit(main(sys.argv))

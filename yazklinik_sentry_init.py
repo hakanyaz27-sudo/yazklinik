@@ -52,18 +52,46 @@ def init_if_configured() -> Dict[str, Any]:
         return {"ok": False, "reason": str(e)}
 
 
-def _redact_pii(event, hint):
-    """KVKK uyumlu - T.C. + telefon + e-mail maskele."""
-    try:
+_TC_RE = None
+_PHONE_RE = None
+_EMAIL_RE = None
+
+
+def _lazy_init_regex():
+    global _TC_RE, _PHONE_RE, _EMAIL_RE
+    if _TC_RE is None:
         import re
-        s = str(event)
-        # T.C. (11 hane)
-        s = re.sub(r"\b\d{11}\b", "TC_REDACTED", s)
-        # Tel (5XX...)
-        s = re.sub(r"\b5\d{9}\b", "PHONE_REDACTED", s)
-        # E-mail
-        s = re.sub(r"[\w.+-]+@[\w-]+\.[\w.-]+", "EMAIL_REDACTED", s)
-        return eval(s) if s.startswith("{") else event  # nosec - bilinmiyorsa orijinal
+        _TC_RE = re.compile(r"\b\d{11}\b")
+        _PHONE_RE = re.compile(r"\b5\d{9}\b")
+        _EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+
+
+def _redact_value(v):
+    """String tipinde PII pattern'lerini maskele. eval YOK - guvenli walk."""
+    if isinstance(v, str):
+        _lazy_init_regex()
+        v = _TC_RE.sub("TC_REDACTED", v)
+        v = _PHONE_RE.sub("PHONE_REDACTED", v)
+        v = _EMAIL_RE.sub("EMAIL_REDACTED", v)
+        return v
+    if isinstance(v, dict):
+        return {k: _redact_value(val) for k, val in v.items()}
+    if isinstance(v, list):
+        return [_redact_value(x) for x in v]
+    if isinstance(v, tuple):
+        return tuple(_redact_value(x) for x in v)
+    return v
+
+
+def _redact_pii(event, hint):
+    """KVKK uyumlu - T.C. + telefon + e-mail maskele.
+
+    GUVENLIK: Onceki versiyon eval(str(event)) yapiyordu - RCE riski.
+    Yeni versiyon dict/list/string ortak recursive walk yapip
+    sadece pattern match'i replace eder, eval cagrisi YOK.
+    """
+    try:
+        return _redact_value(event)
     except Exception:
         return event
 

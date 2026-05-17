@@ -117,12 +117,49 @@ def initiate(req: PaymentRequest, db_path: Optional[str] = None) -> PaymentResul
     return result
 
 
+def _verify_webhook_signature(provider: str, raw_body: bytes,
+                                signature: str) -> bool:
+    """HMAC-SHA256 webhook signature dogrula.
+
+    GUVENLIK: Onceki versiyon imzayi hic dogrulamiyordu, saldirgan
+    POST {'status':'success'} ile siparisi 'odendi' yapabilirdi.
+    """
+    secret = ""
+    if provider == "iyzico":
+        secret = IYZICO_SECRET
+    elif provider == "stripe":
+        secret = STRIPE_SECRET_KEY
+    if not secret or not signature:
+        # Hicbir secret tanimli degilse sadece localhost'tan calismali
+        # (rota seviyesinde IP+token korumasi ile)
+        return False
+    expected = hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
+    # constant-time compare (timing attack)
+    return hmac.compare_digest(expected, signature.strip())
+
+
 def confirm_webhook(provider: str, payload: Dict[str, Any],
                      signature: str = "",
+                     raw_body: Optional[bytes] = None,
                      db_path: Optional[str] = None) -> Dict[str, Any]:
-    """Webhook dogrula + DB'de status guncelle."""
+    """Webhook dogrula + DB'de status guncelle.
+
+    GUVENLIK: Eger raw_body verildi VE provider production'da ise
+    signature mutlaka dogrulanir. Stub mode'da (key yok) production payload
+    geri cevrilir.
+    """
     db_path = db_path or DEFAULT_DB_PATH
     _ensure_table(db_path)
+
+    # Imza zorunlu (production)
+    if raw_body is not None:
+        has_secret = (IYZICO_SECRET if provider == "iyzico"
+                       else STRIPE_SECRET_KEY if provider == "stripe" else "")
+        if has_secret:
+            if not _verify_webhook_signature(provider, raw_body, signature):
+                return {"ok": False, "error": "invalid_signature",
+                        "provider": provider}
+
     order_id = (payload.get("order_id") or payload.get("conversationId")
                  or payload.get("metadata", {}).get("order_id", ""))
     new_status = (payload.get("status") or

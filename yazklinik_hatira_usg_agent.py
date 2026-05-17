@@ -84,25 +84,37 @@ def send(job: HatiraJob) -> HatiraJob:
         return job
     try:
         from yazklinik_whatsapp_local_helper import send_whatsapp_message_with_image
-        send_whatsapp_message_with_image(
+        result = send_whatsapp_message_with_image(
             phone=job.patient_phone, text=job.template_text,
-            image_path=job.image_path)
-        job.delivery_status = "sent"
-        job.sent_at = datetime.now().isoformat(timespec="seconds")
+            image_path=job.image_path, patient_id=job.patient_id)
+        if isinstance(result, dict) and result.get("ok"):
+            job.delivery_status = "queued"  # outbox'a yazildi
+            job.sent_at = datetime.now().isoformat(timespec="seconds")
+        else:
+            err_msg = result.get("error") if isinstance(result, dict) else "unknown"
+            job.delivery_status = "failed"
+            # Hata template_text'e yazilmaz (orijinal mesaji koru)
+            job.queued_at = f"{job.queued_at} | err: {err_msg}"
     except ImportError:
-        # Fallback: sadece tekst
+        # Fallback: text-only (resim yok)
         try:
             from yazklinik_whatsapp_local_helper import send_whatsapp_message
-            send_whatsapp_message(job.patient_phone,
-                                    job.template_text + "\n(Resim aşağıda)")
-            job.delivery_status = "sent_text_only"
-            job.sent_at = datetime.now().isoformat(timespec="seconds")
+            result = send_whatsapp_message(
+                job.patient_phone,
+                job.template_text + "\n(Resim aşağıda)",
+                patient_id=job.patient_id)
+            if isinstance(result, dict) and result.get("ok"):
+                job.delivery_status = "sent_text_only"
+                job.sent_at = datetime.now().isoformat(timespec="seconds")
+            else:
+                job.delivery_status = "failed"
         except Exception as e:
             job.delivery_status = "failed"
-            job.template_text += f"\n[ERR: {e}]"
+            # Hata sadece queued_at meta'sina, template_text DEGISMEZ
+            job.queued_at = f"{job.queued_at} | err: {e}"
     except Exception as e:
         job.delivery_status = "failed"
-        job.template_text += f"\n[ERR: {e}]"
+        job.queued_at = f"{job.queued_at} | err: {e}"
     return job
 
 

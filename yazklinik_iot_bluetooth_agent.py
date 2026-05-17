@@ -77,11 +77,16 @@ def parse_omron_bp(packet_hex: str) -> Dict[str, int]:
 
 
 def parse_xiaomi_scale(packet_hex: str) -> Dict[str, float]:
-    """Xiaomi tarti paketi (kg + impedance)."""
+    """Xiaomi tarti paketi (kg + impedance).
+
+    FIX: Onceki outer kontrolu len(b) >= 10 idi ama b[11:13] icin
+    len(b) >= 13 gerek. 10-12 byte paket gelirse weight=0.0 doner sessiz hata.
+    Simdi tek bound check (>= 13).
+    """
     try:
         b = bytes.fromhex(packet_hex.replace(" ", ""))
-        if len(b) >= 10:
-            weight_raw = int.from_bytes(b[11:13], "little") if len(b) >= 13 else 0
+        if len(b) >= 13:
+            weight_raw = int.from_bytes(b[11:13], "little")
             return {"weight_kg": round(weight_raw * 0.005, 2)}
     except Exception:
         pass
