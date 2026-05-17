@@ -55,7 +55,7 @@ def _agents_medical_theme(response):
         if "yk-medical-theme-css" not in html:
             link = (
                 '<link rel="stylesheet" '
-                'href="/static/yk-medical-theme.css?v=d300-medical-2026-05-16" '
+                'href="/static/yk-medical-theme.css?v=d300-medical-2026-05-17-ui3" '
                 'id="yk-medical-theme-css">'
             )
             if "</head>" in html:
@@ -321,29 +321,30 @@ def api_agents_manifest():
 
 _AGENTS_PAGE = """<!doctype html>
 <html lang="tr"><head><meta charset="utf-8">
-<title>Klinik Ajanlari - YazKlinik</title>
+<title>Klinik Ajanları - YazKlinik</title>
 <style>
-  body { font-family: -apple-system, Segoe UI, sans-serif; background: #0e1117; color: #e6e6e6; margin: 0; padding: 24px; }
-  h1 { margin: 0 0 16px; font-size: 22px; }
+  :root { --yk-ink:#172f49; --yk-muted:#58708a; --yk-line:#c9deed; --yk-surface:#ffffff; --yk-soft:#eef8fb; --yk-accent:#0b79b7; }
+  body { font-family: -apple-system, Segoe UI, Arial, sans-serif; background: linear-gradient(135deg,#f4fbff 0%,#e9f7f5 100%); color: var(--yk-ink); margin: 0; padding: 24px; }
+  h1 { margin: 0 0 16px; font-size: 24px; color:#102b45; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
-  .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 14px; }
-  .card h3 { margin: 0 0 6px; font-size: 15px; color: #58a6ff; }
-  .card p { margin: 0 0 8px; font-size: 12px; color: #c9d1d9; line-height: 1.45; }
+  .card { background: var(--yk-surface); border: 1px solid var(--yk-line); border-radius: 10px; padding: 15px; box-shadow:0 10px 28px rgba(22,62,94,.08); }
+  .card h3 { margin: 0 0 6px; font-size: 15px; color: #075c92; }
+  .card p { margin: 0 0 8px; font-size: 13px; color: #314c68; line-height: 1.5; }
   .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; }
-  .pill.ok { background: #1f6f43; color: #d2f5da; }
-  .pill.fail { background: #6f1f1f; color: #f5d2d2; }
-  .pill.warn { background: #6f5f1f; color: #f5ecb1; }
-  code { background: #0d1117; padding: 1px 5px; border-radius: 4px; font-size: 11px; }
-  .meta { font-size: 11px; color: #8b949e; margin-top: 8px; }
+  .pill.ok { background: #16824a; color: #ffffff; }
+  .pill.fail { background: #b42318; color: #ffffff; }
+  .pill.warn { background: #b7791f; color: #ffffff; }
+  code { background: #e8f2fa; color:#183650; padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+  .meta { font-size: 11px; color: var(--yk-muted); margin-top: 8px; }
   .row { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
-  .btn { display: inline-block; padding: 5px 10px; background: #21262d; border: 1px solid #30363d;
-         border-radius: 6px; color: #e6e6e6; text-decoration: none; font-size: 11px; cursor: pointer; }
-  .btn:hover { background: #30363d; }
-  pre { background: #010409; padding: 10px; border-radius: 6px; font-size: 11px; max-height: 260px; overflow: auto; }
+  .btn { display: inline-block; padding: 7px 11px; background: #ffffff; border: 1px solid #a9c9df;
+         border-radius: 8px; color: #15324d; text-decoration: none; font-size: 12px; cursor: pointer; font-weight:800; }
+  .btn:hover { background: #eaf5fc; }
+  pre { background: #f6fbff; color:#17324a; border:1px solid #cde0ee; padding: 10px; border-radius: 8px; font-size: 11px; max-height: 260px; overflow: auto; }
 </style></head>
 <body>
-  <h1>Klinik Ajanlari (10)</h1>
-  <p style="color:#8b949e;font-size:12px;">Tum ajanlar saf is mantigi sunar; sonuclar onay kuyrugunda doktoru bekler.
+  <h1>Klinik Ajanları</h1>
+  <p style="color:#58708a;font-size:13px;">Tüm ajanlar saf iş mantığı sunar; sonuçlar onay kuyruğunda doktoru bekler.
      <code>GET /api/agents</code> ile manifest, <code>POST /api/agents/&lt;id&gt;/run</code> ile calistir.</p>
   <div id="status"></div>
   <div class="grid" id="grid"></div>
@@ -421,28 +422,28 @@ _SESSION7_AGENT_CARDS = [
 _SESSION7_AGENT_ADDON = """
 <style id="session7-agent-cards-css">
   .s7-head { margin: 26px 0 12px; display:flex; justify-content:space-between; gap:12px; align-items:end; flex-wrap:wrap; }
-  .s7-head h2 { margin:0; font-size:18px; color:#e6edf3; }
+  .s7-head h2 { margin:0; font-size:18px; color:#102b45; }
   .s7-tabs { display:flex; gap:8px; flex-wrap:wrap; margin: 8px 0 16px; }
-  .s7-tab { border:1px solid #30363d; background:#161b22; color:#c9d1d9; border-radius:999px; padding:7px 11px; cursor:pointer; font-size:12px; font-weight:800; }
-  .s7-tab.active { background:#1f6feb; border-color:#58a6ff; color:white; }
+  .s7-tab { border:1px solid #bfd8e9; background:#ffffff; color:#17324a; border-radius:999px; padding:7px 11px; cursor:pointer; font-size:12px; font-weight:800; }
+  .s7-tab.active { background:#0b79b7; border-color:#0b79b7; color:white; }
   .session7-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
-  .agent-card { background:#111820; border:1px solid #2f4155; border-radius:14px; padding:14px; box-shadow:0 12px 28px rgba(0,0,0,.18); }
-  .agent-card h3 { margin:0; font-size:15px; color:#79c0ff; }
+  .agent-card { background:#ffffff; border:1px solid #c9deed; border-radius:10px; padding:14px; box-shadow:0 12px 28px rgba(20,68,103,.08); }
+  .agent-card h3 { margin:0; font-size:15px; color:#075c92; }
   .agent-card p { min-height:36px; }
-  .agent-ico { min-width:42px; height:32px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center; background:#0d419d; color:#fff; font-size:11px; font-weight:900; letter-spacing:.02em; }
+  .agent-ico { min-width:42px; height:32px; border-radius:9px; display:inline-flex; align-items:center; justify-content:center; background:#0b79b7; color:#fff; font-size:11px; font-weight:900; letter-spacing:.02em; }
   .agent-card-top { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
   .agent-card-actions { display:flex; gap:8px; align-items:center; margin-top:10px; }
-  .agent-run { padding:7px 11px; background:#238636; color:white; border:0; border-radius:8px; cursor:pointer; font-weight:800; font-size:12px; }
-  .agent-copy { padding:7px 9px; background:#21262d; color:#c9d1d9; border:1px solid #30363d; border-radius:8px; cursor:pointer; font-size:12px; }
-  .agent-result { margin-top:10px; background:#010409; border:1px solid #30363d; border-radius:8px; padding:9px; min-height:42px; max-height:220px; overflow:auto; white-space:pre-wrap; font-size:11px; color:#c9d1d9; }
-  .agent-result.ok { border-color:#238636; }
-  .agent-result.fail { border-color:#da3633; color:#ffd5d5; }
+  .agent-run { padding:7px 11px; background:#16824a; color:white; border:0; border-radius:8px; cursor:pointer; font-weight:800; font-size:12px; }
+  .agent-copy { padding:7px 9px; background:#f5fbff; color:#17324a; border:1px solid #bfd8e9; border-radius:8px; cursor:pointer; font-size:12px; }
+  .agent-result { margin-top:10px; background:#f6fbff; border:1px solid #c9deed; border-radius:8px; padding:9px; min-height:42px; max-height:220px; overflow:auto; white-space:pre-wrap; font-size:11px; color:#17324a; }
+  .agent-result.ok { border-color:#16824a; }
+  .agent-result.fail { border-color:#b42318; color:#8a1f15; background:#fff7f6; }
 </style>
 <section id="session7-agents">
   <div class="s7-head">
     <div>
-      <h2>Session 7 ajanlari</h2>
-      <p style="margin:4px 0 0;color:#8b949e;font-size:12px;">29 yeni modulu kapsayan calistirilabilir aksiyon kartlari.</p>
+      <h2>Session 7 ajanları</h2>
+      <p style="margin:4px 0 0;color:#58708a;font-size:13px;">29 yeni modülü kapsayan çalıştırılabilir aksiyon kartları.</p>
     </div>
     <a class="btn" href="/uyumluluk">Uyumluluk panosu</a>
   </div>
@@ -2906,19 +2907,286 @@ def hasta_portal_giris():
 
 @agents_bp.route("/hasta-portal", methods=["GET"])
 def hasta_portal_home():
-    pid = session.get("portal_patient_id")
-    if not pid:
-        return "Önce magic link ile giriş yapın", 401
-    visits = []
-    if portal_mod:
-        visits = portal_mod.list_my_visits(pid)
-    return render_template_string(
-        "<html lang='tr'><head><meta charset='utf-8'></head>"
-        "<body style='font-family:sans-serif;padding:24px'>"
-        "<h2>Ziyaretleriniz</h2>"
-        "{% for v in visits %}<div style='border:1px solid #ccc;padding:8px;margin:8px'>"
-        "<b>{{v.visit_date}}</b> - {{v.visit_type}}<br>{{v.diagnosis}}"
-        "</div>{% endfor %}</body></html>", visits=visits)
+    """Dual-mode portal:
+      - DOKTOR session varsa: yonetim paneli (link uret + son linkler)
+      - HASTA portal session varsa: kendi ziyaret/recete listesi
+      - Hicbiri yoksa: aciklama + giris linkleri
+    """
+    portal_pid = session.get("portal_patient_id")
+    doktor_user = (session.get("user") or session.get("username"))
+
+    # MOD 1: Hasta gormus magic-link ile gelmis
+    if portal_pid:
+        visits = []
+        if portal_mod:
+            try:
+                visits = portal_mod.list_my_visits(portal_pid)
+            except Exception:
+                pass
+        return render_template_string(_PORTAL_HASTA_PAGE, visits=visits, pid=portal_pid)
+
+    # MOD 2: Doktor login - yonetim paneli
+    if doktor_user:
+        # Son uretilen 20 token + hasta listesi
+        recent_tokens = []
+        try:
+            import sqlite3, os
+            dbp = (os.environ.get("YAZKLINIK_DB_PATH")
+                    or r"D:\YazKlinik_Final_D300\local_db\yazklinik_v68.sqlite3")
+            con = sqlite3.connect(dbp)
+            con.row_factory = sqlite3.Row
+            try:
+                rows = con.execute(
+                    "SELECT token, patient_id, phone, issued_at, expires_at, consumed_at "
+                    "FROM patient_portal_tokens ORDER BY issued_at DESC LIMIT 20"
+                ).fetchall()
+                recent_tokens = [dict(r) for r in rows]
+            except Exception:
+                pass
+            con.close()
+        except Exception:
+            pass
+        return render_template_string(_PORTAL_DOKTOR_PAGE,
+                                       doktor=doktor_user, tokens=recent_tokens)
+
+    # MOD 3: Hicbir session yok
+    return render_template_string(_PORTAL_LANDING_PAGE), 401
+
+
+_PORTAL_HASTA_PAGE = r"""<!doctype html><html lang="tr"><head>
+<meta charset="utf-8"><title>Hasta Portal - Ziyaretleriniz</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d4f8b">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon-180.png">
+<link rel="stylesheet" href="/static/yk-ios-mobile.css?v=d300-ios-2026-05-17">
+<style>
+:root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Segoe UI",sans-serif;background:#f5f8fb;color:#122236;
+padding:calc(20px+var(--safe-top)) 16px calc(20px+var(--safe-bottom));max-width:760px;margin:0 auto;
+min-height:100vh;min-height:100dvh}
+.hdr{background:linear-gradient(135deg,#0d4f8b 0%,#0a8a76 100%);color:#fff;
+padding:20px;border-radius:14px;margin-bottom:18px}
+.hdr h1{font-size:22px;margin-bottom:4px}
+.hdr p{opacity:.85;font-size:14px}
+.card{background:#fff;border:1px solid #cdd9e3;border-radius:10px;padding:14px;margin-bottom:10px;
+box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card b{color:#0d4f8b;font-size:15px}
+.card .meta{font-size:12px;color:#5e7185;margin-top:4px}
+.empty{text-align:center;padding:40px;color:#5e7185}
+.foot{text-align:center;margin-top:20px;font-size:12px;color:#5e7185}
+</style></head><body>
+<div class="hdr">
+  <h1>Hoş Geldiniz</h1>
+  <p>Hasta dosyanız - son ziyaretler ve raporlar</p>
+</div>
+{% if visits %}
+  {% for v in visits %}
+  <div class="card">
+    <b>{{v.visit_date}}</b> - {{v.visit_type or 'Muayene'}}
+    {% if v.diagnosis %}<div class="meta">Tanı: {{v.diagnosis}}</div>{% endif %}
+    {% if v.complaints %}<div class="meta">Şikayet: {{v.complaints[:120]}}</div>{% endif %}
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="card empty">
+    Henüz kayıt bulunmamaktadır.<br>
+    Klinik ekibimiz veri girdikten sonra burada görünecektir.
+  </div>
+{% endif %}
+<p class="foot">
+  Op. Dr. Hakan Yaz Kliniği<br>
+  Sorularınız için klinik ile iletişime geçin.
+</p>
+</body></html>"""
+
+
+_PORTAL_DOKTOR_PAGE = r"""<!doctype html><html lang="tr"><head>
+<meta charset="utf-8"><title>Hasta Portal Yönetimi</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1769aa">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon-180.png">
+<link rel="stylesheet" href="/static/yk-ios-mobile.css?v=d300-ios-2026-05-17">
+<style>
+:root{--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Segoe UI",sans-serif;background:#f5f8fb;color:#122236;
+padding:calc(20px+var(--safe-top)) 18px calc(20px+var(--safe-bottom));max-width:980px;margin:0 auto;
+min-height:100vh;min-height:100dvh}
+h1{color:#0d4f8b;font-size:24px;margin-bottom:6px}
+.sub{color:#5e7185;font-size:14px;margin-bottom:24px}
+.section{background:#fff;border:1px solid #cdd9e3;border-radius:12px;padding:18px;margin-bottom:18px}
+.section h2{color:#1769aa;font-size:16px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.section h2 .num{background:#1769aa;color:#fff;width:24px;height:24px;border-radius:50%;
+display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.form-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.form-row > *{flex:1;min-width:200px}
+input,select{padding:12px 14px;border:1px solid #cdd9e3;border-radius:8px;font-size:16px;width:100%;
+-webkit-appearance:none;background:#fff}
+button{background:#1769aa;color:#fff;border:0;padding:12px 22px;border-radius:8px;
+cursor:pointer;font-weight:700;font-size:14px;min-height:44px;touch-action:manipulation;-webkit-appearance:none}
+button:active{transform:scale(0.97)}
+button.btn-wa{background:#25d366}
+button.btn-secondary{background:#5e7185}
+.result{margin-top:12px;padding:14px;background:#eff5fb;border-radius:8px;font-family:monospace;
+font-size:13px;word-break:break-all;display:none}
+.result.show{display:block}
+.result a{color:#1769aa;font-weight:700}
+table{width:100%;border-collapse:collapse;display:block;overflow-x:auto}
+th,td{padding:10px 8px;text-align:left;border-bottom:1px solid #eef3f8;font-size:13px;white-space:nowrap}
+th{background:#eff5fb;color:#0d4f8b;font-size:11px;text-transform:uppercase;font-weight:700}
+.status-active{color:#16815f;font-weight:700}
+.status-used{color:#5e7185}
+.status-expired{color:#b3261e}
+.tip{background:#fff8e1;border-left:4px solid #f0b400;padding:12px 14px;border-radius:0 6px 6px 0;
+font-size:13px;margin-bottom:18px;color:#7a5a00}
+@media(max-width:600px){
+  body{padding-left:12px;padding-right:12px}
+  .form-row{flex-direction:column}
+  .form-row > *{min-width:auto}
+}
+</style></head><body>
+<h1>Hasta Portal Yönetimi</h1>
+<div class="sub">Doktor: <b>{{doktor}}</b> - Hastalara magic-link üret, WhatsApp ile gönder, son linkleri takip et</div>
+
+<div class="tip">
+  <b>Nasıl çalışır:</b> Hasta için magic-link üretin, link WhatsApp ile hastaya gider, hasta 24 saat içinde tıklarsa ziyaret/reçete/USG bilgilerini görür. Link tek kullanımlıktır.
+</div>
+
+<div class="section">
+  <h2><span class="num">1</span> Yeni Magic-Link Üret</h2>
+  <div class="form-row">
+    <input type="text" id="pid" placeholder="Hasta dosya no (ID)" autocomplete="off">
+    <input type="tel" id="phone" placeholder="Telefon (5XXX..)" inputmode="tel" autocomplete="off">
+    <input type="number" id="ttl" placeholder="Süre (saat)" value="24" min="1" max="168" style="max-width:140px">
+  </div>
+  <div class="form-row">
+    <button onclick="issueLink()">🔗 Link Üret</button>
+    <button class="btn-wa" onclick="issueAndWhatsApp()">📱 Üret + WhatsApp</button>
+    <button class="btn-secondary" onclick="document.getElementById('pid').value='';document.getElementById('phone').value=''">Temizle</button>
+  </div>
+  <div class="result" id="result"></div>
+</div>
+
+<div class="section">
+  <h2><span class="num">2</span> Son Üretilen Linkler (20)</h2>
+  <table>
+    <thead><tr><th>Hasta ID</th><th>Telefon</th><th>Uretildi</th><th>Sona Erer</th><th>Durum</th><th>Token</th></tr></thead>
+    <tbody>
+    {% for t in tokens %}
+    <tr>
+      <td>{{t.patient_id}}</td>
+      <td>{{t.phone or '-'}}</td>
+      <td>{{t.issued_at[:16] if t.issued_at else '-'}}</td>
+      <td>{{t.expires_at[:16] if t.expires_at else '-'}}</td>
+      <td>
+      {% if t.consumed_at %}<span class="status-used">Kullanıldı</span>
+      {% else %}<span class="status-active">Aktif</span>
+      {% endif %}
+      </td>
+      <td><code style="font-size:11px">{{t.token[:14]}}...</code></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6" style="text-align:center;color:#5e7185;padding:20px">Henüz hiç link üretilmemiş</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h2><span class="num">3</span> Test Önizleme (Kendi Magic-Linkin)</h2>
+  <p style="color:#5e7185;font-size:13px;margin-bottom:12px">
+    Üretilen linki buraya yapıştırıp önizleyebilirsin (hasta nasıl görür?):
+  </p>
+  <div class="form-row">
+    <input type="text" id="preview-url" placeholder="https://.../hasta-portal/giris?token=...&sig=...">
+    <button onclick="previewLink()">👁 Önizle</button>
+  </div>
+</div>
+
+<script>
+async function issueLink(){
+  const pid = document.getElementById('pid').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const ttl = parseInt(document.getElementById('ttl').value || '24');
+  if(!pid){ alert('Hasta ID gerekli'); return; }
+  const r = await fetch('/api/agents/portal/issue-link', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    credentials:'same-origin',
+    body: JSON.stringify({patient_id: pid, phone: phone, ttl_hours: ttl})
+  });
+  const d = await r.json();
+  const result = document.getElementById('result');
+  result.classList.add('show');
+  if(d.ok && d.result && d.result.magic_link){
+    const link = d.result.magic_link;
+    result.innerHTML = '<b>Magic Link uretildi:</b><br>'+
+      '<a href="'+link+'" target="_blank">'+link+'</a><br>'+
+      '<button onclick="copyLink(\\''+link+'\\')" style="margin-top:8px;background:#5e7185">Kopyala</button>';
+    setTimeout(() => location.reload(), 2000);
+  } else {
+    result.innerHTML = '<b style="color:#b3261e">Hata:</b> ' + (d.error || JSON.stringify(d));
+  }
+  return d;
+}
+
+async function issueAndWhatsApp(){
+  const phone = document.getElementById('phone').value.trim();
+  if(!phone){ alert('Telefon gerekli'); return; }
+  const d = await issueLink();
+  if(d && d.ok && d.result && d.result.magic_link){
+    // WhatsApp aç - clean digit + URL encoded msg
+    const cleanPhone = phone.replace(/\D/g, '');
+    const msg = encodeURIComponent(
+      'Sayin hastamiz, kendi dosyaniza erisim icin:\n' + d.result.magic_link + '\n\n(24 saat gecerli)'
+    );
+    window.open('https://wa.me/'+cleanPhone+'?text='+msg, '_blank');
+  }
+}
+
+function copyLink(text){
+  navigator.clipboard.writeText(text).then(() => alert('Kopyalandi: ' + text));
+}
+
+function previewLink(){
+  const url = document.getElementById('preview-url').value.trim();
+  if(url) window.open(url, '_blank');
+}
+</script>
+</body></html>"""
+
+
+_PORTAL_LANDING_PAGE = r"""<!doctype html><html lang="tr"><head>
+<meta charset="utf-8"><title>Hasta Portal - Giriş</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d4f8b">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon-180.png">
+<link rel="stylesheet" href="/static/yk-ios-mobile.css?v=d300-ios-2026-05-17">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Segoe UI",sans-serif;background:linear-gradient(135deg,#0d4f8b 0%,#0a8a76 100%);color:#fff;
+padding:24px;min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center}
+.card{background:#fff;color:#122236;border-radius:16px;padding:30px;max-width:480px;width:100%;
+box-shadow:0 10px 40px rgba(0,0,0,0.2)}
+h1{color:#0d4f8b;font-size:22px;margin-bottom:8px}
+p{color:#5e7185;line-height:1.6;margin-bottom:16px}
+.btn{display:block;background:#1769aa;color:#fff;padding:14px;border-radius:10px;
+text-align:center;text-decoration:none;font-weight:700;margin-top:12px;min-height:44px;
+display:flex;align-items:center;justify-content:center;touch-action:manipulation}
+.btn.btn-secondary{background:#5e7185}
+.info{background:#eff5fb;padding:14px;border-radius:8px;font-size:13px;color:#0d4f8b;margin-bottom:16px}
+</style></head><body>
+<div class="card">
+<h1>Hasta Portal</h1>
+<p>Bu sayfa kişiye özel hasta erişimi içindir. Klinikten size gelen <b>magic-link</b> mesajına tıklamanız gerekir.</p>
+<div class="info">
+<b>Hastaysanız:</b> Klinikten size WhatsApp ile gelen linke tıklayın.<br>
+<b>Klinik personeliyseniz:</b> Doktor hesabı ile giriş yapın.
+</div>
+<a href="/giris?next=/hasta-portal" class="btn">Doktor / Personel Girişi</a>
+<a href="/" class="btn btn-secondary">Ana Sayfaya Dön</a>
+</div>
+</body></html>"""
 
 
 # --- 2FA TOTP ---
