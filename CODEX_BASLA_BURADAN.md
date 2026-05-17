@@ -33,6 +33,13 @@ CODEX_D300_QUICK_CHECK_OK
 
 ## Son degisiklikler
 
+- **2026-05-17 (Session 6 - VeriDB):** PostgreSQL + Redis + MeiliSearch eklendi. Detay: **`CODEX_HANDOFF_2026-05-17_SESSION6.md`**.
+    - 3 yeni Docker servis: yk-postgres (15432), yk-redis (16379), yk-meilisearch (17700)
+    - 3 yeni Python agent + 9 yeni endpoint + `/veridb-merkezi` UI dashboard
+    - MeiliSearch canli: 2964 hasta + 12790 gelis + 182 recete (typo tolerant arama)
+    - PostgreSQL ready: schema kuruldu, migration helper (dry-run default)
+    - Redis cache + 4 standart kuyruk (voice_confirm, geri_cagirma, telesekreter_triyaj, instagram_drafts)
+    - VERIFY: 40/43 OK = %93
 - **2026-05-17 (Session 5):** 18 madde tek seans. Detay: **`CODEX_HANDOFF_2026-05-17_SESSION5.md`**.
     - RAG hibrit (vektor + BM25) + citation tracking
     - Konsultasyon -> RAG (gecmis vakalar + PubMed inject)

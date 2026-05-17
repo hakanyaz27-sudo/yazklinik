@@ -163,6 +163,36 @@ Test-Item "3D Slicer" {
         "$env:LOCALAPPDATA\Programs\Slicer*\Slicer.exe")
 }
 
+# 8. ASAMA 3: PostgreSQL + Redis + MeiliSearch (Session 6)
+Write-Host ""
+Write-Host "[8/8] ASAMA 3 (PostgreSQL + Redis + MeiliSearch)" -ForegroundColor Yellow
+Test-Item "PostgreSQL container" { $containers -match "yk-postgres" }
+Test-Item "Redis container" { $containers -match "yk-redis" }
+Test-Item "MeiliSearch container" { $containers -match "yk-meilisearch" }
+Test-Item "psycopg python paketi" { & $venv -c "import psycopg" 2>&1 | Out-Null; $LASTEXITCODE -eq 0 }
+Test-Item "redis python paketi" { & $venv -c "import redis" 2>&1 | Out-Null; $LASTEXITCODE -eq 0 }
+Test-Item "meilisearch python paketi" { & $venv -c "import meilisearch" 2>&1 | Out-Null; $LASTEXITCODE -eq 0 }
+Test-Item "PostgreSQL HTTP probe (15432)" {
+    Test-NetConnection -ComputerName 127.0.0.1 -Port 15432 -InformationLevel Quiet -WarningAction SilentlyContinue
+}
+Test-Item "Redis port (16379)" {
+    Test-NetConnection -ComputerName 127.0.0.1 -Port 16379 -InformationLevel Quiet -WarningAction SilentlyContinue
+}
+Test-Item "MeiliSearch HTTP probe (17700)" {
+    try {
+        $r = curl.exe -s -o NUL -w "%{http_code}" http://127.0.0.1:17700/health --max-time 3 2>$null
+        $r -eq "200"
+    } catch { $false }
+}
+Test-Item "Yeni endpoint /api/db/postgres/health" {
+    $c = curl.exe -sk -o NUL -w "%{http_code}" https://127.0.0.1:5443/api/db/postgres/health --max-time 5 2>$null
+    $c -in "200","401"
+}
+Test-Item "Yeni endpoint /veridb-merkezi" {
+    $c = curl.exe -sk -o NUL -w "%{http_code}" https://127.0.0.1:5443/veridb-merkezi --max-time 5 2>$null
+    $c -in "200","401"
+}
+
 # Ozet
 Write-Host ""
 Write-Host "=== OZET ===" -ForegroundColor Cyan

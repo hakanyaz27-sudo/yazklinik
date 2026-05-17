@@ -2154,3 +2154,267 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
 </script>
 </body></html>
 """
+
+
+# === D300 2026-05-17: VeriDB endpointleri (Postgres + Redis + MeiliSearch) ===
+
+postgres_mod = _safe_import("yazklinik_postgres_agent")
+redis_mod = _safe_import("yazklinik_redis_agent")
+meili_mod = _safe_import("yazklinik_meilisearch_agent")
+
+
+@agents_bp.route("/api/db/postgres/health", methods=["GET"])
+def api_pg_health():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(postgres_mod, "postgres")
+    if err: return err
+    return jsonify({"ok": True, "agent": "postgres",
+                     "result": postgres_mod.health_check()})
+
+
+@agents_bp.route("/api/db/postgres/migrate", methods=["POST"])
+def api_pg_migrate():
+    """Sadece doktor. Default dry_run=True."""
+    auth = _require_session()
+    if auth: return auth
+    if session.get("role") != "doktor":
+        return jsonify({"ok": False, "error": "Sadece doktor"}), 403
+    err = _agent_or_503(postgres_mod, "postgres")
+    if err: return err
+    p = _payload()
+    dry_run = bool(p.get("dry_run", True))
+    tables = p.get("tables") or ["patients", "visits"]
+    try:
+        return jsonify({"ok": True, "agent": "postgres",
+                         "result": postgres_mod.migrate_from_sqlite(
+                             tables=tables, dry_run=dry_run)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@agents_bp.route("/api/cache/health", methods=["GET"])
+def api_cache_health():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(redis_mod, "redis")
+    if err: return err
+    return jsonify({"ok": True, "agent": "redis",
+                     "result": redis_mod.health_check()})
+
+
+@agents_bp.route("/api/cache/get", methods=["POST"])
+def api_cache_get():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(redis_mod, "redis")
+    if err: return err
+    p = _payload()
+    k = str(p.get("key") or "")
+    if not k:
+        return jsonify({"ok": False, "error": "key gerekli"}), 400
+    return jsonify({"ok": True, "result": redis_mod.cache_get(k)})
+
+
+@agents_bp.route("/api/queue/stats", methods=["GET"])
+def api_queue_stats():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(redis_mod, "redis")
+    if err: return err
+    queues = ["voice_confirm", "geri_cagirma", "telesekreter_triyaj",
+              "instagram_drafts"]
+    stats = {}
+    for q in queues:
+        stats[q] = {"length": redis_mod.queue_length(q),
+                    "preview": redis_mod.queue_peek(q, limit=3)}
+    return jsonify({"ok": True, "result": stats})
+
+
+@agents_bp.route("/api/search/full-text", methods=["POST"])
+def api_search_full_text():
+    """MeiliSearch - typo tolerant, anlik. ChromaDB semantic disinda KEYWORD."""
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(meili_mod, "meilisearch")
+    if err: return err
+    p = _payload()
+    q = str(p.get("query") or "").strip()
+    index_uid = str(p.get("index") or "yk_patients")
+    limit = int(p.get("limit") or 20)
+    filters = p.get("filters")
+    if not q:
+        return jsonify({"ok": False, "error": "query gerekli"}), 400
+    return jsonify({"ok": True, "agent": "meilisearch",
+                     "result": meili_mod.search(q, index_uid=index_uid,
+                                                  limit=limit, filters=filters)})
+
+
+@agents_bp.route("/api/search/health", methods=["GET"])
+def api_search_health():
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(meili_mod, "meilisearch")
+    if err: return err
+    return jsonify({"ok": True, "agent": "meilisearch",
+                     "result": meili_mod.health_check()})
+
+
+@agents_bp.route("/api/search/sync", methods=["POST"])
+def api_search_sync():
+    """SQLite -> MeiliSearch sync. Doktor only."""
+    auth = _require_session()
+    if auth: return auth
+    if session.get("role") != "doktor":
+        return jsonify({"ok": False, "error": "Sadece doktor"}), 403
+    err = _agent_or_503(meili_mod, "meilisearch")
+    if err: return err
+    p = _payload()
+    dry_run = bool(p.get("dry_run", False))
+    try:
+        return jsonify({"ok": True, "agent": "meilisearch",
+                         "result": meili_mod.sync_all_from_sqlite(dry_run=dry_run)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@agents_bp.route("/veridb-merkezi", methods=["GET"])
+def veridb_merkezi_page():
+    """VeriDB Dashboard: Postgres + Redis + MeiliSearch tek panelden gor."""
+    auth = _require_session()
+    if auth: return auth
+    return render_template_string(_VERIDB_PAGE)
+
+
+_VERIDB_PAGE = r"""<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<title>VeriDB Merkezi - YazKlinik</title>
+<style>
+  :root { --med-blue:#1769aa; --med-teal:#0c7488; --med-green:#16815f;
+          --med-red:#b3261e; --ink:#122236; --muted:#5e7185;
+          --line:rgba(94,113,133,0.18); --bg:#f5f8fb; }
+  body { font-family:-apple-system,"Segoe UI",sans-serif; background:var(--bg);
+         color:var(--ink); margin:0; padding:18px; }
+  h1 { margin:0 0 10px; font-size:22px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:14px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .card h3 { margin:0 0 8px; font-size:14px; color:var(--med-blue);
+              display:flex; align-items:center; justify-content:space-between; }
+  .badge { padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; }
+  .b-ok { background:#e2f3eb; color:var(--med-green); }
+  .b-fail { background:#fbe6e4; color:var(--med-red); }
+  pre { background:#0d1117; color:#c9d1d9; padding:10px; border-radius:8px;
+        font-size:11px; max-height:200px; overflow:auto; }
+  .search-box { display:flex; gap:6px; margin:8px 0; }
+  .search-box input, .search-box select { flex:1; padding:6px 10px;
+        border:1px solid var(--line); border-radius:6px; }
+  .search-box button { padding:6px 12px; background:var(--med-blue);
+        color:#fff; border:0; border-radius:6px; cursor:pointer; }
+  .hit { padding:8px; border:1px solid var(--line); border-radius:8px;
+         margin-top:6px; font-size:12px; }
+  .hit em { background:yellow; font-style:normal; }
+</style></head>
+<body>
+  <h1>VeriDB Merkezi</h1>
+  <p style="color:var(--muted);font-size:12px;">PostgreSQL (buyuk olcek) + Redis (cache+queue) + MeiliSearch (anlik arama)</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>PostgreSQL <span id="pgStatus" class="badge">...</span></h3>
+      <pre id="pgInfo">yukleniyor</pre>
+    </div>
+    <div class="card">
+      <h3>Redis <span id="rdStatus" class="badge">...</span></h3>
+      <pre id="rdInfo">yukleniyor</pre>
+    </div>
+    <div class="card">
+      <h3>MeiliSearch <span id="msStatus" class="badge">...</span></h3>
+      <pre id="msInfo">yukleniyor</pre>
+    </div>
+    <div class="card">
+      <h3>Queue Sayilari</h3>
+      <pre id="qStats">yukleniyor</pre>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px;">
+    <h3>Anlik Tam Metin Arama (MeiliSearch)</h3>
+    <div class="search-box">
+      <input id="searchQuery" placeholder="orn: Kilic Seval, preeklampsi, 2026-04">
+      <select id="searchIndex">
+        <option value="yk_patients">Hastalar</option>
+        <option value="yk_visits">Gelisler</option>
+        <option value="yk_rx">Receteler</option>
+      </select>
+      <button onclick="doSearch()">Ara</button>
+    </div>
+    <div id="searchResults"></div>
+  </div>
+
+<script>
+function esc(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+function statusBadge(elId, ok) {
+  const el = document.getElementById(elId);
+  el.textContent = ok ? 'OK' : 'FAIL';
+  el.className = 'badge ' + (ok ? 'b-ok' : 'b-fail');
+}
+
+async function load() {
+  for (const [url, statusEl, infoEl] of [
+    ['/api/db/postgres/health', 'pgStatus', 'pgInfo'],
+    ['/api/cache/health', 'rdStatus', 'rdInfo'],
+    ['/api/search/health', 'msStatus', 'msInfo'],
+  ]) {
+    try {
+      const r = await fetch(url, {credentials:'same-origin'});
+      const d = await r.json();
+      const res = d.result || d;
+      statusBadge(statusEl, res.ok);
+      document.getElementById(infoEl).textContent = JSON.stringify(res, null, 2);
+    } catch(e) {
+      statusBadge(statusEl, false);
+      document.getElementById(infoEl).textContent = e.message;
+    }
+  }
+  try {
+    const r = await fetch('/api/queue/stats', {credentials:'same-origin'});
+    const d = await r.json();
+    document.getElementById('qStats').textContent = JSON.stringify(d.result, null, 2);
+  } catch(e) {
+    document.getElementById('qStats').textContent = e.message;
+  }
+}
+
+async function doSearch() {
+  const q = document.getElementById('searchQuery').value.trim();
+  const idx = document.getElementById('searchIndex').value;
+  if (!q) return;
+  const box = document.getElementById('searchResults');
+  box.innerHTML = '<i>aranıyor...</i>';
+  try {
+    const r = await fetch('/api/search/full-text', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      credentials:'same-origin',
+      body: JSON.stringify({query: q, index: idx, limit: 15})});
+    const d = await r.json();
+    const res = d.result || {};
+    box.innerHTML = '<b>'+res.total+' sonuc</b> ('+res.processing_time_ms+' ms)';
+    for (const h of (res.hits || [])) {
+      const f = h._formatted || h;
+      box.innerHTML += '<div class="hit"><b>' +
+        (f.display_name || f.patient_folder_key || f.id || '?') +
+        '</b><br><small>' +
+        Object.entries(f).filter(([k,v])=>k!=='_formatted'&&v).map(([k,v])=>k+': '+v).join(' | ').substring(0,300) +
+        '</small></div>';
+    }
+  } catch(e) {
+    box.innerHTML = '<span style="color:red">'+esc(e.message)+'</span>';
+  }
+}
+
+load();
+document.getElementById('searchQuery').addEventListener('keydown', e => { if (e.key==='Enter') doSearch(); });
+</script>
+</body></html>
+"""
+
