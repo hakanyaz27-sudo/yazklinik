@@ -30789,8 +30789,8 @@ BASE_HTML = """<!DOCTYPE html>
     try {
       if (window.ykVoiceQuickAction &&
           typeof window.ykVoiceQuickAction === "function") {
-        window.ykVoiceQuickAction(action, ev);
-        return true;
+        var result = window.ykVoiceQuickAction(action, ev);
+        return (result === true || result === "handled");
       }
     } catch(err) {
       try { console.error("[YK_ALEX] Quick action hatasi:", err); } catch(_) {}
@@ -30801,8 +30801,8 @@ BASE_HTML = """<!DOCTYPE html>
     try {
       if (window.ykVoicePanelAction &&
           typeof window.ykVoicePanelAction === "function") {
-        window.ykVoicePanelAction(action, ev);
-        return true;
+        var result = window.ykVoicePanelAction(action, ev);
+        return (result === true || result === "handled");
       }
     } catch(err) {
       try { console.error("[YK_ALEX] Panel action hatasi:", err); } catch(_) {}
@@ -41808,6 +41808,42 @@ def render(content, title=None):
                 html = html + inject
     except Exception:
         pass
+    # D300 2026-05-17: Hasta Portal hızlı erişim - TUM SAYFALARDA (login dahil).
+    # Sag ust sabit yesil dugme: /hasta-portal'a tek tikla erisim.
+    # Sadece doktor/asistan/sekreter login varsa gosterilir; landing pages atla.
+    try:
+        if (html and isinstance(html, str)
+                and "yk-hasta-portal-fab" not in html
+                and "/hasta-portal" not in (request.path or "")
+                and "/giris" not in (request.path or "")):
+            inject = (
+                '<a href="/hasta-portal" id="yk-hasta-portal-fab" '
+                'title="Hasta Portal - Magic-Link uret + hasta paylas" '
+                'style="position:fixed;top:14px;right:14px;z-index:9998;'
+                'background:linear-gradient(135deg,#0a8a76,#16815f);color:#fff;'
+                'padding:10px 14px;border-radius:24px;text-decoration:none;'
+                'font-family:-apple-system,Segoe UI,sans-serif;font-weight:700;'
+                'font-size:13px;box-shadow:0 4px 14px rgba(10,138,118,0.35);'
+                'display:inline-flex;align-items:center;gap:6px;'
+                'border:2px solid rgba(255,255,255,0.4);'
+                'transition:transform 0.15s,box-shadow 0.15s">'
+                '🔗 Hasta Portal</a>'
+                '<style>@media (max-width:600px){'
+                '#yk-hasta-portal-fab{top:auto !important;bottom:80px !important;'
+                'right:14px !important;font-size:12px !important}}'
+                '#yk-hasta-portal-fab:hover{transform:translateY(-2px) scale(1.03);'
+                'box-shadow:0 6px 20px rgba(10,138,118,0.5) !important}'
+                '#yk-hasta-portal-fab:active{transform:scale(0.97)}</style>'
+            )
+            if "</body>" in html:
+                html = html.replace("</body>", inject + "</body>", 1)
+            elif "</head>" in html:
+                html = html.replace("</head>", inject + "</head>", 1)
+            else:
+                html = html + inject
+    except Exception:
+        pass
+
     # D300 2026-05-16: Alex bar positioner (surukle + preset menu + hafiza).
     # Mevcut #ykVoiceAgent markup'ina dokunmaz; DOMContentLoaded sonrasi 2 ek
     # dugme ve listener ekler. Klavye: Alt+A goster/gizle, Alt+M mini, Alt+C odak.
