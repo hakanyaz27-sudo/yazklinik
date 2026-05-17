@@ -3302,22 +3302,13 @@ p{color:#5e7185;line-height:1.5}
 </body></html>"""
 
 
-@agents_bp.route("/hasta-portal/media", methods=["GET"])
-def hasta_portal_media():
-    """Hasta sadece KENDI klasorundeki resim/PDF'lere erisebilir.
+def _validate_patient_path(pid: str, abs_path: str):
+    """Path traversal koruma - abs_path hasta klasorunun ICINDE mi?
 
-    Query: ?path=<abs_path>
-    Validation:
-      - session['portal_patient_id'] gerek
-      - abs_path hasta klasoru icinde olmali (folder_key prefix check)
+    Donus: (rp_str, error_str) - error None ise OK.
     """
-    pid = session.get("portal_patient_id")
-    if not pid:
-        return "Yetki YOK", 401
-    abs_path = request.args.get("path", "")
     if not abs_path:
-        return "path yok", 400
-    # GUVENLIK: abs_path hasta klasorunun ICINDE mi?
+        return None, "path yok"
     try:
         import sqlite3 as _sq, os as _os
         dbp = (os.environ.get("YAZKLINIK_DB_PATH")
@@ -3331,23 +3322,92 @@ def hasta_portal_media():
         finally:
             con.close()
         if not patient_root:
-            return "hasta klasoru yok", 403
-        # abs_path patient_root altinda olmali (path traversal koruma)
+            return None, "hasta klasoru yok"
         rp = _os.path.realpath(abs_path)
         pr = _os.path.realpath(patient_root)
         if not rp.startswith(pr):
-            return "yetkisiz path", 403
-        if not _os.path.isfile(rp):
-            return "dosya yok", 404
-        # Sadece resim/PDF
-        ext = rp.lower().rsplit(".", 1)[-1]
-        if ext not in ("jpg", "jpeg", "png", "pdf"):
-            return "izin verilmeyen tip", 403
-        mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg",
-                "png": "image/png", "pdf": "application/pdf"}[ext]
-        return send_file(rp, mimetype=mime)
+            return None, "yetkisiz path"
+        return rp, None
     except Exception as e:
-        return f"hata: {e}", 500
+        return None, f"hata: {e}"
+
+
+@agents_bp.route("/hasta-portal/media", methods=["GET"])
+def hasta_portal_media():
+    """Hasta sadece KENDI klasorundeki resim/PDF'lere erisebilir.
+
+    Query:
+      ?path=<abs_path>      - dosya yolu (zorunlu)
+      &download=1           - opsiyonel - Content-Disposition: attachment
+    """
+    pid = session.get("portal_patient_id")
+    if not pid:
+        return "Yetki YOK", 401
+    abs_path = request.args.get("path", "")
+    download = request.args.get("download") in ("1", "true", "yes")
+    rp, err = _validate_patient_path(pid, abs_path)
+    if err:
+        return err, 403 if err != "path yok" else 400
+    import os as _os
+    if not _os.path.isfile(rp):
+        return "dosya yok", 404
+    ext = rp.lower().rsplit(".", 1)[-1]
+    if ext not in ("jpg", "jpeg", "png", "pdf"):
+        return "izin verilmeyen tip", 403
+    mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg",
+            "png": "image/png", "pdf": "application/pdf"}[ext]
+    fname = _os.path.basename(rp)
+    return send_file(rp, mimetype=mime,
+                      as_attachment=download,
+                      download_name=fname)
+
+
+@agents_bp.route("/hasta-portal/visit-zip", methods=["GET"])
+def hasta_portal_visit_zip():
+    """Ziyaret klasorunu ZIP olarak indir.
+
+    Query: ?path=<visit_folder_path>
+    Donus: zip file streaming, dosya adi: <visit_klasor>_dosyalar.zip
+    """
+    pid = session.get("portal_patient_id")
+    if not pid:
+        return "Yetki YOK", 401
+    abs_path = request.args.get("path", "")
+    rp, err = _validate_patient_path(pid, abs_path)
+    if err:
+        return err, 403 if err != "path yok" else 400
+    import os as _os, io as _io, zipfile as _zip
+    if not _os.path.isdir(rp):
+        return "klasor yok", 404
+    # Sadece izin verilen dosya tipleri (resim + PDF)
+    allowed_ext = {".jpg", ".jpeg", ".png", ".pdf"}
+    folder_name = _os.path.basename(rp.rstrip("\\/"))
+    buf = _io.BytesIO()
+    file_count = 0
+    try:
+        with _zip.ZipFile(buf, "w", _zip.ZIP_DEFLATED) as zf:
+            for f in sorted(_os.listdir(rp)):
+                full = _os.path.join(rp, f)
+                if not _os.path.isfile(full):
+                    continue
+                lo = f.lower()
+                if not any(lo.endswith(e) for e in allowed_ext):
+                    continue
+                try:
+                    zf.write(full, arcname=f)
+                    file_count += 1
+                except Exception:
+                    pass
+    except Exception as e:
+        return f"zip uretilemedi: {e}", 500
+    if file_count == 0:
+        return "klasorde indirilebilir dosya yok", 404
+    buf.seek(0)
+    from flask import Response as _Resp
+    resp = _Resp(buf.getvalue(), mimetype="application/zip")
+    resp.headers["Content-Disposition"] = (
+        f'attachment; filename="{folder_name}_dosyalar.zip"')
+    return resp
 
 
 @agents_bp.route("/hasta-portal", methods=["GET"])
@@ -3526,14 +3586,32 @@ box-shadow:0 1px 3px rgba(0,0,0,.06)}
 
     {% if v.visit_images %}
     <div style="margin-top:10px">
-      <div style="font-size:12px;color:#0d4f8b;font-weight:600;margin-bottom:6px">🖼 USG Görüntüleri ({{v.visit_images|length}}{% if v.image_count and v.image_count > v.visit_images|length %} / toplam {{v.image_count}}{% endif %})</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px">
-        {% for img in v.visit_images %}
-        <a href="/hasta-portal/media?path={{img.abs_path|urlencode}}" target="_blank"
-           style="display:block;aspect-ratio:1;background:#000;border-radius:6px;overflow:hidden">
-          <img src="/hasta-portal/media?path={{img.abs_path|urlencode}}" loading="lazy"
-               style="width:100%;height:100%;object-fit:cover">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-size:12px;color:#0d4f8b;font-weight:600">🖼 USG Görüntüleri ({{v.visit_images|length}}{% if v.image_count and v.image_count > v.visit_images|length %} / toplam {{v.image_count}}{% endif %})</div>
+        {% if v.full_path %}
+        <a href="/hasta-portal/visit-zip?path={{v.full_path|urlencode}}"
+           style="background:#1769aa;color:#fff;padding:6px 10px;border-radius:6px;
+                  text-decoration:none;font-size:11px;font-weight:700;white-space:nowrap">
+          📦 Hepsini İndir (ZIP)
         </a>
+        {% endif %}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px">
+        {% for img in v.visit_images %}
+        <div style="position:relative">
+          <a href="/hasta-portal/media?path={{img.abs_path|urlencode}}" target="_blank"
+             style="display:block;aspect-ratio:1;background:#000;border-radius:6px;overflow:hidden">
+            <img src="/hasta-portal/media?path={{img.abs_path|urlencode}}" loading="lazy"
+                 style="width:100%;height:100%;object-fit:cover">
+          </a>
+          <a href="/hasta-portal/media?path={{img.abs_path|urlencode}}&download=1"
+             title="Indir"
+             style="position:absolute;bottom:4px;right:4px;background:rgba(13,79,139,0.92);
+                    color:#fff;width:24px;height:24px;border-radius:50%;
+                    display:flex;align-items:center;justify-content:center;
+                    text-decoration:none;font-size:12px;font-weight:700;
+                    box-shadow:0 2px 4px rgba(0,0,0,0.3)">⬇</a>
+        </div>
         {% endfor %}
       </div>
     </div>
@@ -3543,12 +3621,31 @@ box-shadow:0 1px 3px rgba(0,0,0,.06)}
     <div style="margin-top:10px">
       <div style="font-size:12px;color:#0a8a76;font-weight:600;margin-bottom:6px">📄 Rapor / PDF</div>
       {% for pdf in v.visit_pdfs %}
-      <a href="/hasta-portal/media?path={{pdf.abs_path|urlencode}}" target="_blank"
-         style="display:inline-block;background:#d9f4ec;color:#0a8a76;padding:8px 12px;border-radius:8px;
-                text-decoration:none;font-size:13px;font-weight:600;margin:2px">
-        📄 {{pdf.name}}
-      </a>
+      <div style="display:inline-flex;gap:0;margin:2px;border-radius:8px;overflow:hidden">
+        <a href="/hasta-portal/media?path={{pdf.abs_path|urlencode}}" target="_blank"
+           style="background:#d9f4ec;color:#0a8a76;padding:8px 12px;
+                  text-decoration:none;font-size:13px;font-weight:600">
+          📄 {{pdf.name}}
+        </a>
+        <a href="/hasta-portal/media?path={{pdf.abs_path|urlencode}}&download=1"
+           title="PDF Indir"
+           style="background:#0a8a76;color:#fff;padding:8px 12px;
+                  text-decoration:none;font-size:13px;font-weight:700">
+          ⬇ İndir
+        </a>
+      </div>
       {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if v.full_path and (v.visit_images or v.visit_pdfs) %}
+    <div style="margin-top:10px;padding-top:8px;border-top:1px solid #eef3f8;text-align:center">
+      <a href="/hasta-portal/visit-zip?path={{v.full_path|urlencode}}"
+         style="display:inline-block;background:linear-gradient(135deg,#0d4f8b,#0a8a76);
+                color:#fff;padding:10px 20px;border-radius:10px;text-decoration:none;
+                font-weight:700;font-size:13px;box-shadow:0 3px 8px rgba(0,0,0,0.15)">
+        📦 Bu ziyaretin TÜM dosyalarını ZIP olarak indir
+      </a>
     </div>
     {% endif %}
   </div>
