@@ -4374,8 +4374,15 @@ def pwa_manifest():
 
 @agents_bp.route("/sw.js", methods=["GET"])
 def pwa_sw():
-    return send_file(
+    """Service Worker - no-cache header sart, browser her zaman yeni versiyonu kontrol etsin."""
+    resp = send_file(
         os.path.join(os.path.dirname(os.path.abspath(__file__)),
                      "static", "sw.js"),
         mimetype="application/javascript")
+    # SW dosyasi browser tarafinda CACHE'lenmemeli (Chrome 24 saat ozel kural)
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    resp.headers["Service-Worker-Allowed"] = "/"
+    return resp
 
