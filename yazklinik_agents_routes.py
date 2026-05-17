@@ -2879,6 +2879,45 @@ def _tr_fold(s: str) -> str:
     return s.translate(table)
 
 
+@agents_bp.route("/sw-kill", methods=["GET"])
+def sw_kill_switch():
+    """Eski Service Worker'i tamamen oldur + cache temizle + ana sayfaya yonlendir.
+
+    KULLANIM: Kullanici browser'inda eski SW takildi ise bu URL'i ac.
+    JS unregister + cache clear + 2sn sonra /hasta-portal'a redirect.
+    """
+    return """<!doctype html><html><head><meta charset='utf-8'>
+<title>Service Worker temizleniyor...</title>
+<style>body{font-family:sans-serif;text-align:center;padding:60px;background:#0d4f8b;color:#fff}
+.spin{display:inline-block;width:40px;height:40px;border:4px solid #fff;border-top-color:#ffd166;
+border-radius:50%;animation:s 1s linear infinite}
+@keyframes s{to{transform:rotate(360deg)}}</style></head><body>
+<div class='spin'></div>
+<h2>Eski cache temizleniyor...</h2>
+<p id='msg'>Lutfen bekleyin</p>
+<script>
+(async function(){
+  const msg = document.getElementById('msg');
+  try {
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      msg.textContent = regs.length + ' eski SW siliniyor...';
+      for(const r of regs) await r.unregister();
+    }
+    if('caches' in window){
+      const ks = await caches.keys();
+      msg.textContent = 'Tum cache temizleniyor: ' + ks.length;
+      for(const k of ks) await caches.delete(k);
+    }
+    msg.textContent = '✓ Temizlik tamam. Yonlendiriliyor...';
+    setTimeout(() => location.href = '/hasta-portal?fresh=' + Date.now(), 1500);
+  } catch(e){
+    msg.textContent = 'Hata: ' + e.message + ' - manuel /hasta-portal acin';
+  }
+})();
+</script></body></html>"""
+
+
 @agents_bp.route("/api/agents/portal/search-patients", methods=["GET"])
 def api_portal_search_patients():
     """Hasta arama - diacritic + case insensitive Turkish search.
