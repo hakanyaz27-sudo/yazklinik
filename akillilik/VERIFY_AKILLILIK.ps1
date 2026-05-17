@@ -135,14 +135,32 @@ Test-Item "Poppler pdftoppm binary" {
 }
 Test-Item "Restic CLI" { $null -ne (Get-Command restic -EA SilentlyContinue) }
 Test-Item "Restic repo init" { Test-Path "$projectRoot\backup\restic-repo\config" }
+function _appInstalled([string]$wingetId, [string[]]$exePaths) {
+    if ($wingetId -and (winget list --id $wingetId -e 2>&1 | Select-String $wingetId)) { return $true }
+    foreach ($p in $exePaths) {
+        if (Get-ChildItem -Path $p -EA SilentlyContinue | Select-Object -First 1) { return $true }
+    }
+    return $false
+}
 Test-Item "Obsidian" {
-    (winget list --id Obsidian.Obsidian -e 2>&1 | Select-String "Obsidian") -ne $null
+    _appInstalled "Obsidian.Obsidian" @(
+        "$env:LOCALAPPDATA\Obsidian\Obsidian.exe",
+        "$env:LOCALAPPDATA\Programs\Obsidian\Obsidian.exe",
+        "C:\Program Files\Obsidian\Obsidian.exe")
 }
 Test-Item "Zotero" {
-    (winget list --id Zotero.Zotero -e 2>&1 | Select-String "Zotero") -ne $null
+    _appInstalled "Zotero.Zotero" @(
+        "C:\Program Files\Zotero\zotero.exe",
+        "C:\Program Files (x86)\Zotero\zotero.exe",
+        "$env:LOCALAPPDATA\Zotero\zotero.exe")
 }
 Test-Item "3D Slicer" {
-    (winget list --id Slicer.Slicer -e 2>&1 | Select-String "Slicer") -ne $null
+    _appInstalled "Slicer.Slicer" @(
+        "$env:LOCALAPPDATA\slicer.org\*\Slicer.exe",
+        "C:\ProgramData\slicer.org\Slicer*\Slicer.exe",
+        "C:\Program Files\Slicer*\Slicer.exe",
+        "$env:LOCALAPPDATA\NA-MIC\Slicer*\Slicer.exe",
+        "$env:LOCALAPPDATA\Programs\Slicer*\Slicer.exe")
 }
 
 # Ozet
