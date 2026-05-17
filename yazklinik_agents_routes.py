@@ -3100,14 +3100,13 @@ font-size:13px;margin-bottom:18px;color:#7a5a00}
 
 <div class="section">
   <h2><span class="num">1</span> Yeni Magic-Link Üret</h2>
-  <div style="position:relative;margin-bottom:12px">
-    <input type="search" id="patient-search" placeholder="🔍 Hasta ara (ad, telefon, TC, dosya no)..."
-           autocomplete="off" inputmode="search"
-           style="width:100%;padding:14px 16px;font-size:16px;border:2px solid #1769aa;border-radius:10px;-webkit-appearance:none">
-    <div id="patient-results" style="position:absolute;top:100%;left:0;right:0;background:#fff;
-         border:1px solid #cdd9e3;border-radius:0 0 10px 10px;max-height:320px;overflow-y:auto;
-         display:none;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,0.15);margin-top:-2px"></div>
-  </div>
+  <input type="search" id="patient-search" placeholder="🔍 Hasta ara (ad, telefon, TC, dosya no)..."
+         autocomplete="off" inputmode="search"
+         style="width:100%;padding:14px 16px;font-size:16px;border:2px solid #1769aa;border-radius:10px;-webkit-appearance:none;margin-bottom:8px">
+  <div id="search-status" style="font-size:12px;color:#5e7185;margin-bottom:8px;min-height:14px"></div>
+  <div id="patient-results" style="background:#fff;border:2px solid #cdd9e3;
+       border-radius:10px;max-height:380px;overflow-y:auto;
+       display:none;margin-bottom:12px;box-shadow:0 4px 16px rgba(0,0,0,0.1)"></div>
   <div id="selected-patient" style="display:none;background:#e6f4ea;border:1px solid #16815f;
        border-radius:10px;padding:14px;margin-bottom:12px">
     <b style="color:#16815f">✓ Seçili hasta:</b>
@@ -3164,66 +3163,93 @@ font-size:13px;margin-bottom:18px;color:#7a5a00}
 </div>
 
 <script>
-// --- Hasta arama autocomplete ---
+// --- Hasta arama (D300 v3 - normal flow + status feedback + debug) ---
+console.log('[YK-PORTAL] Hasta arama JS yuklendi');
+
 let searchTimer = null;
 const searchInput = document.getElementById('patient-search');
 const resultsBox = document.getElementById('patient-results');
+const statusBox = document.getElementById('search-status');
 
-searchInput.addEventListener('input', (e) => {
-  const q = e.target.value.trim();
-  if(searchTimer) clearTimeout(searchTimer);
-  if(q.length < 2){
-    resultsBox.style.display = 'none';
-    return;
-  }
-  searchTimer = setTimeout(async () => {
-    try {
-      const r = await fetch('/api/agents/portal/search-patients?q=' + encodeURIComponent(q),
-        {credentials:'same-origin'});
-      const d = await r.json();
-      const items = (d.result || []);
-      if(items.length === 0){
-        resultsBox.innerHTML = '<div style="padding:14px;color:#5e7185">Hasta bulunamadi</div>';
-        resultsBox.style.display = 'block';
-        return;
-      }
-      resultsBox.innerHTML = items.map(p =>
-        '<div class="patient-item" data-key="' + escapeHtml(p.key) +
-        '" data-name="' + escapeHtml(p.name || '') +
-        '" data-phone="' + escapeHtml(p.phone || '') + '" ' +
-        'style="padding:12px 14px;border-bottom:1px solid #eef3f8;cursor:pointer;touch-action:manipulation">' +
-        '<div style="font-weight:700;color:#0d4f8b">' + escapeHtml(p.name || p.key) + '</div>' +
-        '<div style="font-size:12px;color:#5e7185;margin-top:3px">' +
-          (p.phone ? '📱 ' + escapeHtml(p.phone) + ' • ' : '') +
-          '📁 ' + escapeHtml(p.key) +
-          (p.age ? ' • ' + p.age + 'y' : '') +
-        '</div></div>'
-      ).join('');
+if(!searchInput) console.error('[YK-PORTAL] patient-search input bulunamadi!');
+if(!resultsBox) console.error('[YK-PORTAL] patient-results div bulunamadi!');
+
+if(searchInput){
+  searchInput.addEventListener('input', (e) => {
+    const q = e.target.value.trim();
+    console.log('[YK-PORTAL] Input:', q);
+    if(searchTimer) clearTimeout(searchTimer);
+    if(q.length < 2){
+      resultsBox.style.display = 'none';
+      statusBox.textContent = '(2 harf yaz)';
+      return;
+    }
+    statusBox.textContent = 'Araniyor: "' + q + '"...';
+    searchTimer = setTimeout(() => doSearch(q), 250);
+  });
+}
+
+async function doSearch(q){
+  const url = '/api/agents/portal/search-patients?q=' + encodeURIComponent(q);
+  console.log('[YK-PORTAL] Fetch:', url);
+  try {
+    const r = await fetch(url, {credentials:'same-origin'});
+    console.log('[YK-PORTAL] Response status:', r.status);
+    if(r.status === 401){
+      statusBox.textContent = '⚠ Yetki YOK - tekrar login yap';
+      statusBox.style.color = '#b3261e';
+      resultsBox.style.display = 'none';
+      return;
+    }
+    const d = await r.json();
+    console.log('[YK-PORTAL] Response data:', d);
+    const items = (d.result || []);
+    statusBox.style.color = '#5e7185';
+    statusBox.textContent = items.length + ' sonuc bulundu';
+
+    if(items.length === 0){
+      resultsBox.innerHTML = '<div style="padding:18px;text-align:center;color:#5e7185">Hasta bulunamadi: "' + escapeHtml(q) + '"</div>';
       resultsBox.style.display = 'block';
+      return;
+    }
+    resultsBox.innerHTML = items.map(p =>
+      '<div class="patient-item" data-key="' + escapeHtml(p.key || '') +
+      '" data-name="' + escapeHtml(p.name || '') +
+      '" data-phone="' + escapeHtml(p.phone || '') + '" ' +
+      'style="padding:14px 16px;border-bottom:1px solid #eef3f8;cursor:pointer;' +
+      'touch-action:manipulation;transition:background 0.15s">' +
+      '<div style="font-weight:700;color:#0d4f8b;font-size:15px">' +
+        escapeHtml(p.name || p.key || '?') + '</div>' +
+      '<div style="font-size:12px;color:#5e7185;margin-top:4px">' +
+        (p.phone ? '📱 ' + escapeHtml(p.phone) + ' &nbsp;|&nbsp; ' : '') +
+        '📁 ' + escapeHtml((p.key || '').substring(0, 40)) +
+        (p.age ? ' &nbsp;|&nbsp; ' + p.age + ' yas' : '') +
+      '</div></div>'
+    ).join('');
+    resultsBox.style.display = 'block';
+    console.log('[YK-PORTAL] Rendered', items.length, 'items');
 
-      // Click handler
-      resultsBox.querySelectorAll('.patient-item').forEach(el => {
-        el.addEventListener('click', () => selectPatient({
+    // Click + hover handlers
+    resultsBox.querySelectorAll('.patient-item').forEach(el => {
+      el.addEventListener('click', () => {
+        console.log('[YK-PORTAL] Selected:', el.dataset);
+        selectPatient({
           key: el.dataset.key,
           name: el.dataset.name,
           phone: el.dataset.phone
-        }));
-        el.addEventListener('mouseenter', () => el.style.background = '#eff5fb');
-        el.addEventListener('mouseleave', () => el.style.background = '#fff');
+        });
       });
-    } catch(err) {
-      resultsBox.innerHTML = '<div style="padding:14px;color:#b3261e">Arama hatasi: ' + err.message + '</div>';
-      resultsBox.style.display = 'block';
-    }
-  }, 250);
-});
-
-// Disari tiklayinca arama kutusu kapansin
-document.addEventListener('click', (e) => {
-  if(!searchInput.contains(e.target) && !resultsBox.contains(e.target)){
-    resultsBox.style.display = 'none';
+      el.addEventListener('mouseenter', () => el.style.background = '#eff5fb');
+      el.addEventListener('mouseleave', () => el.style.background = '#fff');
+    });
+  } catch(err) {
+    console.error('[YK-PORTAL] Fetch hatasi:', err);
+    statusBox.style.color = '#b3261e';
+    statusBox.textContent = 'Hata: ' + err.message;
+    resultsBox.innerHTML = '<div style="padding:14px;color:#b3261e">Arama hatasi: ' + escapeHtml(err.message) + '</div>';
+    resultsBox.style.display = 'block';
   }
-});
+}
 
 function selectPatient(p){
   document.getElementById('pid').value = p.key;
