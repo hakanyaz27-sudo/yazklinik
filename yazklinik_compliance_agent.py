@@ -62,16 +62,30 @@ def _db_has_table(db_path: str, table: str) -> bool:
 
 
 def _backup_recent(db_path: str, days: int = 2) -> bool:
-    backup_dir = os.path.dirname(db_path)
-    if not os.path.isdir(backup_dir):
-        return False
     cutoff = datetime.now() - timedelta(days=days)
-    for f in os.listdir(backup_dir):
-        if "backup" in f.lower() or f.endswith((".bak", ".backup", ".dump")):
+    candidates = [
+        os.environ.get("YAZKLINIK_BACKUP_ROOT", ""),
+        os.path.join(os.path.dirname(os.path.dirname(db_path)), "auto_backups"),
+        os.path.dirname(db_path),
+    ]
+    seen = set()
+    for backup_dir in candidates:
+        if not backup_dir or backup_dir in seen or not os.path.isdir(backup_dir):
+            continue
+        seen.add(backup_dir)
+        for f in os.listdir(backup_dir):
+            low = f.lower()
+            if not (
+                "backup" in low or "yedek" in low
+                or low.endswith((".bak", ".backup", ".dump", ".sqlite3", ".db"))
+            ):
+                continue
             full = os.path.join(backup_dir, f)
             try:
+                if not os.path.isfile(full):
+                    continue
                 mtime = datetime.fromtimestamp(os.path.getmtime(full))
-                if mtime >= cutoff:
+                if mtime >= cutoff and os.path.getsize(full) > 0:
                     return True
             except Exception:
                 pass
