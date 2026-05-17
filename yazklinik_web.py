@@ -35982,10 +35982,10 @@ background:#ecfdf5;color:#047857;font-size:11px;font-weight:800;
   const VOICE_AGENT_RECORD_SECONDS = 7;
   const ALEX_WAKE_RECORD_SECONDS = 3.5;
   const ALEX_COMMAND_RECORD_SECONDS = 5.5;
-  const ALEX_VAD_RMS = 0.006;
-  const ALEX_VAD_MIN_RECORD_MS = 650;
-  const ALEX_VAD_MIN_SPEECH_MS = 250;
-  const ALEX_VAD_SILENCE_MS = 650;
+  const ALEX_VAD_RMS = 0.008;
+  const ALEX_VAD_MIN_RECORD_MS = 900;
+  const ALEX_VAD_MIN_SPEECH_MS = 400;
+  const ALEX_VAD_SILENCE_MS = 900;
   const ALEX_BARGE_THRESHOLD = 0.018;
   const ALEX_BARGE_MIN_MS = 180;
  const VOICE_AGENT_ROUTE_TIMEOUT_MS = 3500;
@@ -39579,6 +39579,7 @@ function _ykShowAudioUnlockButton(audioToPlay) {
    var userText = '';
    var fullResp = '';
    var metrics = null;
+   var skippedVoiceMessage = '';
    var reader = null;
 
    // D300 SIRI BARGE-IN: audio calarken paralel mic stream + VAD.
@@ -39588,7 +39589,17 @@ function _ykShowAudioUnlockButton(audioToPlay) {
    var bargeTimer = null;
    var bargeActive = false;
 
+   function isAutoBargeEnabled() {
+     try {
+       return window._ykBargeEnabled === true ||
+         localStorage.getItem('ykAlexBargeIn') === '1';
+     } catch(_) {
+       return window._ykBargeEnabled === true;
+     }
+   }
+
    function setupBargeIn() {
+     if (!isAutoBargeEnabled()) return;
      if (bargeStream || bargeActive || stopped) return;
      bargeActive = true;
      console.log('[barge-in] setup baslatildi');
@@ -39739,7 +39750,10 @@ function _ykShowAudioUnlockButton(audioToPlay) {
          else if (window.ykSpeakStop) window.ykSpeakStop();
        } catch(_){}
        var bytes = Uint8Array.from(atob(item.audio_b64), function(c){ return c.charCodeAt(0); });
-       var blob = new Blob([bytes], {type:'audio/wav'});
+       var mime = item.mime || item.content_type ||
+         ((bytes[0] === 82 && bytes[1] === 73 && bytes[2] === 70 && bytes[3] === 70)
+          ? 'audio/wav' : 'audio/mpeg');
+       var blob = new Blob([bytes], {type:mime});
        var url = URL.createObjectURL(blob);
        var a = new Audio(url);
        window._ykActiveVoiceAudio = a;
@@ -39813,17 +39827,33 @@ function _ykShowAudioUnlockButton(audioToPlay) {
            try { data = JSON.parse(dataStr); } catch(_) { continue; }
            if (eName === 'stt') {
              userText = data.text;
+             if (data && data.skipped) {
+               skippedVoiceMessage = 'Doktorum, sizi net duyamadim. Bir kez daha soyler misiniz?';
+             }
              try {
                if (typeof setStatus === 'function') setStatus('Anladim: ' + userText);
                var inp = document.getElementById('voiceInput') || document.getElementById('ykPhoneChatInput');
                if (inp) inp.value = userText;
              } catch(_){}
            } else if (eName === 'chunk') {
-             audioQueue.push(data);
-             fullResp += (fullResp ? ' ' : '') + data.text;
-             if (!playing) playNext();
+             if (data && data.text) {
+               fullResp += (fullResp ? ' ' : '') + data.text;
+               try { if (typeof setStatus === 'function') setStatus(data.text); } catch(_){}
+             }
+             if (data && data.audio_b64) {
+               audioQueue.push(data);
+               if (!playing) playNext();
+             } else if (data && data.text && window.ykSpeak) {
+               try { window.ykSpeak(data.text, {force:true, requireGesture:false}); } catch(_){}
+             }
            } else if (eName === 'done') {
              metrics = data;
+             if (data && data.full && !fullResp) fullResp = data.full;
+             if (data && data.skipped && !fullResp) fullResp = skippedVoiceMessage;
+             if (data && data.skipped && fullResp && !playing && audioQueue.length === 0 && window.ykSpeak) {
+               try { window.ykSpeak(fullResp, {force:true, requireGesture:false}); } catch(_){}
+               try { if (typeof setStatus === 'function') setStatus(fullResp); } catch(_){}
+             }
              console.log('[voice-turn] OK', data);
            } else if (eName === 'error') {
              console.warn('[voice-turn] error:', data);
@@ -39866,13 +39896,25 @@ function _ykShowAudioUnlockButton(audioToPlay) {
    var playing = false;
    var stopped = false;
    var reader = null;
+   var fullResp = '';
+   var skippedVoiceMessage = '';
 
    var bargeStream = null;
    var bargeCtx = null;
    var bargeTimer = null;
    var bargeActive = false;
 
+   function isAutoBargeEnabled() {
+     try {
+       return window._ykBargeEnabled === true ||
+         localStorage.getItem('ykAlexBargeIn') === '1';
+     } catch(_) {
+       return window._ykBargeEnabled === true;
+     }
+   }
+
    function setupBargeIn() {
+     if (!isAutoBargeEnabled()) return;
      if (bargeStream || bargeActive || stopped) return;
      bargeActive = true;
      navigator.mediaDevices.getUserMedia({audio:{echoCancellation:{exact:true}, noiseSuppression:{exact:true}, autoGainControl:{ideal:false}, channelCount:{ideal:1}}}).then(function(s){
@@ -39944,7 +39986,10 @@ function _ykShowAudioUnlockButton(audioToPlay) {
          else if (window.ykSpeakStop) window.ykSpeakStop();
        } catch(_){}
        var bytes = Uint8Array.from(atob(item.audio_b64), function(c){return c.charCodeAt(0);});
-       var blob = new Blob([bytes], {type:'audio/wav'});
+       var mime = item.mime || item.content_type ||
+         ((bytes[0] === 82 && bytes[1] === 73 && bytes[2] === 70 && bytes[3] === 70)
+          ? 'audio/wav' : 'audio/mpeg');
+       var blob = new Blob([bytes], {type:mime});
        var url = URL.createObjectURL(blob);
        var a = new Audio(url);
        window._ykActiveVoiceAudio = a;
@@ -39995,8 +40040,33 @@ function _ykShowAudioUnlockButton(audioToPlay) {
            if (!dataStr) continue;
            var data;
            try { data = JSON.parse(dataStr); } catch(_) { continue; }
-           if (eName === 'chunk') { audioQueue.push(data); if (!playing) playNext(); }
-           else if (eName === 'done') console.log('[voice-turn-text] OK', data);
+           if (eName === 'stt') {
+             if (data && data.skipped) {
+               skippedVoiceMessage = 'Doktorum, sizi net duyamadim. Bir kez daha soyler misiniz?';
+               try { if (typeof setStatus === 'function') setStatus(skippedVoiceMessage); } catch(_){}
+             }
+           }
+           else if (eName === 'chunk') {
+             if (data && data.text) {
+               fullResp += (fullResp ? ' ' : '') + data.text;
+               try { if (typeof setStatus === 'function') setStatus(data.text); } catch(_){}
+             }
+             if (data && data.audio_b64) {
+               audioQueue.push(data);
+               if (!playing) playNext();
+             } else if (data && data.text && window.ykSpeak) {
+               try { window.ykSpeak(data.text, {force:true, requireGesture:false}); } catch(_){}
+             }
+           }
+           else if (eName === 'done') {
+             if (data && data.full && !fullResp) fullResp = data.full;
+             if (data && data.skipped && !fullResp) fullResp = skippedVoiceMessage;
+             if (data && data.skipped && fullResp && !playing && audioQueue.length === 0 && window.ykSpeak) {
+               try { window.ykSpeak(fullResp, {force:true, requireGesture:false}); } catch(_){}
+               try { if (typeof setStatus === 'function') setStatus(fullResp); } catch(_){}
+             }
+             console.log('[voice-turn-text] OK', data);
+           }
            else if (eName === 'error') console.warn('[voice-turn-text] err:', data);
          }
          return pump();
@@ -41727,7 +41797,7 @@ def render(content, title=None):
         if html and isinstance(html, str) and "yk-medical-theme-css" not in html:
             inject = (
                 '<link rel="stylesheet" '
-                'href="/static/yk-medical-theme.css?v=d300-medical-2026-05-17-ui2" '
+                'href="/static/yk-medical-theme.css?v=d300-medical-2026-05-17-ui3" '
                 'id="yk-medical-theme-css">'
             )
             if "</head>" in html:
@@ -41843,8 +41913,8 @@ def render(content, title=None):
                 html = html + smart_search_html
     except Exception:
         pass
-    # D300: Barge-in - TUM sayfalarda aktif (Alex her yerde konusabilir).
-    # Mikrofon sadece TTS audio play olunca acilir (gizlilik korunur).
+    # D300: Barge-in varsayilan kapali. Manuel "Alex'i kes" butonu kalir.
+    # Otomatik kesme sadece localStorage ykAlexBargeIn=1 ise acilir.
     try:
         if html and isinstance(html, str) and "yk-bargein-monitor" not in html:
             bargein_html = """
@@ -41857,6 +41927,14 @@ def render(content, title=None):
   var consecutive = 0;
   var THRESHOLD = 0.045;
   var MIN_CONSECUTIVE = 5;
+  function ykBargeAllowed() {
+    try {
+      return window._ykBargeEnabled === true ||
+        localStorage.getItem('ykAlexBargeIn') === '1';
+    } catch(e) {
+      return window._ykBargeEnabled === true;
+    }
+  }
   function stopTtsAudio() {
     try { if (window._ykStopNaturalAudio) window._ykStopNaturalAudio(); } catch(e){}
     try { if (window._ykSpeakAudio) { try{window._ykSpeakAudio.pause();}catch(e){} try{window._ykSpeakAudio.currentTime=0;}catch(e){} } } catch(e){}
@@ -41870,6 +41948,7 @@ def render(content, title=None):
     return false;
   }
   async function start() {
+    if (!ykBargeAllowed()) return;
     if (monitoring) return;
     if (!navigator.mediaDevices || !window.AudioContext) return;
     try {
@@ -41901,6 +41980,7 @@ def render(content, title=None):
   }
   // Sadece TTS ilk caldiginda baslat (sayfa acilir acilmaz degil)
   document.addEventListener('play', function(e){
+    if (!ykBargeAllowed()) return;
     if (!monitoring && e.target && e.target.tagName === 'AUDIO') start();
   }, true);
 })();
@@ -49777,7 +49857,7 @@ def _ai_phone_settings():
             "canlÄ± destek,doktorla gorus,doktorla gÃ¶rÃ¼ÅŸ,beni arayin,beni arayÄ±n,"
             "geri arayin,geri arayÄ±n,bagla,baÄŸla,insana bagla,insana baÄŸla"),
         "ai_phone_webhook_secret": "yazklinik-phone-2026",
-        "ai_phone_voice_profile": "tr_lokal_piper",
+        "ai_phone_voice_profile": "tr_premium_kadin",
         "ai_phone_work_hours": "09:00-18:00",
         "ai_phone_voice_auto_speak": "1",
         "ai_phone_voice_auto_listen": "0",
@@ -49861,9 +49941,10 @@ def _ai_phone_tts_profile_key(profile=None):
             return key
     if "ahmet" in folded or "erkek" in folded:
         return "tr_premium_erkek"
-    if "piper" in folded or "dfki" in folded or "aksansiz" in folded:
+    if "piper" in folded or "dfki" in folded:
         return "tr_lokal_piper"
-    if "emel" in folded or "kadin" in folded or "dogal" in folded:
+    if ("emel" in folded or "kadin" in folded or "dogal" in folded
+            or "aksansiz" in folded or "turkce net" in folded):
         return "tr_premium_kadin"
     # Default: en dogal Edge Neural Emel
     return "tr_premium_kadin"
@@ -51984,6 +52065,9 @@ def _alex_is_meaningful_input(text):
         # Yanit
         "evet", "hayir", "hayır", "yok", "var", "tamam", "olur",
         "peki", "iyi", "tabii", "tabi",
+        # Dogal konusma baslatma / Alex uyandirma
+        "merhaba", "selam", "alex", "aleks", "aleksa", "dinle",
+        "konus", "konuÅŸ", "basla", "baÅŸla",
         # Komut (Alex'i durdur/devam)
         "dur", "sus", "bekle", "devam", "tamamla", "iptal",
         "tekrar", "tekrarla", "sil", "kaydet", "kapat", "ac",
@@ -52005,6 +52089,99 @@ def _alex_is_meaningful_input(text):
     if len(words) <= 2 and any(w in WHISPER_LONE for w in words):
         return False, f"whisper takvim halusinasyon: {' '.join(words)}"
     return True, "ok"
+
+
+def _alex_voice_skip_reply(reason=""):
+    return "Doktorum, sizi net duyamadim. Bir kez daha soyler misiniz?"
+
+
+def _ai_phone_make_voice_chunk_audio(text, tts_engine=None, profile_key=None,
+                                     voice=None, voice_info=None):
+    """Return (audio_bytes, mime, engine) for SSE voice chunks.
+
+    Edge profiles must stay Edge-first; otherwise Alex can sound like the
+    older local backup voice even when the premium Turkish voice is selected.
+    """
+    audio = None
+    mime = "audio/wav"
+    engine_used = ""
+    try:
+        profile_key = _ai_phone_tts_profile_key(profile_key)
+    except Exception:
+        profile_key = "tr_premium_kadin"
+    try:
+        voice_info = voice_info or AI_PHONE_TTS_VOICES.get(profile_key) or {}
+    except Exception:
+        voice_info = {}
+    engine = str(tts_engine or voice_info.get("engine") or "edge").lower()
+    edge_voice = str(voice_info.get("voice") or "tr-TR-EmelNeural")
+    profile_rate = voice_info.get("rate") or "0.94"
+    profile_pitch = voice_info.get("pitch") or "+0Hz"
+    profile_volume = voice_info.get("volume") or "+0%"
+    xtts_voice = (str(voice or "").lower()
+                  if str(voice or "").lower() in ("emel", "ahmet")
+                  else _ai_phone_xtts_voice_from_profile(profile_key, edge_voice))
+    if engine == "piper":
+        try:
+            audio = _ai_phone_piper_tts_bytes(text)
+        except Exception:
+            audio = None
+        if audio:
+            return audio, "audio/wav", "piper"
+    if engine == "edge":
+        try:
+            rate_percent = _ai_phone_tts_rate_percent(profile_rate)
+            audio = _ai_phone_edge_tts_bytes(
+                text, edge_voice, rate_percent,
+                pitch=profile_pitch, volume=profile_volume)
+        except Exception:
+            audio = None
+        if audio:
+            return audio, "audio/mpeg", f"edge_tts:{edge_voice}"
+    try:
+        audio = _ai_phone_xtts_tts_bytes(text, voice=xtts_voice)
+    except Exception:
+        audio = None
+    if audio:
+        return audio, "audio/wav", f"xtts_v2:{xtts_voice}"
+    try:
+        audio = _ai_phone_piper_tts_bytes(text)
+    except Exception:
+        audio = None
+    if audio:
+        return audio, "audio/wav", "piper"
+    return None, mime, engine_used
+
+
+def _alex_voice_skip_sse_events(user_text, reason, stt_ms=0):
+    import base64 as _b64
+    import json as _json
+    reply = _alex_voice_skip_reply(reason)
+    yield ("event: stt\ndata: " +
+           _json.dumps({"text": user_text, "ms": int(stt_ms or 0),
+                        "skipped": True, "reason": reason}) + "\n\n")
+    audio = None
+    mime = "audio/wav"
+    engine = ""
+    try:
+        audio, mime, engine = _ai_phone_make_voice_chunk_audio(reply)
+    except Exception:
+        audio = None
+    if audio:
+        yield ("event: chunk\ndata: " + _json.dumps({
+            "idx": 1,
+            "text": reply,
+            "audio_b64": _b64.b64encode(audio).decode("ascii"),
+            "mime": mime,
+            "engine": engine,
+            "tts_ms": 0,
+            "skipped": True,
+        }) + "\n\n")
+    yield ("event: done\ndata: " +
+           _json.dumps({"skipped": True, "reason": reason,
+                        "full": reply, "sentences": 1 if audio else 0,
+                        "stt_ms": int(stt_ms or 0),
+                        "total_ms": int(stt_ms or 0)}) + "\n\n")
 
 
 def _alex_detect_stop_intent(text):
@@ -58611,7 +58788,10 @@ def alex_arastirma_page():
                 const bin = atob(data.audio_b64);
                 const arr = new Uint8Array(bin.length);
                 for (let i=0; i<bin.length; i++) arr[i] = bin.charCodeAt(i);
-                ykResAudioQueue.push(new Blob([arr], {{type:'audio/wav'}}));
+                const mt = data.mime || data.content_type ||
+                  ((arr[0] === 82 && arr[1] === 73 && arr[2] === 70 && arr[3] === 70)
+                   ? 'audio/wav' : 'audio/mpeg');
+                ykResAudioQueue.push(new Blob([arr], {{type:mt}}));
                 ykResPlayNextAudio();
               }}
             }} else if (eName === 'done') {{
@@ -58721,16 +58901,10 @@ def api_phone_voice_turn_text():
                   flush=True)
         except Exception:
             pass
-        from flask import Response
-        import json as _json
-        def _skip_stream():
-            yield ("event: stt\ndata: " +
-                   _json.dumps({"text": user_text, "ms": 0,
-                                "skipped": True, "reason": mreason}) + "\n\n")
-            yield ("event: done\ndata: " +
-                   _json.dumps({"skipped": True, "reason": mreason,
-                                "total_ms": 0}) + "\n\n")
-        return Response(_skip_stream(), mimetype="text/event-stream")
+        return Response(
+            stream_with_context(
+                _alex_voice_skip_sse_events(user_text, mreason, 0)),
+            mimetype="text/event-stream")
 
     voice_param = (data.get("voice") or "").strip().lower()
     profile_param = data.get("profile") or ""
@@ -58781,13 +58955,13 @@ def api_phone_voice_turn_text():
             quick_reply = ""
         if quick_reply:
             audio = None
+            mime = "audio/wav"
+            engine_used = ""
             try:
-                if tts_engine == "piper":
-                    audio = _ai_phone_piper_tts_bytes(quick_reply)
-                else:
-                    audio = _ai_phone_xtts_tts_bytes(quick_reply, voice=voice)
-                if not audio:
-                    audio = _ai_phone_piper_tts_bytes(quick_reply)
+                audio, mime, engine_used = _ai_phone_make_voice_chunk_audio(
+                    quick_reply, tts_engine=tts_engine,
+                    profile_key=profile_key, voice=voice,
+                    voice_info=voice_info)
             except Exception:
                 audio = None
             if audio:
@@ -58795,6 +58969,8 @@ def api_phone_voice_turn_text():
                     "idx": 1,
                     "text": quick_reply,
                     "audio_b64": _b64.b64encode(audio).decode("ascii"),
+                    "mime": mime,
+                    "engine": engine_used,
                     "tts_ms": 0,
                 }) + "\n\n")
             yield ("event: done\ndata: " + _json.dumps({
@@ -59213,13 +59389,13 @@ def api_phone_voice_turn_text():
 
             def _produce(idx, sentence, holder, evt):
                 try:
-                    if tts_engine == "piper":
-                        holder["audio"] = _ai_phone_piper_tts_bytes(sentence)
-                    else:
-                        holder["audio"] = _ai_phone_xtts_tts_bytes(
-                            sentence, voice=voice)
-                    if not holder.get("audio"):
-                        holder["audio"] = _ai_phone_piper_tts_bytes(sentence)
+                    audio, mime, engine_used = _ai_phone_make_voice_chunk_audio(
+                        sentence, tts_engine=tts_engine,
+                        profile_key=profile_key, voice=voice,
+                        voice_info=voice_info)
+                    holder["audio"] = audio
+                    holder["mime"] = mime
+                    holder["engine"] = engine_used
                     holder["t_done"] = _t.time()
                 except Exception as exc:
                     holder["audio"] = None
@@ -59251,6 +59427,8 @@ def api_phone_voice_turn_text():
                             "idx": holder["idx"],
                             "text": holder["text"],
                             "audio_b64": _b64.b64encode(holder["audio"]).decode("ascii"),
+                            "mime": holder.get("mime") or "audio/wav",
+                            "engine": holder.get("engine") or "",
                             "tts_ms": tts_ms,
                         }) + "\n\n")
                     audio_futures.pop(next_yield_idx, None)
@@ -59457,13 +59635,8 @@ def api_phone_voice_turn():
                       f"text={user_text!r}", flush=True)
             except Exception:
                 pass
-            yield ("event: stt\ndata: " +
-                   _json.dumps({"text": user_text, "ms": stt_ms,
-                                "skipped": True,
-                                "reason": _mreason}) + "\n\n")
-            yield ("event: done\ndata: " +
-                   _json.dumps({"skipped": True, "reason": _mreason,
-                                "stt_ms": stt_ms, "total_ms": stt_ms}) + "\n\n")
+            yield from _alex_voice_skip_sse_events(
+                user_text, _mreason, stt_ms)
             return
         yield ("event: stt\ndata: " +
                _json.dumps({"text": user_text, "ms": stt_ms}) + "\n\n")
@@ -59777,13 +59950,13 @@ def api_phone_voice_turn():
 
             def _produce_tts(idx, sentence, holder, evt):
                 try:
-                    if tts_engine == "piper":
-                        holder["audio"] = _ai_phone_piper_tts_bytes(sentence)
-                    else:
-                        holder["audio"] = _ai_phone_xtts_tts_bytes(
-                            sentence, voice=voice)
-                    if not holder.get("audio"):
-                        holder["audio"] = _ai_phone_piper_tts_bytes(sentence)
+                    audio, mime, engine_used = _ai_phone_make_voice_chunk_audio(
+                        sentence, tts_engine=tts_engine,
+                        profile_key=profile_key, voice=voice,
+                        voice_info=voice_info)
+                    holder["audio"] = audio
+                    holder["mime"] = mime
+                    holder["engine"] = engine_used
                     holder["t_done"] = _t.time()
                 except Exception as exc:
                     holder["audio"] = None
@@ -59819,6 +59992,8 @@ def api_phone_voice_turn():
                             "idx": holder["idx"],
                             "text": holder["text"],
                             "audio_b64": _b64.b64encode(holder["audio"]).decode("ascii"),
+                            "mime": holder.get("mime") or "audio/wav",
+                            "engine": holder.get("engine") or "",
                             "tts_ms": tts_ms,
                         }) + "\n\n")
                     audio_futures.pop(next_yield_idx, None)
@@ -63311,147 +63486,45 @@ def _smart_dialog_voice_fast_system_prompt(active_patient_summary: str = "") -> 
 
 
 def _smart_dialog_live_companion_reply(message, client_context=None):
+    """D300 2026-05-17: LLM-FIRST yaklasimi.
+
+    Eski sema: ~150 satir hard-coded canned cevap LLM'i bypass ediyordu.
+    Sorun: Doktor 'naber/iyimisin/nasilsin' deyince Alex hep ayni mekanik
+    cevabi veriyor du - 'spastik/geri zekali' algisi.
+
+    Yeni sema:
+      1. Sadece 'alex' uyandirma kelimesi -> hizli 'evet doktor' (latency)
+      2. Sus komutu -> sessizlik
+      3. Klinik formul referans (Naegele/hCG/AMH/OGTT) -> hizli lookup
+      4. Diger HER SEY -> "" (LLM Ollama qwen2.5:32b dogal cevap verir)
+    """
     folded = _fold_search_text(message)
     if not folded:
         return ""
     context = client_context if isinstance(client_context, dict) else {}
     alex_mode = bool(context.get("alex_mode") or context.get("voice"))
-    tokens = folded.split()
+
+    # 1) Uyandirma - tek "alex" / "hey alex" / "merhaba alex" -> kisa "evet"
     if re.fullmatch(
-            r"(alex|aleks|aleksa|alex merhaba|aleks merhaba|aleksa merhaba|hey alex|merhaba alex|selam alex)",
+            r"(alex|aleks|aleksa|alex merhaba|aleks merhaba|aleksa merhaba|"
+            r"hey alex|merhaba alex|selam alex)",
             folded):
-        return "Buradayim doktorum, sesini aliyorum. Ne yapalim?"
-    if any(k in folded for k in (
-            "beni duyuyor musun", "sesimi aliyor musun", "oradasin",
-            "oradamisin", "burada misin", "hazir misin",
-            "sistem test", "alex test", "test cevap", "calisiyor musun",
-            "calisiyor mu", "alex calisiyor")):
-        return "Sistem hazir doktorum. Ses, komut ve sohbet hattindayim."
-    if any(k in folded for k in (
-            "kisa ve sakin", "sakin bir cevap", "kisa cevap ver",
-            "sakin cevap ver")):
-        return (
-            "Buradayim doktorum. Kisa ve sakin gidelim; ne lazimsa adim adim "
-            "toparlayalim."
-        )
-    if any(k in folded for k in (
-            "motivasyon", "motive et", "moral ver", "cesaret ver",
-            "gaza getir", "bugun motive", "kisa moral")):
-        return (
-            "Doktorum, bugun tek hedef secip ilk adimi atalim. Ben buradayim; "
-            "hasta, not veya ekran isini soyle, hizlica toparlayalim."
-        )
-    if any(k in folded for k in (
-            "isleri nasil daha hizli", "isleri hizli toparla",
-            "is akisini hizlandir", "daha hizli toparlarim")):
-        return (
-            "Once acil isi secip digerlerini siraya alalim doktorum. "
-            "Hasta, not veya recete isini soyle; ben ekrani ve metni hizlica "
-            "toparlarim."
-        )
+        return "Evet doktorum, buyrun."
+
+    # 2) Sus / sessizlik komutu - LLM'e gitmesin
+    if re.search(r"\b(sus|sessiz ol|kapa ceneni|kapan|sustur)\b", folded):
+        return "Sustum doktorum."
+
+    # 3) Aksiyon komutlari - voice_command'a bagla, LLM'i atla
     if _smart_dialog_is_action_request(message):
         return ""
 
-    if re.fullmatch(r"(alex|aleks|aleksa|hey alex|merhaba alex|selam alex)", folded):
-        return "Buradayım doktorum, sesini alıyorum. Ne yapalım?"
-    if any(k in folded for k in (
-            "beni duyuyor musun", "sesimi aliyor musun", "oradasin",
-            "oradamisin", "burada misin", "hazir misin")):
-        return "Buradayım doktorum, seni duyuyorum. Söyle, beraber toparlayalım."
-    if any(k in folded for k in (
-            "sistem test", "alex test", "test cevap", "calisiyor musun",
-            "calisiyor mu", "alex calisiyor")):
-        return "Sistem hazir doktorum. Ses, komut ve sohbet hattindayim."
-    if any(k in folded for k in (
-            "nasilsin", "naber", "iyi misin", "keyfin nasil")):
-        return "İyiyim doktorum, buradayım. Bugün işi hızlı ve sakin götürelim."
-    if any(k in folded for k in (
-            "arkadas gibi", "canli arkadas", "benimle konus", "muhabbet",
-            "iliski kur", "daha dogal ol", "robot gibi olma")):
-        return (
-            "Tamam doktorum. Daha canlı, daha doğal ve daha kısa cevap vereceğim; "
-            "komut verdiğinde de bekletmeden uygulayacağım."
-        )
-    if any(k in folded for k in (
-            "yoruldum", "bunaldim", "canim sikildi", "kafam dolu",
-            "cok yogunum", "moralim bozuk")):
-        return (
-            "Anladım doktorum, biraz ağır gelmiş. Ben buradayım; işleri tek tek "
-            "sade şekilde götürelim."
-        )
-    if any(k in folded for k in (
-            "tesekkur", "sagol", "eline saglik", "cok iyi oldu")):
-        return "Her zaman doktorum. Buradayım, sıradaki işi söyle yeter."
-    if alex_mode and len(tokens) <= 4 and any(k in folded for k in (
-            "tamam", "peki", "hmm", "evet", "hayir", "olur")):
-        return "Tamam doktorum, buradayım. Devam edelim."
-    # D120: takip + iptal + tekrar et + devam et + bekle
-    if any(k in folded for k in (
-            "iptal et", "vazgec", "geri al", "yapma", "yeni", "yenile",
-            "tekrar dene", "tekrardan", "baska bir sey")):
-        return ""  # AI'a birak, gecmise gore karar versin
-    if any(k in folded for k in ("bekle", "dur biraz", "bir saniye", "bir dakika")):
-        return "Tamam doktorum, bekliyorum. Hazır olduğunda söyle."
-    if any(k in folded for k in ("devam et", "devam ediyorum", "evet devam")):
-        return ""  # AI'a birak, son aksiyona gore devam etsin
-    if any(k in folded for k in ("anlamadim", "tekrar soyle", "ne dedin")):
-        return "Pardon doktorum, daha sade tekrar söyleyebilir misin? Komut mu, sohbet mi?"
-    # D120 voice perf: sik kullanilan kisa kaliplar LLM'e gitmeden cevaplansin
-    if any(k in folded for k in (
-            "gunaydin", "gun aydin", "iyi sabahlar")):
-        return "Günaydın doktorum, hayırlı işler. Buradayım."
-    if any(k in folded for k in (
-            "iyi gunler", "selamunaleykum", "selam aleykum", "selam")):
-        return "Selam doktorum, sesini alıyorum. Komut veya sohbet, sana kalmış."
-    if any(k in folded for k in (
-            "iyi geceler", "iyi aksamlar", "kolay gelsin")):
-        return "İyi akşamlar doktorum. Buradayım, sen söyle."
-    if any(k in folded for k in (
-            "saat kac", "su an saat", "saat kacta")):
-        try:
-            now_h = datetime.now().strftime("%H:%M")
-            return f"Saat su an {now_h} doktorum."
-        except Exception:
-            pass
-    if any(k in folded for k in (
-            "dinle", "dinliyorum", "dinler misin")):
-        return "Dinliyorum doktorum, soyle."
-    if alex_mode and len(tokens) <= 3 and any(
-            re.search(r"\b" + re.escape(k) + r"\b", folded)
-            for k in ("ok", "tamamdir", "anlasildi", "kabul")):
-        return "Tamam doktorum, anlasildi."
-    # D121 klinik OB/GYN fast-path: kisa, klinik kaliplar (LLM bypass)
-    if alex_mode and len(tokens) <= 4 and any(k in folded for k in (
-            "yorgunum", "cok yoruldum", "bittim ben", "nefes alamiyorum")):
-        return "Anladim doktorum. Bir kahve, kisa bir nefes; ben buradayim, ne dersen yapariz."
-    if any(k in folded for k in (
-            "kim sensin", "sen kimsin", "adin ne", "adiniz ne")):
-        return (
-            "Ben Alex doktorum. YazKlinik icinde senin yaninda calisan klinik asistanim. "
-            "Hasta dosyalari, USG, recete, tahlil, randevu — sen soyle yapariz."
-        )
-    if any(k in folded for k in (
-            "neler yapabilirsin", "ne yapabiliyorsun", "yeteneklerin",
-            "ne yapabilirsin", "elinden ne gelir")):
-        return (
-            "Hasta dosyasi acabilir, recete/tetkik hazirlatabilir, USG ekrani veya "
-            "anomali tarama acabilirim; randevu ve gun planini gosterebilirim. "
-            "Ne istersen soyle, hemen acayim."
-        )
-    if any(k in folded for k in (
-            "yardim", "yardim eder misin", "yardimin lazim")):
-        return "Tabii doktorum, soyle hemen. Hasta mi, recete mi, baska bir ekran mi?"
-    if alex_mode and any(k in folded for k in (
-            "tekrar et", "tekrar soyle", "ne dedin", "anlamadim")):
-        return "Pardon doktorum, sade tekrar soyleyebilir misin? Hangi hasta veya hangi ekran?"
-    if any(
-            re.search(r"\b" + re.escape(k) + r"\b", folded)
-            for k in ("sus", "sessiz ol", "kapa ceneni", "kapan ses")):
-        return "Sustum doktorum, hazir oldugunda sesle baslat tekrar."
-    # D121 klinik bilgi tabani — sik sorulan klinik formuller (LLM bypass)
+    # 4) Klinik formul/referans - hizli lookup (Naegele, hCG, AMH, OGTT vs)
     klinik_quick = _smart_dialog_clinical_quickref(folded)
     if klinik_quick:
         return klinik_quick
+
+    # 5) Her sey LLM'e (Ollama qwen2.5:32b veya yaz:latest) -> dogal cevap
     return ""
 
 
