@@ -90,6 +90,18 @@ _CLIENT = None
 _COLLECTION = None
 _LOCK = threading.Lock()
 
+# D300 2026-05-17: Hibrit arama (vektor + BM25) icin tokenizer
+import re as _re_hybrid
+_TR_STOP = {"ve","ile","bir","bu","da","de","icin","ki","mi","mu","ne","ya","ama","veya","ise"}
+
+def _hybrid_tokens(text):
+    """BM25 icin basit Turkce tokenizer."""
+    text = (text or "").lower()
+    text = text.replace("ı","i").replace("İ","i").replace("ş","s").replace("ğ","g")\
+               .replace("ü","u").replace("ö","o").replace("ç","c")
+    tokens = _re_hybrid.findall(r"[a-z0-9]+", text)
+    return [t for t in tokens if len(t) >= 3 and t not in _TR_STOP]
+
 
 # ============================================================================
 # LAZY INIT
@@ -302,8 +314,64 @@ def delete_document(doc_id):
         return False
 
 
+def _bm25_score(query_tokens, doc_tokens, avg_doc_len=50, k1=1.5, b=0.75):
+    """Hizli BM25 skor (kucuk N icin yeterli, full corpus statistik istemez)."""
+    if not query_tokens or not doc_tokens:
+        return 0.0
+    doc_len = len(doc_tokens)
+    doc_freq = {}
+    for t in doc_tokens:
+        doc_freq[t] = doc_freq.get(t, 0) + 1
+    score = 0.0
+    for qt in query_tokens:
+        tf = doc_freq.get(qt, 0)
+        if tf == 0:
+            continue
+        norm = tf * (k1 + 1) / (tf + k1 * (1 - b + b * doc_len / avg_doc_len))
+        score += norm
+    return score
+
+
+def hybrid_rerank(query, results, alpha=0.6):
+    """Vektor skoru + BM25 skoru karistir (alpha=0.6 vektor, 0.4 BM25).
+    Reranker'siz hizli hibrit cikti.
+    """
+    if not results:
+        return results
+    q_tokens = _hybrid_tokens(query)
+    if not q_tokens:
+        return results
+    # BM25 skorlari
+    bm25_scores = []
+    doc_lens = []
+    for r in results:
+        dt = _hybrid_tokens(r.get("text",""))
+        doc_lens.append(len(dt))
+        bm25_scores.append(_bm25_score(q_tokens, dt))
+    avg_len = max(1, sum(doc_lens)/max(1, len(doc_lens)))
+    # Re-normalize BM25 (max bazli)
+    if bm25_scores and max(bm25_scores) > 0:
+        max_bm = max(bm25_scores)
+        bm25_norm = [s/max_bm for s in bm25_scores]
+    else:
+        bm25_norm = [0.0] * len(results)
+    # Karistir
+    out = []
+    for r, bm in zip(results, bm25_norm):
+        vec_score = float(r.get("score", 0))
+        hybrid = alpha * vec_score + (1 - alpha) * bm
+        item = dict(r)
+        item["bm25_score"] = round(bm, 3)
+        item["vector_score"] = round(vec_score, 3)
+        item["score"] = round(hybrid, 4)
+        item["hybrid"] = True
+        out.append(item)
+    return sorted(out, key=lambda x: x["score"], reverse=True)
+
+
 def search(query, top_k=TOP_K, threshold=RELEVANCE_THRESHOLD,
-           kind_filter=None, use_reranker=None, fetch_k=None):
+           kind_filter=None, use_reranker=None, fetch_k=None,
+           hybrid=False):
     """Sorguya en yakın belgeleri bul (2-asamali: retrieve + opsiyonel rerank).
 
     Args:
@@ -369,8 +437,18 @@ def search(query, top_k=TOP_K, threshold=RELEVANCE_THRESHOLD,
                 out = out[:int(top_k)]
         else:
             out = out[:int(top_k)]
+    elif hybrid:
+        # Reranker yerine BM25 hibrit (daha hizli, transformers gerek yok)
+        out = hybrid_rerank(query, out)[:int(top_k)]
     else:
         out = out[:int(top_k)]
+
+    # D300 2026-05-17: Citation - her sonuca cite key + source kind
+    for r in out:
+        meta = r.get("metadata") or {}
+        r["cite_key"] = r.get("id", "")
+        r["cite_kind"] = meta.get("kind", "doc")
+        r["cite_source"] = meta.get("source") or meta.get("patient_name") or meta.get("query") or ""
 
     return out
 

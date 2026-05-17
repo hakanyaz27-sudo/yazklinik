@@ -33,7 +33,16 @@ CODEX_D300_QUICK_CHECK_OK
 
 ## Son degisiklikler
 
-- **2026-05-17:** **Akillilik Paketi** - AI omurgasi yukseltildi. Detayli handoff: **`CODEX_HANDOFF_2026-05-17_SESSION4.md`**.
+- **2026-05-17 (Session 5):** 18 madde tek seans. Detay: **`CODEX_HANDOFF_2026-05-17_SESSION5.md`**.
+    - RAG hibrit (vektor + BM25) + citation tracking
+    - Konsultasyon -> RAG (gecmis vakalar + PubMed inject)
+    - PubMed ceviri otomatik RAG'a yazar; Voluson import RAG'a re-index
+    - Yeni sayfa: `/hasta/<key>/usg-rapor-taslak` (canli Hadlock + hasta dosyasina ekle)
+    - SIP cagri -> sesli_onay otomatik state degisir
+    - 3 cron job (Restic daily, WhatsApp reminders, NAS health 6h) + INSTALL_CRON_TASKS.ps1
+    - GitHub Actions PR reviewer + Cloudflare Tunnel rehberi
+    - Mautic Docker, MedSAM/Axolotl stub, Twilio iskelet
+- **2026-05-17 (Session 4):** **Akillilik Paketi** - AI omurgasi yukseltildi. Detayli handoff: **`CODEX_HANDOFF_2026-05-17_SESSION4.md`**.
     - RAG: `BAAI/bge-m3` + `BAAI/bge-reranker-v2-m3` (2-asama retrieve+rerank, eski mpnet'ten 2x dogru)
     - Konsultasyon: `meditron:70b` (Stanford tibbi LLM) klinik adimlarda otomatik secilir
     - Arayuz: htmx + Alpine.js + Chart.js CDN inject (mevcut sayfalar etkilenmiyor)

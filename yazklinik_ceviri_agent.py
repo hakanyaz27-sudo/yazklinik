@@ -549,9 +549,41 @@ def summarize_smart(text: str, prefer: str = "ollama",
     )
 
 
+def _auto_index_to_rag(article: PubMedArticle, tr_summary: str = "") -> bool:
+    """D300 2026-05-17: Cevirilen makaleyi otomatik RAG'a ekle.
+    Sessiz sessiz; RAG yoksa False doner."""
+    try:
+        import yazklinik_rag as _rag
+        title = article.title or f"PubMed {article.pmid}"
+        text = f"[PubMed {article.pmid}] {title}\n\nAbstract: {article.abstract}"
+        if tr_summary:
+            text += f"\n\nTR ozet:\n{tr_summary}"
+        meta = {
+            "kind": "research",
+            "source": "pubmed",
+            "pmid": article.pmid,
+            "year": article.year,
+            "journal": article.journal,
+            "doi": article.doi or "",
+            "query": "(auto-indexed from ceviri)",
+        }
+        ok = _rag.index_document(f"pubmed_{article.pmid}", text, meta)
+        if ok:
+            try: print(f"[CEVIRI] PubMed {article.pmid} RAG'a indekslendi", flush=True)
+            except Exception: pass
+        return bool(ok)
+    except Exception as exc:
+        try: print(f"[CEVIRI] RAG auto-index skip: {exc}", flush=True)
+        except Exception: pass
+        return False
+
+
 def translate_pubmed_article(pmid: str, prefer: str = "ollama",
-                              include_summary: bool = True) -> FullArticleResult:
-    """PubMed makale + baslik + abstract ceviri (+ opsiyonel ozet)."""
+                              include_summary: bool = True,
+                              auto_index_rag: bool = True) -> FullArticleResult:
+    """PubMed makale + baslik + abstract ceviri (+ opsiyonel ozet).
+    auto_index_rag=True ise sonuc RAG'a yazilir (Alex sonraki sorgularda bulur).
+    """
     article = fetch_pubmed_pmid(pmid)
     out = FullArticleResult(article=article)
 
@@ -574,6 +606,10 @@ def translate_pubmed_article(pmid: str, prefer: str = "ollama",
             s = summarize_smart(article.abstract, prefer=prefer)
             out.summary_tr = s.translated_text
             out.fallback_chain += s.fallback_chain
+
+    # Auto-index to RAG (Alex sonraki sorgularda bulur)
+    if auto_index_rag and article.abstract:
+        _auto_index_to_rag(article, tr_summary=out.summary_tr)
 
     return out
 

@@ -805,6 +805,33 @@ def import_pdf(pdf_path, db_path=None, force=False):
             sync_info = {"reason": f"sync hata: {exc}"}
 
         con.commit()
+
+        # === D300 2026-05-17: RAG auto re-index hook ===
+        # Yeni USG raporunu Alex bilgi havuzuna ekle (semantic search).
+        # Sessiz, hata olursa import iptal olmaz.
+        try:
+            import yazklinik_rag as _rag
+            parts = [f"Hasta {data.get('name') or patient_key} - USG {data.get('exam_date') or ''}"]
+            for k, label in (("ga_aua","Gebelik haftasi"), ("efw_g","EFW"),
+                              ("bpd_mm","BPD"), ("ac_mm","AC"), ("fl_mm","FL"),
+                              ("hc_mm","HC"), ("fetal_hr","Fetal HR"),
+                              ("umb_pi","Umbilikal PI"), ("umb_ri","Umbilikal RI")):
+                v = data.get(k)
+                if v is not None:
+                    parts.append(f"{label}: {v}")
+            flags = data.get("clinical_flags") or []
+            if flags:
+                parts.append("Klinik flags: " + "; ".join(flags))
+            rag_text = ". ".join(parts) + "."
+            _rag.index_document(
+                f"usg_{cur.lastrowid}",
+                rag_text,
+                {"kind": "usg", "patient_key": patient_key or "",
+                 "patient_name": data.get("name") or "",
+                 "exam_date": data.get("exam_date") or "",
+                 "voluson_id": cur.lastrowid})
+        except Exception:
+            pass
         return {"imported": True, "id": cur.lastrowid,
                 "matched_patient_key": patient_key,
                 "patient_name": data.get("name"),

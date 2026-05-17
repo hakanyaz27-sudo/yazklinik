@@ -1989,3 +1989,168 @@ checkHealth();
 </script>
 </body></html>
 """
+
+
+# === D300 2026-05-17: Konsultasyon -> hasta dosyasina ekle + USG taslak sayfasi ===
+
+@agents_bp.route("/api/agents/konsult/save-to-visit", methods=["POST"])
+def konsult_save_to_visit():
+    auth = _require_session()
+    if auth:
+        return auth
+    p = _payload()
+    patient_key = str(p.get("patient_key") or "").strip()
+    markdown = str(p.get("markdown") or "").strip()
+    most_likely = str(p.get("most_likely") or "")
+    if not patient_key or not markdown:
+        return jsonify({"ok": False, "error": "patient_key ve markdown gerekli"}), 400
+    try:
+        import sqlite3
+        db_path = (os.environ.get("YAZKLINIK_DB_PATH")
+                   or r"D:\YazKlinik_Final_D300\local_db\yazklinik_v68.sqlite3")
+        con = sqlite3.connect(db_path, timeout=10)
+        try:
+            from datetime import datetime as _dt
+            now = _dt.now().strftime("%Y-%m-%d %H:%M:%S")
+            cols = [r[1] for r in con.execute("PRAGMA table_info(visits)").fetchall()]
+            insert_cols = ["patient_folder_key", "visit_date", "notes", "created_at"]
+            insert_vals = [patient_key, now,
+                           f"YZ Konsultasyon: {most_likely}\n\n{markdown}", now]
+            if "visit_type" in cols:
+                insert_cols.append("visit_type"); insert_vals.append("konsult")
+            if "examination" in cols:
+                insert_cols.append("examination")
+                insert_vals.append(f"YZ Konsultasyon: {most_likely}")
+            if "source" in cols:
+                insert_cols.append("source"); insert_vals.append("konsult:agent")
+            ph = ",".join("?" * len(insert_vals))
+            cur = con.execute(
+                f"INSERT INTO visits ({','.join(insert_cols)}) VALUES ({ph})",
+                insert_vals)
+            con.commit()
+            visit_id = cur.lastrowid
+        finally:
+            con.close()
+        _safe_audit("agents:konsult_save", {"patient_key": patient_key, "visit_id": visit_id})
+        return jsonify({"ok": True, "agent": "konsult",
+                         "result": {"visit_id": visit_id, "patient_key": patient_key}})
+    except Exception as e:
+        return jsonify({"ok": False, "agent": "konsult", "error": str(e)}), 500
+
+
+@agents_bp.route("/hasta/<path:patient_key>/usg-rapor-taslak", methods=["GET"])
+def usg_rapor_taslak_page(patient_key):
+    auth = _require_session()
+    if auth:
+        return auth
+    return render_template_string(_USG_RAPOR_TASLAK_PAGE, patient_key=patient_key)
+
+
+_USG_RAPOR_TASLAK_PAGE = r"""<!doctype html>
+<html lang="tr"><head><meta charset="utf-8">
+<title>USG Rapor Taslagi</title>
+<style>
+  :root { --med-blue:#1769aa; --med-teal:#0c7488; --ink:#122236;
+          --muted:#5e7185; --line:rgba(94,113,133,0.18); --bg:#f5f8fb; }
+  body { font-family:-apple-system,"Segoe UI",system-ui,sans-serif;
+         background:var(--bg); color:var(--ink); margin:0; padding:18px; }
+  h1 { margin:0 0 4px; font-size:22px; }
+  .lead { color:var(--muted); font-size:12px; margin:0 0 14px; }
+  .layout { display:grid; grid-template-columns:1fr 1.4fr; gap:14px; }
+  @media (max-width:1000px) { .layout { grid-template-columns:1fr; } }
+  .panel { background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .panel h3 { margin:0 0 10px; font-size:13px; color:var(--med-blue);
+              text-transform:uppercase; letter-spacing:0.6px; }
+  label { display:block; font-size:12px; color:var(--muted); margin:8px 0 3px; }
+  input,select { width:100%; padding:7px 10px; border:1px solid var(--line);
+                 border-radius:8px; background:#fafbfd; color:var(--ink);
+                 font-size:13px; box-sizing:border-box; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  button { padding:8px 16px; border:0; border-radius:8px; cursor:pointer;
+           font-size:13px; font-weight:600; }
+  .btn-primary { background:linear-gradient(135deg,var(--med-blue),var(--med-teal)); color:#fff; }
+  .btn-ghost { background:transparent; border:1px solid var(--line); color:var(--ink); }
+  .status { font-size:12px; color:var(--muted); margin-top:6px; }
+  pre.preview { background:#0d1117; color:#c9d1d9; padding:12px; border-radius:8px;
+                font-size:12px; max-height:520px; overflow:auto; white-space:pre-wrap; }
+</style></head>
+<body>
+  <h1>USG Rapor Taslagi</h1>
+  <p class="lead">Hasta: <b>{{ patient_key }}</b> - Olcumleri gir, sag tarafta canli Hadlock EFW + sablon olusur. Begenirsen "Hasta Dosyasina Ekle" tikla.</p>
+  <div class="layout">
+    <div class="panel">
+      <h3>1. Olcumler</h3>
+      <label>Muayene tarihi<input type="date" id="examDate"></label>
+      <label>SAT (LMP, opsiyonel)<input type="date" id="lmp"></label>
+      <label>Rapor tipi
+        <select id="reportType">
+          <option value="second_trimester">2. trimester</option>
+          <option value="first_trimester">1. trimester</option>
+          <option value="third_trimester">3. trimester</option>
+          <option value="morphology">Morfolojik tarama</option>
+          <option value="free">Serbest</option>
+        </select>
+      </label>
+      <h3 style="margin-top:14px;">Biyometri (mm)</h3>
+      <div class="grid2">
+        <label>BPD<input type="number" id="bpd" step="0.1"></label>
+        <label>HC<input type="number" id="hc" step="0.1"></label>
+        <label>AC<input type="number" id="ac" step="0.1"></label>
+        <label>FL<input type="number" id="fl" step="0.1"></label>
+      </div>
+      <button class="btn-primary" id="goBtn" style="margin-top:12px;">Taslak Olustur</button>
+      <button class="btn-ghost" id="saveBtn" style="margin-top:8px;" disabled>Hasta Dosyasina Ekle</button>
+      <div class="status" id="status"></div>
+    </div>
+    <div class="panel">
+      <h3>2. Onizleme</h3>
+      <pre class="preview" id="preview">Sol panelden olcumleri girip "Taslak Olustur" tikla.</pre>
+    </div>
+  </div>
+<script>
+const PATIENT = {{ patient_key|tojson }};
+document.getElementById('examDate').valueAsDate = new Date();
+let lastDraft = null;
+document.getElementById('goBtn').addEventListener('click', async () => {
+  const body = {
+    patient_id: PATIENT, patient_name: PATIENT,
+    exam_date: document.getElementById('examDate').value,
+    lmp: document.getElementById('lmp').value || null,
+    report_type: document.getElementById('reportType').value,
+    measurements: ['bpd','hc','ac','fl'].map(k => ({
+      name: k.toUpperCase(),
+      value_mm: parseFloat(document.getElementById(k).value) || 0
+    })).filter(m => m.value_mm > 0)
+  };
+  document.getElementById('preview').textContent = 'isleniyor...';
+  try {
+    const r = await fetch('/api/agents/usg_rapor/run', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      credentials:'same-origin', body: JSON.stringify(body)});
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || r.status);
+    lastDraft = d.result;
+    document.getElementById('preview').textContent = d.result.raw_body || '(bos)';
+    document.getElementById('saveBtn').disabled = false;
+    document.getElementById('status').textContent =
+      'OK - EFW: ' + (d.result.efw_grams || '-') + ' g, ' + d.result.ga_text;
+  } catch(e) { document.getElementById('preview').textContent = 'Hata: ' + e.message; }
+});
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  if (!lastDraft) return;
+  if (!confirm('USG taslagi hasta dosyasina visit olarak eklensin mi?')) return;
+  try {
+    const r = await fetch('/api/agents/konsult/save-to-visit', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      credentials:'same-origin',
+      body: JSON.stringify({patient_key: PATIENT, markdown: lastDraft.raw_body,
+                             most_likely: 'USG ' + (lastDraft.ga_text || '')})});
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || r.status);
+    document.getElementById('status').textContent = 'Hasta dosyasina eklendi (visit_id ' + d.result.visit_id + ')';
+    document.getElementById('saveBtn').disabled = true;
+  } catch(e) { document.getElementById('status').textContent = 'Hata: ' + e.message; }
+});
+</script>
+</body></html>
+"""

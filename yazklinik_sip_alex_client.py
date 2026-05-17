@@ -874,6 +874,37 @@ class SIPAlexBridge:
                 f"phone={payload.get('extracted_phone') or payload.get('caller_phone')} "
                 f"doctor_action={payload.get('requires_doctor_action')}"
             )
+
+            # D300 2026-05-17: Sesli onay entegrasyonu.
+            # Hasta "randevu icin geldim" + "evet onaylyorum" diyebilir.
+            # Sesli onay ajani bunu yakalar; appointment_id varsa state degisir.
+            if payload.get("intent") in ("appointment_new", "appointment_cancel", "other"):
+                try:
+                    from yazklinik_sesli_onay_agent import (
+                        decide as confirm_decide, ConfirmationRequest, can_auto_apply
+                    )
+                    pending_appt = getattr(call, "pending_appointment_id", None)
+                    if pending_appt:
+                        req = ConfirmationRequest(
+                            appointment_id=str(pending_appt),
+                            patient_phone=caller,
+                            patient_name=caller_name or "",
+                            appointment_at="",  # web layer doldurur
+                            spoken_response=transcript,
+                        )
+                        c_result = confirm_decide(req)
+                        c_payload = asdict(c_result)
+                        call.last_confirm = c_payload
+                        log(
+                            "Sesli onay: "
+                            f"decision={c_payload.get('decision')} "
+                            f"confidence={c_payload.get('confidence')} "
+                            f"auto={can_auto_apply(c_result)}"
+                        )
+                        payload["sesli_onay"] = c_payload
+                except Exception as cexc:
+                    log(f"Sesli onay skip: {cexc}")
+
             return payload
         except Exception as exc:
             self.set_error(f"telesekreter triage hata: {exc}")
