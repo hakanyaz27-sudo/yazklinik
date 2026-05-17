@@ -3070,6 +3070,102 @@ def api_portal_issue_link():
         "birth_year": int(p.get("birth_year") or 0) or None})
 
 
+@agents_bp.route("/hasta-portal/uret", methods=["POST"])
+def hasta_portal_uret_form():
+    """FORM submit ile magic link uret - XHR bypass (Funnel/Werkzeug stuck cozumu).
+
+    Browser native form post -> server response HTML olarak donduğunde
+    browser sayfasini direkt acar, XHR buffer sorunu YOK.
+    """
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(portal_mod, "hasta_portal")
+    if err: return err
+
+    pid = (request.form.get("patient_id") or "").strip()
+    phone = (request.form.get("phone") or "").strip()
+    ttl = int(request.form.get("ttl_hours") or 168)
+    tc_last4 = (request.form.get("tc_last4") or "").strip()
+    birth_year_str = (request.form.get("birth_year") or "").strip()
+    birth_year = int(birth_year_str) if birth_year_str.isdigit() else None
+    custom_message = (request.form.get("custom_message") or "").strip()
+    show_pdfs = request.form.get("opt_pdfs") == "1"
+    show_meds = request.form.get("opt_meds") == "1"
+    show_labs = request.form.get("opt_labs") == "1"
+    # Visit secimi (multi)
+    selected_visits = request.form.getlist("visit_keys")
+    do_whatsapp = request.form.get("do_whatsapp") == "1"
+
+    if not pid:
+        return "Hasta ID gerek", 400
+
+    share_config = {
+        "visits": selected_visits if selected_visits else None,
+        "show_pdfs": show_pdfs, "show_meds": show_meds, "show_labs": show_labs,
+        "custom_message": custom_message,
+    }
+    base_url = request.host_url.rstrip("/") if request.host_url else "https://sam.turkey-orfe.ts.net"
+
+    res = portal_mod.issue_magic_link(
+        patient_id=pid, phone=phone, base_url=base_url,
+        ttl_hours=ttl, share_config=share_config,
+        tc_last4=tc_last4, birth_year=birth_year)
+
+    if not res.ok or not res.magic_link:
+        return f"Hata: link uretilemedi", 500
+
+    link = res.magic_link
+    # WhatsApp URL hazirla
+    wa_phone = "".join(c for c in (phone or "") if c.isdigit())
+    if wa_phone.startswith("0"):
+        wa_phone = "90" + wa_phone[1:]
+    elif not wa_phone.startswith("90") and len(wa_phone) == 10:
+        wa_phone = "90" + wa_phone
+    import urllib.parse as _up
+    wa_msg = _up.quote(
+        f"Sayin hastamiz,\n\n"
+        f"Kendi dosyaniza erisim icin asagidaki linke tikkayabilirsiniz:\n"
+        f"{link}\n\n"
+        f"Link {ttl} saat gecerlidir.\n\n"
+        f"- Op. Dr. Hakan Yaz Klinigi")
+    wa_url = f"https://wa.me/{wa_phone}?text={wa_msg}" if wa_phone else ""
+
+    # Direkt yonlendirme - WhatsApp veya geri portal
+    if do_whatsapp and wa_url:
+        return f"""<!doctype html><html><head><meta charset="utf-8">
+<title>Link Uretildi</title>
+<meta http-equiv="refresh" content="3;url={wa_url}">
+<style>body{{font-family:sans-serif;text-align:center;padding:50px;background:#0a8a76;color:#fff}}
+.box{{background:#fff;color:#122236;padding:30px;border-radius:14px;max-width:500px;margin:0 auto;
+box-shadow:0 8px 24px rgba(0,0,0,.2)}}h2{{color:#0a8a76}}a.btn{{display:inline-block;background:#25d366;
+color:#fff;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:700;margin:10px}}
+.link{{background:#eff5fb;padding:12px;border-radius:6px;font-size:12px;word-break:break-all;margin:14px 0}}</style>
+</head><body><div class="box">
+<h2>✓ Magic Link Uretildi</h2>
+<p>WhatsApp 3 saniyede otomatik acilir...</p>
+<div class="link">{link}</div>
+<a class="btn" href="{wa_url}">📱 WhatsApp Şimdi Aç</a>
+<a class="btn" href="/hasta-portal" style="background:#5e7185">← Portal Geri Dön</a>
+</div></body></html>"""
+    else:
+        return f"""<!doctype html><html><head><meta charset="utf-8">
+<title>Link Uretildi</title>
+<style>body{{font-family:sans-serif;text-align:center;padding:50px;background:#0d4f8b;color:#fff}}
+.box{{background:#fff;color:#122236;padding:30px;border-radius:14px;max-width:600px;margin:0 auto;
+box-shadow:0 8px 24px rgba(0,0,0,.2)}}h2{{color:#16815f}}a.btn{{display:inline-block;
+padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:700;margin:8px}}
+.link{{background:#eff5fb;padding:14px;border-radius:8px;font-size:13px;word-break:break-all;margin:16px 0;
+border:1px solid #cdd9e3}}</style>
+</head><body><div class="box">
+<h2>✓ Magic Link Uretildi ({ttl} saat gecerli)</h2>
+<div class="link">{link}</div>
+<a class="btn" href="{link}" target="_blank" style="background:#1769aa;color:#fff">👁 Onizle (Yeni Sekme)</a>
+<a class="btn" href="{wa_url}" target="_blank" style="background:#25d366;color:#fff">📱 WhatsApp Aç</a>
+<a class="btn" href="/hasta-portal" style="background:#5e7185;color:#fff">← Portal Geri Dön</a>
+<p style="font-size:12px;color:#5e7185;margin-top:20px">Linki kopyalayip elle gonderebilirsin de.</p>
+</div></body></html>"""
+
+
 @agents_bp.route("/api/agents/portal/revoke", methods=["POST"])
 def api_portal_revoke():
     """Token iptal et - hasta artik linke giremez."""
@@ -3593,15 +3689,21 @@ font-size:13px;margin-bottom:18px;color:#7a5a00}
     </div>
 
     <!-- Quick toggles -->
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;font-size:13px">
-      <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
-        <input type="checkbox" id="opt-pdfs" checked> 📄 PDF/Rapor Arşivi
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;font-size:14px">
+      <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;background:#fff;border:1px solid #cdd9e3;border-radius:8px">
+        <input type="checkbox" id="opt-pdfs" checked
+               style="width:20px;height:20px;accent-color:#1769aa;cursor:pointer;-webkit-appearance:checkbox !important;appearance:checkbox !important">
+        📄 PDF/Rapor Arşivi
       </label>
-      <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
-        <input type="checkbox" id="opt-meds" checked> 💊 İlaç Listesi
+      <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;background:#fff;border:1px solid #cdd9e3;border-radius:8px">
+        <input type="checkbox" id="opt-meds" checked
+               style="width:20px;height:20px;accent-color:#1769aa;cursor:pointer;-webkit-appearance:checkbox !important;appearance:checkbox !important">
+        💊 İlaç Listesi
       </label>
-      <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
-        <input type="checkbox" id="opt-labs" checked> 🧪 Lab Sonuçları
+      <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;background:#fff;border:1px solid #cdd9e3;border-radius:8px">
+        <input type="checkbox" id="opt-labs" checked
+               style="width:20px;height:20px;accent-color:#1769aa;cursor:pointer;-webkit-appearance:checkbox !important;appearance:checkbox !important">
+        🧪 Lab Sonuçları
       </label>
     </div>
 
@@ -3656,11 +3758,25 @@ font-size:13px;margin-bottom:18px;color:#7a5a00}
       <option value="87600">10 yıl (süresiz)</option>
     </select>
   </div>
-  <div class="form-row">
-    <button onclick="issueLink()">🔗 Link Üret</button>
-    <button class="btn-wa" onclick="issueAndWhatsApp()">📱 Üret + WhatsApp Gönder</button>
-    <button class="btn-secondary" onclick="clearAll()">Temizle</button>
-  </div>
+  <!-- FORM SUBMIT (XHR yerine - Funnel stuck bypass) -->
+  <form id="link-form" method="POST" action="/hasta-portal/uret" target="_self">
+    <input type="hidden" name="patient_id" id="form-pid">
+    <input type="hidden" name="phone" id="form-phone">
+    <input type="hidden" name="ttl_hours" id="form-ttl">
+    <input type="hidden" name="tc_last4" id="form-tc">
+    <input type="hidden" name="birth_year" id="form-by">
+    <input type="hidden" name="custom_message" id="form-msg">
+    <input type="hidden" name="opt_pdfs" id="form-opt-pdfs" value="1">
+    <input type="hidden" name="opt_meds" id="form-opt-meds" value="1">
+    <input type="hidden" name="opt_labs" id="form-opt-labs" value="1">
+    <input type="hidden" name="do_whatsapp" id="form-wa" value="0">
+    <div id="form-visits-hidden"></div>
+    <div class="form-row">
+      <button type="button" onclick="submitForm(false)">🔗 Link Üret</button>
+      <button type="button" class="btn-wa" onclick="submitForm(true)">📱 Üret + WhatsApp Gönder</button>
+      <button type="button" class="btn-secondary" onclick="clearAll()">Temizle</button>
+    </div>
+  </form>
   <div class="result" id="result"></div>
 </div>
 
@@ -3915,9 +4031,10 @@ function loadShareOptions(){
                        '<span style="color:#b87333;font-size:11px"> ⚠ dosyasiz</span>';
           // Default: ilk 5 secili (dosyali olanlar)
           const checked = (hasMedia && i < 5) ? 'checked' : '';
-          return '<label style="display:block;padding:6px 4px;border-bottom:1px solid #eef3f8;cursor:pointer;font-size:13px">' +
-            '<input type="checkbox" class="visit-cb" data-key="' + escapeHtml(v.full_path || v.visit_key || '') + '" ' + checked + '> ' +
-            '<b>' + escapeHtml(label) + '</b>' + media + '</label>';
+          return '<label style="display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid #eef3f8;cursor:pointer;font-size:13px">' +
+            '<input type="checkbox" class="visit-cb" data-key="' + escapeHtml(v.full_path || v.visit_key || '') + '" ' + checked +
+            ' style="width:18px;height:18px;accent-color:#1769aa;-webkit-appearance:checkbox !important;appearance:checkbox !important;flex-shrink:0"> ' +
+            '<span><b>' + escapeHtml(label) + '</b>' + media + '</span></label>';
         }).join('');
       }
       // Pdfs / labs counts info
@@ -3989,7 +4106,42 @@ function revokeToken(token, patientId){
   xhr.send(JSON.stringify({token: token}));
 }
 
-// --- Magic link uretici (XHR - Funnel/SW bypass) ---
+// --- D300 v6: FORM SUBMIT (browser native, Funnel/Werkzeug stuck bypass) ---
+function submitForm(doWhatsApp){
+  const pid = document.getElementById('pid').value.trim();
+  if(!pid){
+    alert('Once yukaridan hasta sec (arama kutusu)');
+    searchInput.focus();
+    return;
+  }
+  // Form alanlarini doldur
+  document.getElementById('form-pid').value = pid;
+  document.getElementById('form-phone').value = document.getElementById('phone').value.trim();
+  document.getElementById('form-ttl').value = document.getElementById('ttl').value;
+  document.getElementById('form-tc').value = (document.getElementById('tc_last4') || {}).value || '';
+  document.getElementById('form-by').value = (document.getElementById('birth_year') || {}).value || '';
+  document.getElementById('form-msg').value = (document.getElementById('custom-message') || {}).value || '';
+  document.getElementById('form-opt-pdfs').value = document.getElementById('opt-pdfs').checked ? '1' : '0';
+  document.getElementById('form-opt-meds').value = document.getElementById('opt-meds').checked ? '1' : '0';
+  document.getElementById('form-opt-labs').value = document.getElementById('opt-labs').checked ? '1' : '0';
+  document.getElementById('form-wa').value = doWhatsApp ? '1' : '0';
+  // Secilen ziyaretleri hidden input olarak ekle
+  const hiddenWrapper = document.getElementById('form-visits-hidden');
+  hiddenWrapper.innerHTML = '';
+  document.querySelectorAll('.visit-cb:checked').forEach(cb => {
+    if(cb.dataset.key){
+      const inp = document.createElement('input');
+      inp.type = 'hidden';
+      inp.name = 'visit_keys';
+      inp.value = cb.dataset.key;
+      hiddenWrapper.appendChild(inp);
+    }
+  });
+  console.log('[YK-PORTAL] FORM SUBMIT pid=' + pid + ' wa=' + doWhatsApp);
+  document.getElementById('link-form').submit();
+}
+
+// LEGACY (artik kullanilmiyor - FORM submit'e cevrildi)
 function issueLink(callback){
   const pid = document.getElementById('pid').value.trim();
   const phone = document.getElementById('phone').value.trim();
