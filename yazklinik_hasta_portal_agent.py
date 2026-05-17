@@ -129,13 +129,42 @@ def verify_token(token: str, db_path: Optional[str] = None) -> PortalLoginResult
         con.close()
 
 
-def list_my_visits(patient_id: str, db_path: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Hastanin ziyaret listesi.
+def _sanitize_text_for_patient(t: str) -> str:
+    """Doktorun ham notunu hastaya UYGUN hale getir.
+    - BulutKlinik raw format ('Hasta: ... Sikayet/oyku:') KALDIR
+    - Protokol no, kod kaldir
+    - 200 char limit
+    """
+    if not t:
+        return ""
+    import re
+    t = str(t)
+    # 'BulutKlinik [tip] kaydi <hash> Hasta: <ad>' kaldir
+    t = re.sub(r"^BulutKlinik\s+\w+\s+(kaydi|protokolu|protokol\s*#?\d+)\s+\w*\s*Hasta:\s*[^\n]+?\s*-\s*",
+                "", t, flags=re.I)
+    t = re.sub(r"BulutKlinik\s+(obstetri\s+takip|protokol)\s+\w+\s+Hasta:\s*[^\n]+?\s*",
+                "", t, flags=re.I)
+    t = re.sub(r"Protokol\s+tipi:\s*[^\s]+\s*", "", t, flags=re.I)
+    t = re.sub(r"Brans:\s*[A-Z\s]+(?=Doktor|Medikal|$)", "", t, flags=re.I)
+    t = re.sub(r"Doktor:\s*[A-Z\s]+(?=Medikal|Tani|$)", "", t, flags=re.I)
+    t = re.sub(r"Tarih:\s*\d{4}-\d{2}-\d{2}\s*[\d:]*\s*", "", t)
+    t = re.sub(r"Tani\s*kodlari:\s*\w+\s*", "", t, flags=re.I)
+    t = re.sub(r"Medikal\s+bilgiler\s*-?\s*", "", t, flags=re.I)
+    t = re.sub(r"Takip\s+no:\s*\d+", "", t, flags=re.I)
+    # Cifte bosluklari temizle
+    t = re.sub(r"\s+", " ", t).strip()
+    return t[:240]
 
-    D300 2026-05-17: Kolon isimleri visits tablosuna gore duzeltildi.
-    - patient_folder_key (NOT patient_id)
-    - examination, control_note, notes (NOT complaints/diagnosis)
-    - archived_at filtre eklendi
+
+def list_my_visits(patient_id: str, db_path: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Hastanin ziyaret listesi - HASTAYA UYGUN format.
+
+    D300 2026-05-17:
+    - patient_folder_key
+    - USG klasoru olanlari oncelikle goster (gercek ziyaret)
+    - Ham BK metni temizle
+    - LIMIT 5 (en son 5 - cok eski ziyaret hastayi yormaz)
+    - Klasor yoksa (BK protokol-only) baska sectiona
     """
     db_path = db_path or DEFAULT_DB_PATH
     con = sqlite3.connect(db_path)
@@ -143,27 +172,49 @@ def list_my_visits(patient_id: str, db_path: Optional[str] = None) -> List[Dict[
     try:
         rows = con.execute(
             "SELECT visit_date, visit_type, examination, control_note, notes, "
-            "  clinical_section, source, pdf_count, image_count "
+            "  clinical_section, source, pdf_count, image_count, full_path "
             "FROM visits "
             "WHERE patient_folder_key = ? AND (archived_at IS NULL OR archived_at = '') "
-            "ORDER BY visit_date DESC LIMIT 30",
+            "  AND (image_count > 0 OR pdf_count > 0) "  # SADECE dosyali ziyaretler
+            "ORDER BY visit_date DESC LIMIT 5",
             (patient_id,)).fetchall()
-        # Hastaya gostermek icin sade liste
         out = []
         for r in rows:
             d = dict(r)
-            # Tek satirlik 'diagnosis' yaz - examination veya control_note veya notes
-            d["diagnosis"] = (d.get("examination") or d.get("control_note")
-                               or d.get("notes") or "")
-            # complaints = notes ilk satiri
-            n = d.get("notes") or ""
-            d["complaints"] = n[:200] if n else ""
+            # Hastaya gosterilen metin - sade
+            ex = _sanitize_text_for_patient(d.get("examination") or "")
+            cn = _sanitize_text_for_patient(d.get("control_note") or "")
+            no = _sanitize_text_for_patient(d.get("notes") or "")
+            d["examination_clean"] = ex
+            d["control_note_clean"] = cn
+            d["notes_clean"] = no
             out.append(d)
         return out
     except Exception:
         return []
     finally:
         con.close()
+
+
+def list_visit_images(full_path: str, max_imgs: int = 12) -> List[Dict[str, Any]]:
+    """Ziyaret klasorundeki USG resimleri (jpg/png) + PDF'ler."""
+    out = {"images": [], "pdfs": []}
+    if not full_path or not os.path.isdir(full_path):
+        return out
+    try:
+        files = sorted(os.listdir(full_path))
+        for f in files:
+            full = os.path.join(full_path, f)
+            if not os.path.isfile(full):
+                continue
+            low = f.lower()
+            if low.endswith((".jpg", ".jpeg", ".png")) and len(out["images"]) < max_imgs:
+                out["images"].append({"name": f, "abs_path": full})
+            elif low.endswith(".pdf"):
+                out["pdfs"].append({"name": f, "abs_path": full})
+    except Exception:
+        pass
+    return out
 
 
 def list_my_pdfs(patient_id: str, db_path: Optional[str] = None) -> List[Dict[str, Any]]:

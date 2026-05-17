@@ -3050,6 +3050,54 @@ def hasta_portal_giris():
         "<a href='/hasta-portal'>Portal ana sayfa</a></p></body></html>")
 
 
+@agents_bp.route("/hasta-portal/media", methods=["GET"])
+def hasta_portal_media():
+    """Hasta sadece KENDI klasorundeki resim/PDF'lere erisebilir.
+
+    Query: ?path=<abs_path>
+    Validation:
+      - session['portal_patient_id'] gerek
+      - abs_path hasta klasoru icinde olmali (folder_key prefix check)
+    """
+    pid = session.get("portal_patient_id")
+    if not pid:
+        return "Yetki YOK", 401
+    abs_path = request.args.get("path", "")
+    if not abs_path:
+        return "path yok", 400
+    # GUVENLIK: abs_path hasta klasorunun ICINDE mi?
+    try:
+        import sqlite3 as _sq, os as _os
+        dbp = (os.environ.get("YAZKLINIK_DB_PATH")
+                or r"D:\YazKlinik_Final_D300\local_db\yazklinik_v68.sqlite3")
+        con = _sq.connect(dbp)
+        try:
+            row = con.execute(
+                "SELECT full_path FROM patients WHERE folder_key = ?", (pid,)
+            ).fetchone()
+            patient_root = row[0] if row else ""
+        finally:
+            con.close()
+        if not patient_root:
+            return "hasta klasoru yok", 403
+        # abs_path patient_root altinda olmali (path traversal koruma)
+        rp = _os.path.realpath(abs_path)
+        pr = _os.path.realpath(patient_root)
+        if not rp.startswith(pr):
+            return "yetkisiz path", 403
+        if not _os.path.isfile(rp):
+            return "dosya yok", 404
+        # Sadece resim/PDF
+        ext = rp.lower().rsplit(".", 1)[-1]
+        if ext not in ("jpg", "jpeg", "png", "pdf"):
+            return "izin verilmeyen tip", 403
+        mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg",
+                "png": "image/png", "pdf": "application/pdf"}[ext]
+        return send_file(rp, mimetype=mime)
+    except Exception as e:
+        return f"hata: {e}", 500
+
+
 @agents_bp.route("/hasta-portal", methods=["GET"])
 def hasta_portal_home():
     """Dual-mode portal:
@@ -3068,6 +3116,16 @@ def hasta_portal_home():
         if portal_mod:
             try:
                 visits = portal_mod.list_my_visits(portal_pid)
+                # Her ziyaret icin USG resim listesi ekle
+                for v in visits:
+                    fp = v.get("full_path") or ""
+                    try:
+                        media = portal_mod.list_visit_images(fp, max_imgs=12)
+                        v["visit_images"] = media.get("images", [])
+                        v["visit_pdfs"] = media.get("pdfs", [])
+                    except Exception:
+                        v["visit_images"] = []
+                        v["visit_pdfs"] = []
             except Exception:
                 pass
             try:
@@ -3157,19 +3215,43 @@ box-shadow:0 1px 3px rgba(0,0,0,.06)}
   <p>Hasta dosyanız - son ziyaretler ve raporlar</p>
 </div>
 {% if visits %}
-  <h3 style="color:#0d4f8b;font-size:16px;margin:14px 0 8px">📋 Ziyaretler ({{visits|length}})</h3>
+  <h3 style="color:#0d4f8b;font-size:16px;margin:14px 0 8px">📋 Son Ziyaretler ({{visits|length}})</h3>
   {% for v in visits %}
   <div class="card">
-    <b>{{v.visit_date or '-'}}</b> - {{v.visit_type or 'Muayene'}}
-    {% if v.source %}<span style="font-size:11px;color:#5e7185;float:right">{{v.source}}</span>{% endif %}
-    {% if v.examination %}<div class="meta">📋 {{v.examination[:200]}}</div>{% endif %}
-    {% if v.control_note %}<div class="meta">📝 {{v.control_note[:200]}}</div>{% endif %}
-    {% if v.notes and not v.examination %}<div class="meta">📌 {{v.notes[:200]}}</div>{% endif %}
-    {% if v.pdf_count and v.pdf_count > 0 %}
-      <div class="meta">📄 {{v.pdf_count}} PDF ekli</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <b style="font-size:15px">📅 {{v.visit_date or '-'}}</b>
+      <span style="font-size:11px;color:#5e7185;background:#eff5fb;padding:2px 8px;border-radius:10px">{{v.visit_type or 'Muayene'}}</span>
+    </div>
+    {% if v.examination_clean %}<div class="meta">{{v.examination_clean}}</div>{% endif %}
+    {% if v.control_note_clean and not v.examination_clean %}<div class="meta">{{v.control_note_clean}}</div>{% endif %}
+    {% if v.notes_clean and not v.examination_clean and not v.control_note_clean %}<div class="meta">{{v.notes_clean}}</div>{% endif %}
+
+    {% if v.visit_images %}
+    <div style="margin-top:10px">
+      <div style="font-size:12px;color:#0d4f8b;font-weight:600;margin-bottom:6px">🖼 USG Görüntüleri ({{v.visit_images|length}}{% if v.image_count and v.image_count > v.visit_images|length %} / toplam {{v.image_count}}{% endif %})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px">
+        {% for img in v.visit_images %}
+        <a href="/hasta-portal/media?path={{img.abs_path|urlencode}}" target="_blank"
+           style="display:block;aspect-ratio:1;background:#000;border-radius:6px;overflow:hidden">
+          <img src="/hasta-portal/media?path={{img.abs_path|urlencode}}" loading="lazy"
+               style="width:100%;height:100%;object-fit:cover">
+        </a>
+        {% endfor %}
+      </div>
+    </div>
     {% endif %}
-    {% if v.image_count and v.image_count > 0 %}
-      <div class="meta">🖼 {{v.image_count}} görüntü</div>
+
+    {% if v.visit_pdfs %}
+    <div style="margin-top:10px">
+      <div style="font-size:12px;color:#0a8a76;font-weight:600;margin-bottom:6px">📄 Rapor / PDF</div>
+      {% for pdf in v.visit_pdfs %}
+      <a href="/hasta-portal/media?path={{pdf.abs_path|urlencode}}" target="_blank"
+         style="display:inline-block;background:#d9f4ec;color:#0a8a76;padding:8px 12px;border-radius:8px;
+                text-decoration:none;font-size:13px;font-weight:600;margin:2px">
+        📄 {{pdf.name}}
+      </a>
+      {% endfor %}
+    </div>
     {% endif %}
   </div>
   {% endfor %}
