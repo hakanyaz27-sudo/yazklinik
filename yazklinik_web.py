@@ -36745,14 +36745,32 @@ return r || {ok:false};
  try { window.speechSynthesis.cancel(); } catch (e) {}
  if (!('speechSynthesis' in window)) return Promise.resolve({ok:false, reason:'unsupported'});
  return new Promise(function(resolve) {
- // D300: Bu fallback yolu ile gelmeden once TR ses kontrolu - yoksa Ingilizce ile okutmayalim
+ // D300 2026-05-17: TR ses kalitesi siralanir - Tolga (eski/robotik) son tercih.
+ // Edge Online > Microsoft Online (Natural/Neural) > Microsoft Emel/Filiz > Microsoft Tolga
  var voices = window.speechSynthesis.getVoices() || [];
- var trVoice = null;
+ var trCandidates = [];
  for (var i = 0; i < voices.length; i++) {
    var vlang = String(voices[i].lang || '').toLowerCase();
    if (vlang.indexOf('tr') === 0 || vlang.indexOf('-tr') > 0) {
-     trVoice = voices[i]; break;
+     trCandidates.push(voices[i]);
    }
+ }
+ // Oncelik puanlama
+ function _ttsScore(v) {
+   var n = String(v.name || '').toLowerCase();
+   var score = 0;
+   if (n.indexOf('online') >= 0 || n.indexOf('natural') >= 0 || n.indexOf('neural') >= 0) score += 100;
+   if (n.indexOf('emel') >= 0) score += 50;       // Microsoft Emel - dogal kadin
+   if (n.indexOf('ahmet') >= 0) score += 45;      // Microsoft Ahmet - dogal erkek
+   if (n.indexOf('filiz') >= 0) score += 30;      // Microsoft Filiz - eski kadin
+   if (n.indexOf('google') >= 0) score += 20;     // Google TR (Chrome)
+   if (n.indexOf('tolga') >= 0) score -= 50;      // Tolga eski/robotik (Russian aksanli)
+   return score;
+ }
+ trCandidates.sort(function(a, b) { return _ttsScore(b) - _ttsScore(a); });
+ var trVoice = trCandidates[0] || null;
+ if (trVoice) {
+   try { console.log('[YK-TTS] Secilen ses:', trVoice.name, '(' + trCandidates.length + ' aday)'); } catch(e) {}
  }
  if (!trVoice) {
    console.warn('[YK-FALLBACK-TTS] Turkce ses yok - okuma engellendi (Ingilizce ile okutmuyoruz)');
@@ -49529,24 +49547,33 @@ _AI_PHONE_LIVE_ASR_EMPTY_GUARD = {}
 
 
 AI_PHONE_TTS_VOICES = OrderedDict([
-    ("tr_lokal_piper", {
-        "label": "Lokal Türkçe Net - Piper DFKI",
-        "engine": "piper",
-        "voice": "tr_TR-dfki-medium",
-        "rate": "1.00",
-        "pitch": "+0Hz",
-        "volume": "+0%",
-        "desc": "Aksansız Türkçe için lokal, hızlı ve internet bağımsız ses.",
-        "recommended": True,
-    }),
     ("tr_premium_kadin", {
-        "label": "Premium Türkçe Kadın - Emel sakin",
+        "label": "Premium Türkçe Kadın - Emel doğal (ÖNERİLEN)",
         "engine": "edge",
         "voice": "tr-TR-EmelNeural",
         "rate": "0.94",
         "pitch": "+2Hz",
         "volume": "+0%",
-        "desc": "En doğal varsayılan klinik sesi; yumuşak ve anlaşılır.",
+        "desc": "En doğal varsayılan klinik sesi; Microsoft Edge Neural ile gerçek Türkçe, aksansız, yumuşak ve anlaşılır.",
+        "recommended": True,
+    }),
+    ("tr_premium_ahmet", {
+        "label": "Premium Türkçe Erkek - Ahmet doğal",
+        "engine": "edge",
+        "voice": "tr-TR-AhmetNeural",
+        "rate": "0.96",
+        "pitch": "-1Hz",
+        "volume": "+0%",
+        "desc": "Edge Neural erkek sesi; tok ve ciddi klinik anlatım, aksansız.",
+    }),
+    ("tr_lokal_piper", {
+        "label": "Lokal Türkçe - Piper DFKI (internetsiz)",
+        "engine": "piper",
+        "voice": "tr_TR-dfki-medium",
+        "rate": "1.00",
+        "pitch": "+0Hz",
+        "volume": "+0%",
+        "desc": "Internet yokken yedek. NOT: Piper DFKI Türkçesi robotik/aksanlı duyulabilir. Önerilen: tr_premium_kadin (Emel).",
     }),
     ("tr_premium_erkek", {
         "label": "Premium Türkçe Erkek - Ahmet net",
@@ -49611,17 +49638,20 @@ AI_PHONE_TTS_LEGACY_PROFILE_MAP = {
     "kadin": "tr_premium_kadin",
     "dogal": "tr_premium_kadin",
     "emel": "tr_premium_kadin",
+    # D300 2026-05-17: 'aksansiz/turkce net/lokal/yerel' artik Emel Neural'a yonleniyor
+    # (Piper DFKI sesi robotik/aksanli idi, kullanici beklentisini karsilamiyor)
     "piper": "tr_lokal_piper",
     "dfki": "tr_lokal_piper",
-    "lokal": "tr_lokal_piper",
-    "yerel": "tr_lokal_piper",
-    "aksansiz": "tr_lokal_piper",
-    "turkce net": "tr_lokal_piper",
+    "lokal": "tr_premium_kadin",
+    "yerel": "tr_premium_kadin",
+    "aksansiz": "tr_premium_kadin",
+    "turkce net": "tr_premium_kadin",
     "tr-tr-emelneural": "tr_premium_kadin",
     "erkek": "tr_premium_erkek",
     "male_tr": "tr_premium_erkek",
-    "ahmet": "tr_premium_erkek",
-    "tr-tr-ahmetneural": "tr_premium_erkek",
+    "ahmet": "tr_premium_ahmet",
+    "tr_premium_ahmet": "tr_premium_ahmet",
+    "tr-tr-ahmetneural": "tr_premium_ahmet",
     "browser": "browser_tr",
 }
 
@@ -49793,8 +49823,10 @@ def _ai_phone_handoff_reply(settings=None, caller="", transcript=""):
 
 
 def _ai_phone_tts_profile_key(profile=None):
+    # D300 2026-05-17: default 'tr_premium_kadin' (Emel Neural - dogal Turkce, aksansiz)
+    # Eski 'tr_lokal_piper' Piper DFKI modeli robotik/aksanli idi.
     raw = str(profile or _ai_phone_settings().get("ai_phone_voice_profile")
-              or "tr_lokal_piper").strip()
+              or "tr_premium_kadin").strip()
     folded = _fold_search_text(raw)
     mapped = AI_PHONE_TTS_LEGACY_PROFILE_MAP.get(raw) or AI_PHONE_TTS_LEGACY_PROFILE_MAP.get(folded)
     if mapped:
@@ -49810,7 +49842,8 @@ def _ai_phone_tts_profile_key(profile=None):
         return "tr_lokal_piper"
     if "emel" in folded or "kadin" in folded or "dogal" in folded:
         return "tr_premium_kadin"
-    return "tr_lokal_piper"
+    # Default: en dogal Edge Neural Emel
+    return "tr_premium_kadin"
 
 
 def _ai_phone_tts_rate_percent(rate_value):
@@ -49858,7 +49891,8 @@ def _ai_phone_tts_cache_put(key, value):
 
 def _ai_phone_tts_capabilities():
     profile_key = _ai_phone_tts_profile_key()
-    voice_info = AI_PHONE_TTS_VOICES.get(profile_key) or AI_PHONE_TTS_VOICES["tr_premium_kadin"]
+    # Default fallback Emel Neural (en dogal Turkce)
+    voice_info = AI_PHONE_TTS_VOICES.get(profile_key) or AI_PHONE_TTS_VOICES.get("tr_premium_kadin")
     edge_available = False
     edge_error = ""
     try:
