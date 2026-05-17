@@ -2884,8 +2884,9 @@ def hasta_portal_giris():
         return f"Hata: {res.error}", 403
     session["portal_patient_id"] = res.session.patient_id
     return render_template_string(
-        "<html><body style='font-family:sans-serif;padding:24px'>"
-        "<h2>Hosgeldiniz</h2><p>Giris basarili. "
+        "<html lang='tr'><head><meta charset='utf-8'></head>"
+        "<body style='font-family:sans-serif;padding:24px'>"
+        "<h2>Hoş geldiniz</h2><p>Giriş başarılı. "
         "<a href='/hasta-portal'>Portal ana sayfa</a></p></body></html>")
 
 
@@ -2893,12 +2894,13 @@ def hasta_portal_giris():
 def hasta_portal_home():
     pid = session.get("portal_patient_id")
     if not pid:
-        return "Once magic link ile giris yapin", 401
+        return "Önce magic link ile giriş yapın", 401
     visits = []
     if portal_mod:
         visits = portal_mod.list_my_visits(pid)
     return render_template_string(
-        "<html><body style='font-family:sans-serif;padding:24px'>"
+        "<html lang='tr'><head><meta charset='utf-8'></head>"
+        "<body style='font-family:sans-serif;padding:24px'>"
         "<h2>Ziyaretleriniz</h2>"
         "{% for v in visits %}<div style='border:1px solid #ccc;padding:8px;margin:8px'>"
         "<b>{{v.visit_date}}</b> - {{v.visit_type}}<br>{{v.diagnosis}}"
@@ -3312,9 +3314,9 @@ cursor:pointer;font-weight:700}
 </style></head><body>
 <h1>ISO 27001 + KVKK Uyumluluk Panosu</h1>
 <div class="banner">
-<div><div class="score-big" id="grade">?</div><div id="scoretxt">Yukleniyor...</div></div>
+<div><div class="score-big" id="grade">?</div><div id="scoretxt">Yükleniyor...</div></div>
 <div style="flex:1"><div id="criticalbox" style="font-size:14px;color:#b3261e"></div></div>
-<button onclick="runCheck()">Yeniden Calistir</button>
+<button onclick="runCheck()">Yeniden Çalıştır</button>
 </div>
 <table><thead><tr><th>Kod</th><th>Kontrol</th><th>Standart</th><th>Durum</th><th>Detay</th></tr></thead>
 <tbody id="checks"></tbody></table>
@@ -3328,7 +3330,7 @@ async function runCheck(){
   document.getElementById('scoretxt').textContent =
     res.score + '/' + res.max_score + ' (' + res.pct + '%)';
   document.getElementById('criticalbox').textContent =
-    res.critical_failures>0 ? ('KRITIK: '+res.critical_failures+' onemli eksik') : 'Kritik eksik yok';
+    res.critical_failures>0 ? ('KRİTİK: '+res.critical_failures+' önemli eksik') : 'Kritik eksik yok';
   const tb = document.getElementById('checks'); tb.innerHTML='';
   for(const c of res.checks){
     const tr = document.createElement('tr');
@@ -3338,7 +3340,7 @@ async function runCheck(){
   }
   if(res.recommendations_top && res.recommendations_top.length){
     document.getElementById('recs').style.display='block';
-    document.getElementById('recs').innerHTML = '<b>Ilk Oneriler:</b><ul>'+
+    document.getElementById('recs').innerHTML = '<b>İlk Öneriler:</b><ul>'+
       res.recommendations_top.map(r=>'<li>'+r+'</li>').join('')+'</ul>';
   }
 }

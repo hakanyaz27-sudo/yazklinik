@@ -21,11 +21,11 @@ AGENT_VERSION = "2026.05.17-hatira-usg"
 
 HATIRA_TEMPLATES = [
     ("Sevgili {name}, bugünkü ultrasonunuzdan tatlı bir kare. "
-     "Bebeginiz harika gorunuyor.\nSaglikli gunler dilerim.\n- Op. Dr. Hakan Yaz"),
-    ("Merhaba {name}, ultrasondan kucuk bir hatira. "
-     "Bebeginiz {ga_text}.\nKendinize iyi bakin.\n- Op. Dr. Hakan Yaz"),
-    ("Sayin {name}, bugünkü USG'den size ozel bir kare. "
-     "Kontrolunuz iyi gecti, devam.\nIyi haftalar.\n- Op. Dr. Hakan Yaz"),
+     "Bebeğiniz harika görünüyor.\nSağlıklı günler dilerim.\n- Op. Dr. Hakan Yaz"),
+    ("Merhaba {name}, ultrasondan küçük bir hatıra. "
+     "Bebeğiniz {ga_text}.\nKendinize iyi bakın.\n- Op. Dr. Hakan Yaz"),
+    ("Sayın {name}, bugünkü USG'den size özel bir kare. "
+     "Kontrolünüz iyi geçti, devam.\nİyi haftalar.\n- Op. Dr. Hakan Yaz"),
 ]
 
 
@@ -61,13 +61,13 @@ def prepare(patient_id: str, patient_name: str, patient_phone: str,
         return HatiraJob(
             patient_id=patient_id, patient_name=patient_name,
             patient_phone=patient_phone, image_path="",
-            template_text=f"Hatira hazirlamada hata: {exc}",
+            template_text=f"Hatıra hazırlamada hata: {exc}",
             consent_acknowledged=False, delivery_status="failed",
             queued_at=datetime.now().isoformat(timespec="seconds"))
 
     tmpl = HATIRA_TEMPLATES[template_index % len(HATIRA_TEMPLATES)]
     text = tmpl.format(name=patient_name.split()[0] if patient_name else "Hasta",
-                        ga_text=ga_text or "guzel hatti ile burada")
+                        ga_text=ga_text or "güzel hatları ile burada")
     return HatiraJob(
         patient_id=patient_id, patient_name=patient_name,
         patient_phone=patient_phone, image_path=draft_path,
@@ -94,7 +94,7 @@ def send(job: HatiraJob) -> HatiraJob:
         try:
             from yazklinik_whatsapp_local_helper import send_whatsapp_message
             send_whatsapp_message(job.patient_phone,
-                                    job.template_text + "\n(Resim asagida)")
+                                    job.template_text + "\n(Resim aşağıda)")
             job.delivery_status = "sent_text_only"
             job.sent_at = datetime.now().isoformat(timespec="seconds")
         except Exception as e:

@@ -107,15 +107,15 @@ def verify_token(token: str, db_path: Optional[str] = None) -> PortalLoginResult
         row = con.execute(
             "SELECT * FROM patient_portal_tokens WHERE token = ?", (token,)).fetchone()
         if not row:
-            return PortalLoginResult(ok=False, error="token bulunamadi")
+            return PortalLoginResult(ok=False, error="Token bulunamadı")
         if row["consumed_at"]:
-            return PortalLoginResult(ok=False, error="token kullanildi")
+            return PortalLoginResult(ok=False, error="Token zaten kullanıldı")
         try:
             exp = datetime.fromisoformat(row["expires_at"])
             if exp < datetime.now():
-                return PortalLoginResult(ok=False, error="token suresi gecti")
+                return PortalLoginResult(ok=False, error="Token süresi geçti")
         except Exception:
-            return PortalLoginResult(ok=False, error="gecersiz expires_at")
+            return PortalLoginResult(ok=False, error="Geçersiz tarih formatı")
         con.execute("UPDATE patient_portal_tokens SET consumed_at = ? WHERE token = ?",
                     (datetime.now().isoformat(timespec="seconds"), token))
         con.commit()

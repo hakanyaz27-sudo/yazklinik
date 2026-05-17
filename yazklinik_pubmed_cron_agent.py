@@ -138,7 +138,7 @@ def scan(queries: Optional[List[str]] = None,
                     md_lines.append(f"  > {hit.translated_summary}")
                 md_lines.append("")
         except Exception as e:
-            md_lines.append(f"- Sorgu hatasi: {e}\n")
+            md_lines.append(f"- Sorgu hatası: {e}\n")
 
     r.digest_markdown = "\n".join(md_lines)
 

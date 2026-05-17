@@ -20,7 +20,7 @@ AGENT_VERSION = "2026.05.17-ddi"
 CRITICAL_DDI: Dict[Tuple[str, str], Dict[str, str]] = {
     ("warfarin", "asetilsalisilik asit"): {
         "severity": "major", "effect": "Kanama riski belirgin artar",
-        "action": "Birleştirmeden kacin veya INR cok sik takip"
+        "action": "Birleştirmeden kaçın veya INR çok sık takip"
     },
     ("warfarin", "ibuprofen"): {
         "severity": "major", "effect": "GI kanama riski",
@@ -28,7 +28,7 @@ CRITICAL_DDI: Dict[Tuple[str, str], Dict[str, str]] = {
     },
     ("metformin", "iv kontrast"): {
         "severity": "major", "effect": "Laktik asidoz",
-        "action": "Kontrast oncesi-sonrasi 48s metformin durdur"
+        "action": "Kontrast öncesi-sonrası 48 saat metformin durdur"
     },
     ("methotrexate", "amoksisilin"): {
         "severity": "major", "effect": "Methotrexate seviyesi artar",
@@ -36,31 +36,31 @@ CRITICAL_DDI: Dict[Tuple[str, str], Dict[str, str]] = {
     },
     ("methotrexate", "trimetoprim"): {
         "severity": "major", "effect": "Folik asit antagonizmi",
-        "action": "Birleşmeden kacin"
+        "action": "Birleştirmeden kaçın"
     },
     ("ssri", "tramadol"): {
         "severity": "major", "effect": "Serotonin sendromu",
-        "action": "Birleştirmeden kacin veya yakin gozlem"
+        "action": "Birleştirmeden kaçın veya yakın gözlem"
     },
     ("ssri", "linezolid"): {
         "severity": "major", "effect": "Serotonin sendromu",
-        "action": "2 hafta washout sart"
+        "action": "2 hafta washout şart"
     },
     ("kombine ohk", "rifampin"): {
-        "severity": "moderate", "effect": "OHK etkinligi azalir",
+        "severity": "moderate", "effect": "OHK etkinliği azalır",
         "action": "Alternatif kontrasepsiyon (kondom)"
     },
     ("levothyroxine", "demir"): {
-        "severity": "moderate", "effect": "Levothyroxine emilimi azalir",
+        "severity": "moderate", "effect": "Levothyroxine emilimi azalır",
         "action": "4 saat ara ile al"
     },
     ("levothyroxine", "kalsiyum"): {
-        "severity": "moderate", "effect": "Levothyroxine emilimi azalir",
+        "severity": "moderate", "effect": "Levothyroxine emilimi azalır",
         "action": "4 saat ara ile al"
     },
     ("oxytocin", "prostaglandin"): {
-        "severity": "major", "effect": "Hipertonik kontraksiyon, uterus rupturu",
-        "action": "PGE2 dozdan 4 saat sonra oksitosin baslanabilir"
+        "severity": "major", "effect": "Hipertonik kontraksiyon, uterus rüptürü",
+        "action": "PGE2 dozdan 4 saat sonra oksitosin başlanabilir"
     },
 }
 
@@ -133,14 +133,14 @@ def check_interactions(drugs: List[str], is_pregnant: bool = False,
                 if x in n:
                     result.pregnancy_warnings.append(PregnancyWarning(
                         drug=orig, category="X",
-                        message=f"FDA Kategori X: Gebede KONTRENDIKE"))
+                        message="FDA Kategori X: Gebede KONTRENDİKE"))
                     break
             else:
                 for d_drug in PREGNANCY_CATEGORY_D:
                     if d_drug in n:
                         result.pregnancy_warnings.append(PregnancyWarning(
                             drug=orig, category="D",
-                            message=f"FDA Kategori D: Risk var, fayda lehte ise"))
+                            message="FDA Kategori D: Risk var, fayda lehte ise"))
                         break
 
     result.overall_safe = (not any(w.severity == "major" for w in result.ddi_warnings)

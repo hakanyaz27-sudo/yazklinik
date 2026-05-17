@@ -161,9 +161,9 @@ def generate_report(db_path: Optional[str] = None) -> StockReport:
                 rpt.alerts.append(StockAlert(
                     item_code=r["code"], item_name=r["name"],
                     alert_type="low_stock", severity="warning",
-                    message=f"{r['name']}: {r['quantity_on_hand']} adet kaldi "
-                            f"(esik: {r['reorder_threshold']})",
-                    suggested_action=f"{r['supplier'] or 'Tedarikci'}'den siparis ver"))
+                    message=f"{r['name']}: {r['quantity_on_hand']} adet kaldı "
+                            f"(eşik: {r['reorder_threshold']})",
+                    suggested_action=f"{r['supplier'] or 'Tedarikçi'}'den sipariş ver"))
 
             # Expiry?
             exp = r["expiry_date"]
@@ -175,14 +175,14 @@ def generate_report(db_path: Optional[str] = None) -> StockReport:
                         rpt.alerts.append(StockAlert(
                             item_code=r["code"], item_name=r["name"],
                             alert_type="expired", severity="critical",
-                            message=f"{r['name']} {abs(days_left)} gun once miatli geçti",
-                            suggested_action="Imha et / iade"))
+                            message=f"{r['name']} {abs(days_left)} gün önce miatlı geçti",
+                            suggested_action="İmha et / iade"))
                     elif days_left <= 30:
                         rpt.alerts.append(StockAlert(
                             item_code=r["code"], item_name=r["name"],
                             alert_type="expiring_soon", severity="warning",
-                            message=f"{r['name']} {days_left} gun sonra miati doluyor",
-                            suggested_action="Once kullan / iade dusun"))
+                            message=f"{r['name']} {days_left} gün sonra miatı doluyor",
+                            suggested_action="Önce kullan / iade düşün"))
                 except Exception:
                     pass
 

@@ -52,22 +52,22 @@ def preeklampsi_risk(systolic: int, diastolic: int,
 
     if bp_severe and (protein_score >= 2 or severe_signs >= 1):
         cat = "critical"
-        interp = "SEVERE preeklampsi - acil hospitalizasyon"
-        actions = ["Hospitalize", "MgSO4 yukleme + idame", "Antihipertansif (labetalol/nifedipine)",
-                   "Fetal monitor", "Dogum karari (gebelik haftasiyla degerlendir)"]
+        interp = "ŞİDDETLİ preeklampsi - acil hospitalizasyon"
+        actions = ["Hospitalize et", "MgSO4 yükleme + idame", "Antihipertansif (labetalol/nifedipin)",
+                   "Fetal monitör", "Doğum kararı (gebelik haftasıyla değerlendir)"]
     elif bp_high and (protein_score >= 1 or severe_signs >= 1):
         cat = "high"
-        interp = "Preeklampsi - yatis + kontroller"
-        actions = ["Yatis", "24 saat idrar protein", "KCFT + KBL + LDH",
-                   "MgSO4 dusunulebilir", "Aspirin (varsa zaten)"]
+        interp = "Preeklampsi - yatış + kontroller"
+        actions = ["Yatış", "24 saat idrar protein", "KCFT + KBL + LDH",
+                   "MgSO4 düşünülebilir", "Aspirin (varsa zaten)"]
     elif bp_high:
         cat = "moderate"
-        interp = "Gestasyonel hipertansiyon suphesi"
-        actions = ["Haftalik TA + idrar takip", "Lab bazal",
-                   "Aspirin 100 mg geceleri (eger 36 hf altinda)"]
+        interp = "Gestasyonel hipertansiyon şüphesi"
+        actions = ["Haftalık TA + idrar takibi", "Lab bazal",
+                   "Aspirin 100 mg geceleri (eğer 36 hf altında)"]
     else:
         cat = "low"
-        interp = "Risk dusuk"
+        interp = "Risk düşük"
         actions = ["Rutin antenatal takip"]
 
     score_val = (2 if bp_severe else 1 if bp_high else 0) * 30 + protein_score * 15 + severe_signs * 15
@@ -95,12 +95,12 @@ def hellp_risk(thrombocyte: int, ast: int, alt: int, ldh: int,
             score_name="HELLP", score_value={"I": 95, "II": 75, "III": 55}[klass],
             risk_category=cat,
             interpretation=f"HELLP Class {klass}",
-            recommended_actions=["Acil hospitalize", "Yuksek doz steroid",
-                                   "MgSO4", "Trombosit infuzyonu (gerekirse)",
-                                   "Dogum kararı"], inputs=inputs)
+            recommended_actions=["Acil hospitalize", "Yüksek doz steroid",
+                                   "MgSO4", "Trombosit infüzyonu (gerekirse)",
+                                   "Doğum kararı"], inputs=inputs)
     return RiskResult(
         score_name="HELLP", score_value=10, risk_category="low",
-        interpretation="HELLP kriterleri karsilanmiyor", inputs=inputs)
+        interpretation="HELLP kriterleri karşılanmıyor", inputs=inputs)
 
 
 def bishop_score(dilation_cm: int, effacement_pct: int,
@@ -120,17 +120,17 @@ def bishop_score(dilation_cm: int, effacement_pct: int,
 
     if total >= 8:
         cat = "high"
-        interp = "Servikal hazir; induksiyon basari yuksek"
-        actions = ["Oksitosin protokolu", "Amniyotomi", "Yakin monitor"]
+        interp = "Servikal hazır; indüksiyon başarı yüksek"
+        actions = ["Oksitosin protokolü", "Amniyotomi", "Yakın monitör"]
     elif total >= 5:
         cat = "moderate"
-        interp = "Orta hazirlik; PG2 mevcut secenek"
-        actions = ["Misoprostol 25 ug PO 4-6 saatte", "Re-evaluate 12-24 saat"]
+        interp = "Orta hazırlık; PG2 mevcut seçenek"
+        actions = ["Misoprostol 25 mcg PO 4-6 saatte", "12-24 saat sonra yeniden değerlendir"]
     else:
         cat = "low"
-        interp = "Unfavorable serviks - mekanik veya farmakolojik hazirlik"
+        interp = "Unfavorable serviks - mekanik veya farmakolojik hazırlık"
         actions = ["Foley balon", "Misoprostol",
-                   "Sezaryen riskini hastayla tartis"]
+                   "Sezaryen riskini hastayla tartış"]
 
     return RiskResult(
         score_name="Bishop", score_value=total, risk_category=cat,
@@ -155,16 +155,16 @@ def vte_padua_score(age_60_plus: bool = False, active_cancer: bool = False,
     score = sum(p for cond, p in items if cond)
     if score >= 4:
         cat = "high"
-        interp = "Yuksek VTE riski"
-        actions = ["LMWH proflaksi (enoxaparin 40 mg SC)",
+        interp = "Yüksek VTE riski"
+        actions = ["LMWH profilaksi (enoxaparin 40 mg SC)",
                    "Mekanik (kompresyon)", "Erken mobilizasyon"]
     elif score >= 2:
         cat = "moderate"
         interp = "Orta risk"
-        actions = ["Mekanik proflaksi", "LMWH degerlendirilebilir"]
+        actions = ["Mekanik profilaksi", "LMWH değerlendirilebilir"]
     else:
         cat = "low"
-        interp = "Dusuk risk"
+        interp = "Düşük risk"
         actions = ["Erken mobilizasyon", "Rutin"]
     return RiskResult(score_name="Padua VTE", score_value=score,
                        risk_category=cat, interpretation=interp,

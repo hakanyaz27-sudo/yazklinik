@@ -67,15 +67,15 @@ def compute_followup(rec: SmearRecord) -> FollowupPlan:
             p.rationale = "LSIL >25y -> kolposkopi"
         else:
             p.plan = "hpv_1y"
-            p.next_action = "1 yil sonra smear + HPV"
+            p.next_action = "1 yıl sonra smear + HPV"
             p.next_due_date = (last + timedelta(days=365)).isoformat()
-            p.rationale = "LSIL <25y -> 1 yil takip"
+            p.rationale = "LSIL <25y -> 1 yıl takip"
     elif result == "ASCUS":
         if hpv == "negative":
             p.plan = "routine_3y"
-            p.next_action = "3 yil sonra rutin tarama"
+            p.next_action = "3 yıl sonra rutin tarama"
             p.next_due_date = (last + timedelta(days=3*365)).isoformat()
-            p.rationale = "ASCUS HPV-neg: dusuk risk"
+            p.rationale = "ASCUS HPV-neg: düşük risk"
         elif hpv in ("positive", "hr_positive", "hr16", "hr18"):
             p.plan = "colpo"
             p.next_action = "Kolposkopi"
@@ -84,7 +84,7 @@ def compute_followup(rec: SmearRecord) -> FollowupPlan:
             p.rationale = "ASCUS HPV+ -> kolposkopi"
         else:
             p.plan = "hpv_1y"
-            p.next_action = "HPV testi yapilmali"
+            p.next_action = "HPV testi yapılmalı"
             p.next_due_date = (last + timedelta(days=30)).isoformat()
             p.rationale = "ASCUS -> reflex HPV"
     elif result == "NILM":
@@ -96,34 +96,34 @@ def compute_followup(rec: SmearRecord) -> FollowupPlan:
             p.rationale = "NILM ama HPV 16/18 pozitif"
         elif hpv in ("positive", "hr_positive"):
             p.plan = "hpv_1y"
-            p.next_action = "1 yil sonra HPV + smear"
+            p.next_action = "1 yıl sonra HPV + smear"
             p.next_due_date = (last + timedelta(days=365)).isoformat()
-            p.rationale = "NILM + HPV+ -> 1 yil takip"
+            p.rationale = "NILM + HPV+ -> 1 yıl takip"
         else:
             p.plan = "routine_3y"
-            p.next_action = "3 yil sonra rutin tarama (HPV) veya 5 yil (co-test)"
+            p.next_action = "3 yıl sonra rutin tarama (HPV) veya 5 yıl (co-test)"
             p.next_due_date = (last + timedelta(days=3*365)).isoformat()
-            p.rationale = "NILM HPV-neg: dusuk risk"
+            p.rationale = "NILM HPV-neg: düşük risk"
     elif result == "INADEQUATE":
         p.plan = "repeat"
-        p.next_action = "2-4 ay icinde tekrar smear"
+        p.next_action = "2-4 ay içinde tekrar smear"
         p.next_due_date = (last + timedelta(days=90)).isoformat()
         p.rationale = "Yetersiz numune -> tekrar"
     else:
         p.plan = "routine_3y"
-        p.next_action = "Tanim disi sonuc - 1 yil sonra tekrar"
+        p.next_action = "Tanım dışı sonuç - 1 yıl sonra tekrar"
         p.next_due_date = (last + timedelta(days=365)).isoformat()
-        p.rationale = f"Bilinmeyen sonuc: {result}"
+        p.rationale = f"Bilinmeyen sonuç: {result}"
 
     # Gebelik durumu
     if rec.is_pregnant and p.urgency == "urgent":
-        p.next_action += " (Gebelik nedeniyle dogum sonrasi)"
+        p.next_action += " (Gebelik nedeniyle doğum sonrası)"
         p.rationale += " | Gebelikte konizasyon ertelenir"
 
     # Immunsupresif
     if rec.immunosuppressed and p.plan == "routine_3y":
         p.plan = "annual"
-        p.next_action = "Yillik tarama (immunsupresif)"
+        p.next_action = "Yıllık tarama (immünsüpresif)"
         p.next_due_date = (last + timedelta(days=365)).isoformat()
 
     return p

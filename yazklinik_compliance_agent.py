@@ -94,8 +94,8 @@ def run_checks(db_path: Optional[str] = None) -> ComplianceReport:
         code="ISO-A9.1", title="Audit log var",
         category="log", standard="ISO27001 A.9.4.1",
         status="pass" if has_audit else "fail",
-        detail="audit_log tablosu mevcut" if has_audit else "audit_log YOK",
-        recommendation="" if has_audit else "audit_log tablosu olustur",
+        detail="audit_log tablosu mevcut" if has_audit else "audit_log tablosu YOK",
+        recommendation="" if has_audit else "audit_log tablosunu oluştur",
         weight=3))
 
     has_2fa = _db_has_table(db_path, "user_2fa")
@@ -103,18 +103,18 @@ def run_checks(db_path: Optional[str] = None) -> ComplianceReport:
         code="ISO-A9.4", title="2FA aktif",
         category="erisim", standard="ISO27001 A.9.4.2",
         status="pass" if has_2fa else "warn",
-        detail="user_2fa tablosu var" if has_2fa else "2FA henuz kurulmadi",
-        recommendation="" if has_2fa else "TOTP 2FA setup wizard caliştir",
+        detail="user_2fa tablosu var" if has_2fa else "2FA henüz kurulmadı",
+        recommendation="" if has_2fa else "TOTP 2FA setup sihirbazını çalıştır (/2fa-setup)",
         weight=3))
 
     # A.12 Yedekleme
     backup_ok = _backup_recent(db_path)
     checks.append(ComplianceCheck(
-        code="ISO-A12.3", title="48s icinde yedek alindi",
+        code="ISO-A12.3", title="48 saat içinde yedek alındı",
         category="yedek", standard="ISO27001 A.12.3.1",
         status="pass" if backup_ok else "fail",
-        detail="Yakin tarihli yedek bulundu" if backup_ok else "Yedek bulunmadi",
-        recommendation="" if backup_ok else "restic_daily_backup.ps1 cron",
+        detail="Yakın tarihli yedek bulundu" if backup_ok else "Yedek bulunmadı",
+        recommendation="" if backup_ok else "restic_daily_backup.ps1 Windows Task Scheduler",
         weight=4))
 
     # A.10 Sifreleme
@@ -125,7 +125,7 @@ def run_checks(db_path: Optional[str] = None) -> ComplianceReport:
         code="ISO-A10.1", title="TLS aktif",
         category="sifreleme", standard="ISO27001 A.10.1.1",
         status="pass" if has_tls else "warn",
-        detail="Sertifika bulundu" if has_tls else "TLS sertifikasi yok",
+        detail="Sertifika bulundu" if has_tls else "TLS sertifikası yok",
         recommendation="" if has_tls else "Caddy + Tailscale Funnel kur",
         weight=3))
 
@@ -133,11 +133,11 @@ def run_checks(db_path: Optional[str] = None) -> ComplianceReport:
     has_consent = _db_has_table(db_path, "patient_consents") or _db_has_table(
         db_path, "consents")
     checks.append(ComplianceCheck(
-        code="KVKK-12", title="Acik riza kayitlari var",
+        code="KVKK-12", title="Açık rıza kayıtları var",
         category="kvkk", standard="KVKK m.12",
         status="pass" if has_consent else "fail",
-        detail="consent tablosu var" if has_consent else "Riza kayitlari yok",
-        recommendation="" if has_consent else "patient_consents tablosu + UI",
+        detail="patient_consents tablosu var" if has_consent else "Rıza kayıtları yok",
+        recommendation="" if has_consent else "patient_consents tablosu + form UI",
         weight=4))
 
     # KVKK m.7 - Silme talebi
@@ -153,36 +153,36 @@ def run_checks(db_path: Optional[str] = None) -> ComplianceReport:
     edu_log = _file_exists(
         r"D:\YazKlinik_Final_D300\akillilik\compliance\egitim_log.txt")
     checks.append(ComplianceCheck(
-        code="ISO-A7.2", title="Yillik bilgi guvenligi egitim kaydi",
+        code="ISO-A7.2", title="Yıllık bilgi güvenliği eğitim kaydı",
         category="egitim", standard="ISO27001 A.7.2.2",
         status="pass" if edu_log else "warn",
-        detail="egitim_log.txt var" if edu_log else "Egitim kaydi yok",
-        recommendation="" if edu_log else "Yillik 2s egitim + imza",
+        detail="egitim_log.txt var" if edu_log else "Eğitim kaydı yok",
+        recommendation="" if edu_log else "Yıllık 2 saat eğitim + imza tutanağı",
         weight=1))
 
     # KVKK m.6 - Hassas veri sifreleme at rest
     db_encrypted = False  # SQLite varsayilan sifresizdir
     checks.append(ComplianceCheck(
-        code="KVKK-6", title="Hassas saglik verisi sifreleme at rest",
+        code="KVKK-6", title="Hassas sağlık verisi şifreleme (at rest)",
         category="sifreleme", standard="KVKK m.6",
         status="pass" if db_encrypted else "warn",
-        detail="SQLite acik" if not db_encrypted else "Sifreli",
-        recommendation="BitLocker disk acik veya SQLCipher",
+        detail="SQLite açık (şifresiz)" if not db_encrypted else "Şifreli",
+        recommendation="BitLocker disk şifreleme veya SQLCipher",
         weight=3))
 
     # A.11 Fiziksel guvenlik (klinik kapida kilit)
     checks.append(ComplianceCheck(
-        code="ISO-A11.1", title="Fiziksel erisim kontrolu",
+        code="ISO-A11.1", title="Fiziksel erişim kontrolü",
         category="erisim", standard="ISO27001 A.11.1",
         status="warn",
         detail="Otomatik tespit yok - manuel kontrol",
-        recommendation="Klinik kapi kart sistemi + log",
+        recommendation="Klinik kapı kart sistemi + giriş log kaydı",
         weight=2))
 
     # Tail scale / VPN
     ts_log = r"C:\ProgramData\Tailscale"
     checks.append(ComplianceCheck(
-        code="ISO-A13.1", title="Uzak erisim VPN/zero-trust",
+        code="ISO-A13.1", title="Uzak erişim VPN/zero-trust",
         category="erisim", standard="ISO27001 A.13.1.1",
         status="pass" if os.path.isdir(ts_log) else "warn",
         detail="Tailscale kurulu" if os.path.isdir(ts_log) else "VPN yok",

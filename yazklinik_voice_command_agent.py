@@ -100,20 +100,20 @@ def parse(spoken_text: str) -> VoiceCommand:
             cmd.suggested_action = _describe(cmd)
             return cmd
     return VoiceCommand(intent="unknown", raw_text=spoken_text,
-                         suggested_action="Anlamadim, tekrar dener misin?")
+                         suggested_action="Anlamadım, tekrar dener misin?")
 
 
 def _describe(cmd: VoiceCommand) -> str:
     if cmd.intent == "navigate":
         return f"-> {cmd.target}"
     if cmd.intent == "create":
-        return f"Yeni hasta olustur: {cmd.params.get('name', '?')}"
+        return f"Yeni hasta oluştur: {cmd.params.get('name', '?')}"
     if cmd.intent == "save":
         return "Aktif formu kaydet"
     if cmd.intent == "cancel":
-        return "Aktif islemi iptal et"
+        return "Aktif işlemi iptal et"
     if cmd.intent == "measure":
-        return f"Olcum kaydet: {cmd.target} = {cmd.params}"
+        return f"Ölçüm kaydet: {cmd.target} = {cmd.params}"
     if cmd.intent == "search":
         return f"Ara: {cmd.params.get('query', '')}"
     return "Bilinmiyor"

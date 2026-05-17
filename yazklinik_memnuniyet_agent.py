@@ -24,18 +24,18 @@ DEFAULT_DB_PATH = (os.environ.get("YAZKLINIK_DB_PATH")
 
 SURVEY_TEMPLATE = (
     "Merhaba {name},\n"
-    "Dunku ziyaretiniz icin tesekkurler. Hizmetimizden memnuniyet seviyenizi\n"
-    "1-5 arasi puanlayabilir misiniz?\n\n"
-    "Cevap: 1 (kotu) 2 3 4 5 (cok iyi)\n"
-    "Eklemek istediginiz bir not varsa lutfen yazin.\n\n"
-    "Saygilarimla,\n"
+    "Dünkü ziyaretiniz için teşekkürler. Hizmetimizden memnuniyet seviyenizi\n"
+    "1-5 arası puanlayabilir misiniz?\n\n"
+    "Cevap: 1 (kötü) 2 3 4 5 (çok iyi)\n"
+    "Eklemek istediğiniz bir not varsa lütfen yazın.\n\n"
+    "Saygılarımla,\n"
     "Op. Dr. Hakan Yaz"
 )
 
 BIRTHDAY_TEMPLATE = (
     "Sevgili {name},\n"
-    "Dogum gununuz kutlu olsun! Saglik, mutluluk ve guzelliklerle dolu\n"
-    "bir yas dilerim.\n\n"
+    "Doğum gününüz kutlu olsun! Sağlık, mutluluk ve güzelliklerle dolu\n"
+    "bir yaş dilerim.\n\n"
     "- Op. Dr. Hakan Yaz"
 )
 

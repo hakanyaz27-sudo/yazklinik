@@ -64,29 +64,29 @@ def build_presentation(case: ConseyVakaInput,
 
     # Slide 1: Vaka tanitimi
     sunum.slides.append(ConseyVakaSlide(
-        slide_number=1, title="Vaka Tanitimi",
+        slide_number=1, title="Vaka Tanıtımı",
         bullets=[
             f"Hasta: {case.patient_initials} ({case.age} y)",
-            f"Tani: {case.diagnosis}",
+            f"Tanı: {case.diagnosis}",
             f"Sunum tarihi: {sunum.presented_at[:10]}",
         ]))
 
     # Slide 2: Klinik ozet
     sunum.slides.append(ConseyVakaSlide(
-        slide_number=2, title="Klinik Ozet",
+        slide_number=2, title="Klinik Özet",
         bullets=[s.strip() for s in case.clinical_summary.split(".") if s.strip()][:5],
         notes=case.clinical_summary))
 
     # Slide 3: Lab
     if case.relevant_labs:
         sunum.slides.append(ConseyVakaSlide(
-            slide_number=3, title="Laboratuar Bulgulari",
+            slide_number=3, title="Laboratuvar Bulguları",
             bullets=[s.strip() for s in case.relevant_labs.split(",") if s.strip()][:6]))
 
     # Slide 4: Goruntuleme
     if case.imaging:
         sunum.slides.append(ConseyVakaSlide(
-            slide_number=4, title="Goruntuleme",
+            slide_number=4, title="Görüntüleme",
             bullets=[s.strip() for s in case.imaging.split(".") if s.strip()][:4]))
 
     # Slide 5: Mevcut tedavi
@@ -115,13 +115,13 @@ def build_presentation(case: ConseyVakaInput,
                     cites.append(str(r)[:80])
             sunum.rag_citations = cites
             sunum.slides.append(ConseyVakaSlide(
-                slide_number=len(sunum.slides) + 1, title="Guncel Literatur",
+                slide_number=len(sunum.slides) + 1, title="Güncel Literatür",
                 bullets=cites or ["RAG sonucu yok"]))
         except Exception:
             pass
 
     # Markdown export
-    lines = [f"# Konsey Vakasi - {case.patient_initials}", ""]
+    lines = [f"# Konsey Vakası - {case.patient_initials}", ""]
     for sl in sunum.slides:
         lines.append(f"## {sl.title}")
         for b in sl.bullets:

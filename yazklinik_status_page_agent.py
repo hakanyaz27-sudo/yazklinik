@@ -105,21 +105,21 @@ def build_report(db_path: Optional[str] = None) -> StatusReport:
     noncrit_down = [s for s in rpt.services if not s.critical and not s.up]
     if crit_down:
         rpt.overall = "down"
-        rpt.uptime_message = f"KRITIK: {len(crit_down)} servis kapali"
+        rpt.uptime_message = f"KRİTİK: {len(crit_down)} servis kapalı"
     elif noncrit_down:
         rpt.overall = "degraded"
-        rpt.uptime_message = f"{len(noncrit_down)} yardimci servis kapali"
+        rpt.uptime_message = f"{len(noncrit_down)} yardımcı servis kapalı"
     else:
         rpt.overall = "operational"
-        rpt.uptime_message = "Tum sistemler calisiyor"
+        rpt.uptime_message = "Tüm sistemler çalışıyor"
     return rpt
 
 
 def render_html(rpt: StatusReport) -> str:
     """Public HTML status sayfasi (tek dosya, link yok)."""
-    badge = {"operational": ("#16a34a", "[OK] CALISIYOR"),
+    badge = {"operational": ("#16a34a", "[OK] ÇALIŞIYOR"),
              "degraded": ("#f59e0b", "[!!] KISMI"),
-             "down": ("#dc2626", "[XX] KESINTI")}
+             "down": ("#dc2626", "[XX] KESİNTİ")}
     color, txt = badge.get(rpt.overall, ("#666", "?"))
     rows = []
     for s in rpt.services:
@@ -146,8 +146,8 @@ th{{background:#f3f4f6;font-weight:600}}
 <div class="banner"><b>{txt}</b><br><span style="font-size:14px;opacity:.9">{rpt.uptime_message}</span></div>
 <table><thead><tr><th>Servis</th><th>Durum</th><th>Gecikme</th></tr></thead>
 <tbody>{''.join(rows)}</tbody></table>
-<p class="foot">Op. Dr. Hakan Yaz Klinik / Son guncelleme: {rpt.generated_at}<br>
-Bugun {rpt.db_visits_today} ziyaret kaydedildi.</p>
+<p class="foot">Op. Dr. Hakan Yaz Kliniği / Son güncelleme: {rpt.generated_at}<br>
+Bugün {rpt.db_visits_today} ziyaret kaydedildi.</p>
 </body></html>"""
 
 

@@ -62,13 +62,13 @@ def _restic_available() -> bool:
 def _check_restic_snapshots() -> BackupCheck:
     if not _restic_available():
         return BackupCheck(name="restic_binary", status="warn",
-                            detail="restic kurulu degil (paket eksik)")
+                            detail="restic kurulu değil (paket eksik)")
     if not os.path.isdir(RESTIC_REPO):
         return BackupCheck(name="restic_repo", status="fail",
                             detail=f"Repo yok: {RESTIC_REPO}")
     if not os.path.isfile(RESTIC_PASSWORD_FILE):
         return BackupCheck(name="restic_password", status="fail",
-                            detail=f"Password file yok: {RESTIC_PASSWORD_FILE}")
+                            detail=f"Şifre dosyası yok: {RESTIC_PASSWORD_FILE}")
     env = os.environ.copy()
     env["RESTIC_REPOSITORY"] = RESTIC_REPO
     env["RESTIC_PASSWORD_FILE"] = RESTIC_PASSWORD_FILE
@@ -78,11 +78,11 @@ def _check_restic_snapshots() -> BackupCheck:
             capture_output=True, text=True, timeout=30, env=env)
         if r.returncode != 0:
             return BackupCheck(name="restic_snapshots", status="fail",
-                                detail=f"restic err: {r.stderr[:200]}")
+                                detail=f"restic hata: {r.stderr[:200]}")
         snaps = json.loads(r.stdout or "[]")
         if not snaps:
             return BackupCheck(name="restic_snapshots", status="fail",
-                                detail="Hicbir snapshot yok")
+                                detail="Hiçbir snapshot yok")
         last = snaps[-1]
         ts_iso = last.get("time", "")
         try:
@@ -93,7 +93,7 @@ def _check_restic_snapshots() -> BackupCheck:
         status = "ok" if 0 <= age_h <= 36 else "warn" if age_h <= 96 else "fail"
         return BackupCheck(
             name="restic_snapshots", status=status,
-            detail=f"Son snapshot: {ts_iso} ({age_h:.1f}h once)",
+            detail=f"Son snapshot: {ts_iso} ({age_h:.1f} saat önce)",
             age_hours=age_h)
     except Exception as e:
         return BackupCheck(name="restic_snapshots", status="fail",
@@ -121,7 +121,7 @@ def _check_sqlite_integrity(db_path: str) -> BackupCheck:
 def _check_nas_backup_dir() -> BackupCheck:
     if not os.path.isdir(NAS_BACKUP_DIR):
         return BackupCheck(name="nas_backup_dir", status="warn",
-                            detail=f"NAS yedek klasoru erisilemez: {NAS_BACKUP_DIR}")
+                            detail=f"NAS yedek klasörü erişilemez: {NAS_BACKUP_DIR}")
     try:
         files = os.listdir(NAS_BACKUP_DIR)
         recent = []
@@ -136,9 +136,9 @@ def _check_nas_backup_dir() -> BackupCheck:
                 pass
         if not recent:
             return BackupCheck(name="nas_backup_recent", status="warn",
-                                detail=f"48s icinde yedek yok ({len(files)} dosya var)")
+                                detail=f"48 saat içinde yedek yok ({len(files)} dosya var)")
         return BackupCheck(name="nas_backup_recent", status="ok",
-                            detail=f"{len(recent)} yeni yedek (48s)")
+                            detail=f"{len(recent)} yeni yedek (48 saat)")
     except Exception as e:
         return BackupCheck(name="nas_backup_recent", status="fail",
                             detail=f"{type(e).__name__}: {e}")
@@ -150,12 +150,12 @@ def _check_db_size_reasonable(db_path: str) -> BackupCheck:
     size_mb = os.path.getsize(db_path) / (1024 * 1024)
     if size_mb < 0.01:
         return BackupCheck(name="db_size", status="fail",
-                            detail=f"DB bos? {size_mb:.2f} MB")
+                            detail=f"DB boş? {size_mb:.2f} MB")
     if size_mb > 5000:
         return BackupCheck(name="db_size", status="warn",
-                            detail=f"DB cok buyuk: {size_mb:.0f} MB - bolme dusun")
+                            detail=f"DB çok büyük: {size_mb:.0f} MB - bölme düşün")
     return BackupCheck(name="db_size", status="ok",
-                        detail=f"DB boyutu: {size_mb:.1f} MB (saglikli)")
+                        detail=f"DB boyutu: {size_mb:.1f} MB (sağlıklı)")
 
 
 def verify_all(db_path: Optional[str] = None) -> BackupVerifyReport:
@@ -199,7 +199,7 @@ def notify_doctor_if_failed(rpt: BackupVerifyReport) -> bool:
             return False
         msg = (f"YEDEK ALARMI ({rpt.generated_at[:16]})\n"
                + "\n".join(rpt.critical_issues[:3])
-               + "\nDetay: /api/agents/backup-verify/report")
+               + "\nDetay için: /api/agents/backup-verify/report")
         send_whatsapp_message(doctor, msg)
         return True
     except Exception:

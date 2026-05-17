@@ -108,18 +108,18 @@ def compute_report(target_date: Optional[date] = None,
 
     if fatigue >= 70:
         rpt.fatigue_level = "burnout"
-        rpt.recommendations = ["ACIL: bu hafta hasta sayini azalt",
-                                 "Yarin 1 saat erken bitir",
-                                 "10 dakikalik nefes/meditasyon"]
+        rpt.recommendations = ["ACİL: bu hafta hasta sayını azalt",
+                                 "Yarın 1 saat erken bitir",
+                                 "10 dakikalık nefes/meditasyon"]
     elif fatigue >= 50:
         rpt.fatigue_level = "high"
         rpt.recommendations = ["10 dk mola al",
-                                 "Su ic, ayaga kalk",
-                                 "Sonraki hastayi 5 dk geciktir"]
+                                 "Su iç, ayağa kalk",
+                                 "Sonraki hastayı 5 dk geciktir"]
     elif fatigue >= 25:
         rpt.fatigue_level = "moderate"
-        rpt.recommendations = ["Pomodoro yakla (5 dk break)",
-                                 "Su ic"]
+        rpt.recommendations = ["Pomodoro yaklaştı (5 dk mola)",
+                                 "Su iç"]
     else:
         rpt.fatigue_level = "low"
         rpt.recommendations = ["Tempo iyi, devam"]

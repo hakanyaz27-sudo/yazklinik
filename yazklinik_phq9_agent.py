@@ -21,18 +21,18 @@ AGENT_VERSION = "2026.05.17-phq9"
 
 
 PHQ9_QUESTIONS = [
-    "Az ilgi/keyif aldigim seyleri yapmaktan zevk almama",
-    "Kendimi cokmus, depresif veya umutsuz hissetme",
-    "Uykuya dalmakta zorluk veya cok fazla uyuma",
-    "Yorgun hissetme veya enerji eksikligi",
-    "Istahsizlik veya asiri yeme",
-    "Kendim hakkinda kotu hisler - basarisiz hissetme",
-    "Konsantrasyon zorlugu (TV, gazete vs)",
-    "Yavas hareket etme / huzursuzluk",
-    "Olmek/kendine zarar verme dusunceleri",
+    "Az ilgi/keyif aldığım şeyleri yapmaktan zevk almama",
+    "Kendimi çökmüş, depresif veya umutsuz hissetme",
+    "Uykuya dalmakta zorluk veya çok fazla uyuma",
+    "Yorgun hissetme veya enerji eksikliği",
+    "İştahsızlık veya aşırı yeme",
+    "Kendim hakkında kötü hisler - başarısız hissetme",
+    "Konsantrasyon zorluğu (TV, gazete vs.)",
+    "Yavaş hareket etme / huzursuzluk",
+    "Ölmek/kendine zarar verme düşünceleri",
 ]
-SCORE_LABELS = {0: "Hicbir zaman", 1: "Birkac gun",
-                  2: "Yarisindan fazla", 3: "Hemen her gun"}
+SCORE_LABELS = {0: "Hiçbir zaman", 1: "Birkaç gün",
+                  2: "Yarısından fazla", 3: "Hemen her gün"}
 
 
 @dataclass
@@ -75,15 +75,15 @@ def score(patient_id: str, answers: List[int]) -> PHQ9Result:
         result.suicide_risk = True
         result.urgent_referral = True
         result.recommendations.append(
-            "ACIL: Intihar dusuncesi pozitif - psikiyatri konsult, ailesini bilgilendir")
+            "ACİL: İntihar düşüncesi pozitif - psikiyatri konsültasyonu, aileyi bilgilendir")
 
-    # Genel oneriler
+    # Genel öneriler
     if total >= 15:
         result.urgent_referral = True
-        result.recommendations.append("Ruh sagligi uzmanina yonlendir")
-        result.recommendations.append("Antidepresan (SSRI) degerlendirilmeli")
+        result.recommendations.append("Ruh sağlığı uzmanına yönlendir")
+        result.recommendations.append("Antidepresan (SSRI) değerlendirilmeli")
     elif total >= 10:
-        result.recommendations.append("Takip + psikolojik destek oner")
+        result.recommendations.append("Takip + psikolojik destek öner")
         result.recommendations.append("4 hafta sonra tekrar PHQ-9 uygula")
     elif total >= 5:
         result.recommendations.append("Hafif depresyon - destek + egzersiz")
@@ -95,10 +95,10 @@ def score(patient_id: str, answers: List[int]) -> PHQ9Result:
 
 
 def get_questionnaire() -> Dict[str, Any]:
-    """Frontend icin soru listesi + cevap secenekleri."""
+    """Frontend için soru listesi + cevap seçenekleri."""
     return {
-        "title": "PHQ-9 Depresyon Tarama (Son 2 Hafta)",
-        "intro": "Son 2 haftada asagidakilerden hangileri sizi ne kadar rahatsiz etti?",
+        "title": "PHQ-9 Depresyon Taraması (Son 2 Hafta)",
+        "intro": "Son 2 haftada aşağıdakilerden hangileri sizi ne kadar rahatsız etti?",
         "questions": [{"id": i+1, "text": q} for i, q in enumerate(PHQ9_QUESTIONS)],
         "options": [{"value": v, "label": l} for v, l in SCORE_LABELS.items()],
     }
