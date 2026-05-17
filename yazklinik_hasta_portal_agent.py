@@ -293,15 +293,16 @@ def _sanitize_text_for_patient(t: str) -> str:
     return t[:240]
 
 
-def list_my_visits(patient_id: str, db_path: Optional[str] = None) -> List[Dict[str, Any]]:
+def list_my_visits(patient_id: str, db_path: Optional[str] = None,
+                    limit: int = 50) -> List[Dict[str, Any]]:
     """Hastanin ziyaret listesi - HASTAYA UYGUN format.
 
     D300 2026-05-17:
-    - patient_folder_key
-    - USG klasoru olanlari oncelikle goster (gercek ziyaret)
+    - KALICI LINK olarak calisir: hasta her giriste SON 50 ziyareti gorur
+      (sonradan eklenen ziyaretler otomatik gozukur)
+    - SADECE dosyali ziyaretler (image_count>0 OR pdf_count>0)
+    - patient_folder_key kolon dogru
     - Ham BK metni temizle
-    - LIMIT 5 (en son 5 - cok eski ziyaret hastayi yormaz)
-    - Klasor yoksa (BK protokol-only) baska sectiona
     """
     db_path = db_path or DEFAULT_DB_PATH
     con = sqlite3.connect(db_path)
@@ -312,13 +313,12 @@ def list_my_visits(patient_id: str, db_path: Optional[str] = None) -> List[Dict[
             "  clinical_section, source, pdf_count, image_count, full_path "
             "FROM visits "
             "WHERE patient_folder_key = ? AND (archived_at IS NULL OR archived_at = '') "
-            "  AND (image_count > 0 OR pdf_count > 0) "  # SADECE dosyali ziyaretler
-            "ORDER BY visit_date DESC LIMIT 5",
-            (patient_id,)).fetchall()
+            "  AND (image_count > 0 OR pdf_count > 0) "
+            "ORDER BY visit_date DESC LIMIT ?",
+            (patient_id, limit)).fetchall()
         out = []
         for r in rows:
             d = dict(r)
-            # Hastaya gosterilen metin - sade
             ex = _sanitize_text_for_patient(d.get("examination") or "")
             cn = _sanitize_text_for_patient(d.get("control_note") or "")
             no = _sanitize_text_for_patient(d.get("notes") or "")

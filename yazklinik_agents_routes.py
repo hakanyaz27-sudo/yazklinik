@@ -3573,7 +3573,18 @@ box-shadow:0 1px 3px rgba(0,0,0,.06)}
 {% endif %}
 
 {% if visits %}
-  <h3 style="color:#0d4f8b;font-size:16px;margin:14px 0 8px">📋 Ziyaretler ({{visits|length}})</h3>
+  <div style="background:#d9f4ec;color:#0a8a76;padding:10px 14px;border-radius:8px;
+              margin:14px 0 8px;font-size:12px;display:flex;align-items:center;gap:8px">
+    <span style="font-size:16px">🔄</span>
+    <span>Bu sayfa <b>her açılışta otomatik güncellenir</b> - sonraki ziyaretleriniz buraya eklenir.
+    Linkinizi saklayın, tekrar tekrar açabilirsiniz.</span>
+  </div>
+  <h3 style="color:#0d4f8b;font-size:16px;margin:14px 0 8px;display:flex;justify-content:space-between;align-items:center">
+    <span>📋 Ziyaretleriniz ({{visits|length}})</span>
+    {% if visits[0].visit_date %}
+      <small style="color:#5e7185;font-size:11px;font-weight:400">Son: {{visits[0].visit_date}}</small>
+    {% endif %}
+  </h3>
   {% for v in visits %}
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -3773,8 +3784,14 @@ font-size:13px;margin-bottom:18px;color:#7a5a00}
   <!-- SELECTOR WIZARD: hasta secince acilir -->
   <div id="share-wizard" style="display:none;background:#f5f8fb;border:1px solid #cdd9e3;
        border-radius:10px;padding:14px;margin-bottom:12px">
+    <div style="background:linear-gradient(135deg,#e2eef7,#d9f4ec);border-left:4px solid #1769aa;
+                padding:10px 14px;border-radius:0 6px 6px 0;margin-bottom:12px;font-size:13px;color:#0d4f8b">
+      🔗 <b>KALICI HASTA LİNKİ:</b> Bu link hastanın <b>tek erişim noktası</b> olur.
+      Hasta her açtığında en güncel verileri görür - <u>sonradan eklenen ziyaretler otomatik gözükür</u>.
+      Belirli ziyaretleri kilitlemek istersen aşağıdan seç.
+    </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <b style="color:#0d4f8b;font-size:14px">📤 Hasta Ne Görsün? (varsayılan: hepsi)</b>
+      <b style="color:#0d4f8b;font-size:14px">📤 Hasta Ne Görsün?</b>
       <button type="button" onclick="loadShareOptions()" style="background:#5e7185;font-size:12px;padding:6px 10px">🔄 Yenile</button>
     </div>
 
@@ -3804,20 +3821,21 @@ font-size:13px;margin-bottom:18px;color:#7a5a00}
       </label>
     </div>
 
-    <!-- Visit selector -->
+    <!-- Visit selector (OPSIYONEL - kilitlemek istersen) -->
     <div id="visit-list-wrapper" style="display:none;margin-bottom:8px">
       <div style="font-size:12px;color:#0d4f8b;font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between">
-        <span>📋 Ziyaretler (seçili olanlar paylaşılır)</span>
+        <span>📋 Belirli ziyaretleri kilitle (boş bırak = HEPSİ + sonradan eklenenler)</span>
         <span>
-          <a href="#" onclick="toggleAllVisits(true);return false" style="font-size:11px;margin-right:8px">Hepsi</a>
+          <a href="#" onclick="toggleAllVisits(true);return false" style="font-size:11px;margin-right:8px">Hepsi seç</a>
           <a href="#" onclick="toggleAllVisits(false);return false" style="font-size:11px">Hiçbiri</a>
         </span>
       </div>
       <div id="visit-list" style="max-height:200px;overflow-y:auto;background:#fff;padding:8px;border-radius:6px;border:1px solid #cdd9e3"></div>
     </div>
 
-    <div style="font-size:11px;color:#5e7185;margin-top:6px">
-      ℹ️ Hiçbir ziyaret seçilmezse tüm ziyaretler (default 5) paylaşılır
+    <div style="font-size:11px;color:#5e7185;margin-top:6px;background:#fff;padding:8px;border-radius:6px;border:1px dashed #cdd9e3">
+      ℹ️ <b>Varsayılan</b> (hiçbir ziyaret seçilmezse): Hasta tüm geçmiş + sonraki ziyaretleri görür (otomatik güncel).<br>
+      🔒 <b>Belirli seçim</b>: Sadece seçilen ziyaretler gözükür, sonradan eklenenler GÖZÜKMEZ.
     </div>
   </div>
 
@@ -3845,13 +3863,13 @@ font-size:13px;margin-bottom:18px;color:#7a5a00}
     <input type="text" id="pid" placeholder="Hasta ID (yukaridan secince doluyor)" autocomplete="off" readonly
            style="background:#f5f8fb">
     <input type="tel" id="phone" placeholder="Telefon (5XXX...)" inputmode="tel" autocomplete="off">
-    <select id="ttl" style="max-width:200px;padding:14px 12px;font-size:16px;border:1px solid #cdd9e3;border-radius:8px;background:#fff">
-      <option value="24">24 saat</option>
+    <select id="ttl" style="max-width:240px;padding:14px 12px;font-size:16px;border:1px solid #cdd9e3;border-radius:8px;background:#fff">
+      <option value="24">24 saat (tek seferlik)</option>
       <option value="72">3 gün</option>
-      <option value="168" selected>1 hafta</option>
+      <option value="168">1 hafta</option>
       <option value="720">1 ay</option>
       <option value="2160">3 ay</option>
-      <option value="8760">1 yıl</option>
+      <option value="8760" selected>1 yıl (önerilen - kalıcı link)</option>
       <option value="87600">10 yıl (süresiz)</option>
     </select>
   </div>
@@ -4127,7 +4145,7 @@ function loadShareOptions(){
                        (v.image_count||0) + ' resim, 📄 ' + (v.pdf_count||0) + ' pdf</span>' :
                        '<span style="color:#b87333;font-size:11px"> ⚠ dosyasiz</span>';
           // Default: ilk 5 secili (dosyali olanlar)
-          const checked = (hasMedia && i < 5) ? 'checked' : '';
+          const checked = '';  // KALICI LINK: default HEPSI bos (auto-update)
           return '<label style="display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid #eef3f8;cursor:pointer;font-size:13px">' +
             '<input type="checkbox" class="visit-cb" data-key="' + escapeHtml(v.full_path || v.visit_key || '') + '" ' + checked +
             ' style="width:18px;height:18px;accent-color:#1769aa;-webkit-appearance:checkbox !important;appearance:checkbox !important;flex-shrink:0"> ' +
