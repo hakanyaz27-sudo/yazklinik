@@ -79,6 +79,7 @@ def _agents_medical_theme(response):
                 '<a href="/">Ana ekran</a>'
                 '<a href="/ajanlar">Klinik ajanlari</a>'
                 '<a href="/yz-konsultasyon">YZ hekim</a>'
+                '<a href="/hasta-portal" style="background:#0a8a76;color:#fff">🔗 Hasta Portal</a>'
                 '<a href="/ceviri-merkezi">Tibbi ceviri</a>'
                 '<a href="/instagram-hazirla">Instagram</a>'
                 '</nav>'
@@ -3064,10 +3065,27 @@ def api_portal_issue_link():
         "phone": p.get("phone", ""),
         "base_url": base_url,
         "ttl_hours": int(p.get("ttl_hours", 24)),
-        "share_config": share_config})
+        "share_config": share_config,
+        "tc_last4": str(p.get("tc_last4") or "").strip(),
+        "birth_year": int(p.get("birth_year") or 0) or None})
 
 
-@agents_bp.route("/hasta-portal/giris", methods=["GET"])
+@agents_bp.route("/api/agents/portal/revoke", methods=["POST"])
+def api_portal_revoke():
+    """Token iptal et - hasta artik linke giremez."""
+    auth = _require_session()
+    if auth: return auth
+    err = _agent_or_503(portal_mod, "hasta_portal")
+    if err: return err
+    p = _payload()
+    token = (p.get("token") or "").strip()
+    if not token:
+        return jsonify({"ok": False, "error": "token gerek"}), 400
+    ok = portal_mod.revoke_token(token)
+    return jsonify({"ok": True, "result": {"revoked": ok}})
+
+
+@agents_bp.route("/hasta-portal/giris", methods=["GET", "POST"])
 def hasta_portal_giris():
     err = _agent_or_503(portal_mod, "hasta_portal")
     if err: return err
@@ -3075,29 +3093,117 @@ def hasta_portal_giris():
     sig = request.args.get("sig", "")
     if not token:
         return "Token eksik", 400
-    # Onceki versiyon sig'i dogrulamiyordu (issue_magic_link uretiyor ama
-    # kontrol yoktu). Simdi token+patient_id'den hesaplanan HMAC ile karsilastir.
-    res = portal_mod.verify_token(token)
-    if not res.ok:
+
+    # POST: TC + dogum yili dogrulama formu submit
+    if request.method == "POST":
+        tc = (request.form.get("tc_last4") or "").strip()
+        by = (request.form.get("birth_year") or "").strip()
+        if not portal_mod.verify_tc_birth(token, tc, by):
+            return render_template_string(_PORTAL_TC_FORM,
+                token=token, sig=sig, error="Bilgiler hatalı - tekrar deneyin")
+        # Dogrulama OK - session set
+        res = portal_mod.verify_token(token, mark_used=True)
+        if res.ok:
+            session["portal_patient_id"] = res.session.patient_id
+            session["portal_token"] = token
+            return _flask_redirect_obj("/hasta-portal")
         return f"Hata: {res.error}", 403
+
+    # GET: ilk acilis - token dogrula, TC gerekiyorsa form goster
+    res = portal_mod.verify_token(token, mark_used=False)
+    if not res.ok:
+        return render_template_string(_PORTAL_ERROR_PAGE, error=res.error), 403
+    # Sig dogrula
     try:
-        import hashlib as _hl
-        import hmac as _hmac
+        import hashlib as _hl, hmac as _hmac
         expected_sig = _hmac.new(
             portal_mod.PORTAL_SECRET.encode(),
             f"{res.session.patient_id}|{token}".encode(),
             _hl.sha256).hexdigest()[:16]
         if sig and not _hmac.compare_digest(sig, expected_sig):
-            return "Hata: gecersiz imza", 403
+            return render_template_string(_PORTAL_ERROR_PAGE,
+                error="Geçersiz imza - link tamam değil"), 403
     except Exception:
-        pass  # sig dogrulanamadi - eski linkler hala calissin
-    session["portal_patient_id"] = res.session.patient_id
-    session["portal_token"] = token  # scopes filter icin
-    return render_template_string(
-        "<html lang='tr'><head><meta charset='utf-8'><meta http-equiv='refresh' content='0;url=/hasta-portal'></head>"
-        "<body style='font-family:sans-serif;padding:24px'>"
-        "<h2>Hoş geldiniz</h2><p>Giriş başarılı, yönlendiriliyorsunuz...</p>"
-        "<p><a href='/hasta-portal'>Tıkla</a></p></body></html>")
+        pass
+
+    # TC dogrulama gerekiyor mu?
+    if res.magic_link == "NEEDS_TC_VERIFY":
+        return render_template_string(_PORTAL_TC_FORM, token=token, sig=sig, error=None)
+
+    # Direkt giris (TC ayarlanmamis)
+    res2 = portal_mod.verify_token(token, mark_used=True)
+    if res2.ok:
+        session["portal_patient_id"] = res2.session.patient_id
+        session["portal_token"] = token
+        return _flask_redirect_obj("/hasta-portal")
+    return f"Hata: {res2.error}", 403
+
+
+def _flask_redirect_obj(url):
+    from flask import redirect as _redir
+    return _redir(url)
+
+
+_PORTAL_TC_FORM = r"""<!doctype html><html lang="tr"><head><meta charset="utf-8">
+<title>Doğrulama - Hasta Portal</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d4f8b">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon-180.png">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Segoe UI",sans-serif;background:linear-gradient(135deg,#0d4f8b,#0a8a76);
+color:#fff;padding:30px;min-height:100vh;min-height:100dvh;
+display:flex;align-items:center;justify-content:center}
+.card{background:#fff;color:#122236;border-radius:16px;padding:30px;max-width:420px;width:100%;
+box-shadow:0 10px 40px rgba(0,0,0,0.25)}
+h1{color:#0d4f8b;font-size:22px;margin-bottom:8px}
+p{color:#5e7185;line-height:1.5;margin-bottom:18px;font-size:14px}
+label{display:block;color:#0d4f8b;font-weight:600;font-size:13px;margin-bottom:6px;margin-top:14px}
+input{width:100%;padding:14px 16px;font-size:16px;border:2px solid #cdd9e3;border-radius:10px;
+-webkit-appearance:none;letter-spacing:1px}
+input:focus{border-color:#1769aa;outline:none}
+button{width:100%;background:#1769aa;color:#fff;border:0;padding:16px;border-radius:10px;
+font-weight:700;font-size:15px;margin-top:20px;cursor:pointer;min-height:50px;
+touch-action:manipulation;-webkit-appearance:none}
+button:active{background:#0d4f8b}
+.err{background:#fde7e9;color:#b3261e;padding:10px;border-radius:8px;font-size:13px;margin-top:12px}
+.info{background:#e6f4ea;color:#0a8a76;padding:10px;border-radius:8px;font-size:12px;margin-top:12px}
+</style></head><body>
+<div class="card">
+<h1>🔐 Kimlik Doğrulama</h1>
+<p>Sayın hastamız, kişisel sağlık verilerinize erişim için aşağıdaki bilgileri girin:</p>
+<form method="POST" action="/hasta-portal/giris?token={{token|urlencode}}&sig={{sig|urlencode}}">
+  <label>TC Kimlik No (son 4 hane)</label>
+  <input type="tel" name="tc_last4" maxlength="4" pattern="[0-9]{4}" required
+         placeholder="****" inputmode="numeric" autocomplete="off">
+  <label>Doğum Yılı</label>
+  <input type="tel" name="birth_year" maxlength="4" pattern="[0-9]{4}" required
+         placeholder="YYYY" inputmode="numeric" autocomplete="off">
+  {% if error %}<div class="err">⚠ {{error}}</div>{% endif %}
+  <button type="submit">Devam Et →</button>
+</form>
+<div class="info">🔒 Bu bilgiler sadece kimliğinizi doğrulamak için kullanılır. Saklanmaz, paylaşılmaz.</div>
+</div>
+</body></html>"""
+
+
+_PORTAL_ERROR_PAGE = r"""<!doctype html><html lang="tr"><head><meta charset="utf-8">
+<title>Hata - Hasta Portal</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{font-family:-apple-system,sans-serif;background:linear-gradient(135deg,#b3261e,#5e7185);
+color:#fff;padding:40px;text-align:center;min-height:100vh}
+.card{background:#fff;color:#122236;border-radius:16px;padding:30px;max-width:400px;margin:0 auto;
+box-shadow:0 10px 40px rgba(0,0,0,0.2)}
+h1{color:#b3261e;font-size:20px;margin-bottom:12px}
+p{color:#5e7185;line-height:1.5}
+</style></head><body>
+<div class="card">
+<h1>❌ Erişim Sağlanamadı</h1>
+<p>{{error}}</p>
+<p style="margin-top:14px;font-size:13px">Lütfen klinikten yeni link talep edin.</p>
+</div>
+</body></html>"""
 
 
 @agents_bp.route("/hasta-portal/media", methods=["GET"])
@@ -3231,12 +3337,22 @@ def hasta_portal_home():
             con.row_factory = sqlite3.Row
             try:
                 rows = con.execute(
-                    "SELECT token, patient_id, phone, issued_at, expires_at, consumed_at "
-                    "FROM patient_portal_tokens ORDER BY issued_at DESC LIMIT 20"
+                    "SELECT token, patient_id, phone, issued_at, expires_at, "
+                    "  consumed_at, revoked_at, last_used_at, use_count "
+                    "FROM patient_portal_tokens "
+                    "ORDER BY COALESCE(last_used_at, issued_at) DESC LIMIT 30"
                 ).fetchall()
                 recent_tokens = [dict(r) for r in rows]
             except Exception:
-                pass
+                # Yeni kolon yoksa (eski sema) - en azindan eski sema ile dene
+                try:
+                    rows = con.execute(
+                        "SELECT token, patient_id, phone, issued_at, expires_at, consumed_at "
+                        "FROM patient_portal_tokens ORDER BY issued_at DESC LIMIT 30"
+                    ).fetchall()
+                    recent_tokens = [dict(r) for r in rows]
+                except Exception:
+                    pass
             # D300: TUM hastalari sayfaya gomerek arama client-side yapilacak
             # API stuck oluyor (Funnel/Werkzeug), bu yontem sifir network
             try:
@@ -3506,11 +3622,39 @@ font-size:13px;margin-bottom:18px;color:#7a5a00}
     </div>
   </div>
 
+  <!-- KIMLIK DOGRULAMA: Hasta linke tikladiginda TC + dogum yili sorulur -->
+  <div id="verify-wrapper" style="display:none;background:#fde7f5;border:1px solid #a01e7e;
+       border-radius:10px;padding:14px;margin-bottom:12px">
+    <div style="font-size:13px;color:#a01e7e;font-weight:700;margin-bottom:8px">
+      🔐 Hasta Kimlik Doğrulaması (Önerilen - extra güvenlik)
+    </div>
+    <div style="font-size:12px;color:#5e7185;margin-bottom:8px">
+      Hasta linke tıkladığında TC son 4 hane + doğum yılı sorulur (link çalınsa da girilemez)
+    </div>
+    <div class="form-row">
+      <input type="tel" id="tc_last4" placeholder="TC son 4 hane (opsiyonel)" maxlength="4"
+             pattern="[0-9]{4}" inputmode="numeric" autocomplete="off">
+      <input type="tel" id="birth_year" placeholder="Doğum yılı (opsiyonel) örn 1985" maxlength="4"
+             pattern="[0-9]{4}" inputmode="numeric" autocomplete="off">
+    </div>
+    <div style="font-size:11px;color:#5e7185;margin-top:4px">
+      ℹ️ Her ikisi de boş bırakılırsa link doğrudan açılır (güvenlik yok)
+    </div>
+  </div>
+
   <div class="form-row">
     <input type="text" id="pid" placeholder="Hasta ID (yukaridan secince doluyor)" autocomplete="off" readonly
            style="background:#f5f8fb">
     <input type="tel" id="phone" placeholder="Telefon (5XXX...)" inputmode="tel" autocomplete="off">
-    <input type="number" id="ttl" placeholder="Süre (saat)" value="24" min="1" max="168" style="max-width:140px">
+    <select id="ttl" style="max-width:200px;padding:14px 12px;font-size:16px;border:1px solid #cdd9e3;border-radius:8px;background:#fff">
+      <option value="24">24 saat</option>
+      <option value="72">3 gün</option>
+      <option value="168" selected>1 hafta</option>
+      <option value="720">1 ay</option>
+      <option value="2160">3 ay</option>
+      <option value="8760">1 yıl</option>
+      <option value="87600">10 yıl (süresiz)</option>
+    </select>
   </div>
   <div class="form-row">
     <button onclick="issueLink()">🔗 Link Üret</button>
@@ -3523,23 +3667,37 @@ font-size:13px;margin-bottom:18px;color:#7a5a00}
 <div class="section">
   <h2><span class="num">2</span> Son Üretilen Linkler (20)</h2>
   <table>
-    <thead><tr><th>Hasta ID</th><th>Telefon</th><th>Uretildi</th><th>Sona Erer</th><th>Durum</th><th>Token</th></tr></thead>
+    <thead><tr><th>Hasta ID</th><th>Tel</th><th>Uretildi</th><th>Sona Erer</th><th>Kullanim</th><th>Durum</th><th>Iptal</th></tr></thead>
     <tbody>
     {% for t in tokens %}
     <tr>
-      <td>{{t.patient_id}}</td>
-      <td>{{t.phone or '-'}}</td>
-      <td>{{t.issued_at[:16] if t.issued_at else '-'}}</td>
-      <td>{{t.expires_at[:16] if t.expires_at else '-'}}</td>
+      <td><small>{{t.patient_id[:25]}}{% if t.patient_id|length > 25 %}...{% endif %}</small></td>
+      <td><small>{{t.phone or '-'}}</small></td>
+      <td><small>{{t.issued_at[:16] if t.issued_at else '-'}}</small></td>
+      <td><small>{{t.expires_at[:16] if t.expires_at else '-'}}</small></td>
+      <td style="text-align:center">
+        {% if t.use_count and t.use_count > 0 %}
+          <span style="color:#16815f">{{t.use_count}}x</span>
+          {% if t.last_used_at %}<br><small style="color:#5e7185">{{t.last_used_at[5:16]}}</small>{% endif %}
+        {% else %}
+          <span style="color:#5e7185">-</span>
+        {% endif %}
+      </td>
       <td>
-      {% if t.consumed_at %}<span class="status-used">Kullanıldı</span>
-      {% else %}<span class="status-active">Aktif</span>
+      {% if t.revoked_at %}<span style="color:#b3261e;font-weight:700">İPTAL</span>
+      {% elif t.use_count and t.use_count > 0 %}<span class="status-active">Aktif (kullaniliyor)</span>
+      {% else %}<span class="status-active">Hazır</span>
       {% endif %}
       </td>
-      <td><code style="font-size:11px">{{t.token[:14]}}...</code></td>
+      <td>
+        {% if not t.revoked_at %}
+          <button onclick="revokeToken('{{t.token}}', '{{t.patient_id[:20]}}')"
+                  style="background:#b3261e;padding:4px 8px;font-size:11px;min-height:28px">İptal</button>
+        {% endif %}
+      </td>
     </tr>
     {% else %}
-    <tr><td colspan="6" style="text-align:center;color:#5e7185;padding:20px">Henüz hiç link üretilmemiş</td></tr>
+    <tr><td colspan="7" style="text-align:center;color:#5e7185;padding:20px">Henüz hiç link üretilmemiş</td></tr>
     {% endfor %}
     </tbody>
   </table>
@@ -3715,6 +3873,7 @@ function selectPatient(p){
       '<br><small style="color:#b87333">⚠ Telefon kayitli degil - elle gir</small>');
   document.getElementById('selected-patient').style.display = 'block';
   document.getElementById('share-wizard').style.display = 'block';
+  document.getElementById('verify-wrapper').style.display = 'block';
   resultsBox.style.display = 'none';
   searchInput.value = p.name || p.key;
   // Visit listesini yukle (selector icin)
@@ -3810,6 +3969,26 @@ function escapeHtml(s){
   return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function revokeToken(token, patientId){
+  if(!confirm('Bu link iptal edilsin mi?\n\nHasta: ' + patientId + '\n\nIptal sonrasi hasta bu link ile artik giremez.')) return;
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/agents/portal/revoke?_t=' + Date.now(), true);
+  xhr.withCredentials = true;
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.timeout = 8000;
+  xhr.onload = function(){
+    if(xhr.status === 200){
+      alert('Link iptal edildi.');
+      location.reload();
+    } else {
+      alert('Hata: ' + xhr.status + ' - ' + xhr.responseText.substring(0, 200));
+    }
+  };
+  xhr.onerror = function(){ alert('Ag hatasi'); };
+  xhr.ontimeout = function(){ alert('Timeout'); };
+  xhr.send(JSON.stringify({token: token}));
+}
+
 // --- Magic link uretici (XHR - Funnel/SW bypass) ---
 function issueLink(callback){
   const pid = document.getElementById('pid').value.trim();
@@ -3878,10 +4057,14 @@ function issueLink(callback){
     }
   };
   const shareConfig = collectShareConfig();
-  console.log('[YK-PORTAL] share_config:', shareConfig);
+  const tcLast4 = (document.getElementById('tc_last4') || {}).value || '';
+  const birthYear = (document.getElementById('birth_year') || {}).value || '';
+  console.log('[YK-PORTAL] share_config:', shareConfig, 'tc:', tcLast4, 'birth:', birthYear);
   xhr.send(JSON.stringify({
     patient_id: pid, phone: phone, ttl_hours: ttl,
-    share_config: shareConfig
+    share_config: shareConfig,
+    tc_last4: tcLast4,
+    birth_year: birthYear
   }));
 }
 

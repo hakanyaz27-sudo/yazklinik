@@ -162,6 +162,11 @@ DOCTOR_WORKFLOW_ROUTES = {
     "/enabiz",
     "/entegrasyon-ajanlari",
     "/sistem-durumu",
+    "/hasta-portal",       # D300: doktor menude direkt eriskin (Yeni Magic-Link)
+    "/yz-konsultasyon",
+    "/ceviri-merkezi",
+    "/instagram-hazirla",
+    "/mobil",
 }
 
 
@@ -471,8 +476,8 @@ FEATURE_GROUPS = (
            simple=True, aliases=("stok", "ilac stok", "sarf", "envanter", "miat")),
         _r("/2fa-setup", "2FA Setup (TOTP)", "Google Authenticator ile 6 hane dogrulama kur", "system", "[2F]",
            simple=True, aliases=("2fa", "two factor", "totp", "google authenticator", "iki adimli")),
-        _r("/hasta-portal", "Hasta Self-Service Portal", "Magic-link ile hastanin ziyaret + recete erisimi", "patient", "[HP]",
-           simple=True, aliases=("hasta portal", "patient portal", "magic link", "self service")),
+        _r("/hasta-portal", "🔗 Hasta Portal (Magic-Link)", "Hastaya WhatsApp ile USG/PDF/lab paylaş - Süresiz + TC dogrulama", "patient", "[HP]",
+           simple=True, aliases=("hasta portal", "patient portal", "magic link", "self service", "hasta paylas", "usg paylas", "wp link uret", "whatsapp uret")),
         _r("/api/agents/vision-usg/analyze", "USG Goruntu Analiz (AI)", "llama3.2-vision: modality + biyometri + IG", "ai", "[VU]"),
         _r("/api/agents/soap/expand", "SOAP Genisletici", "2 satir not -> tam SOAP formati", "ai", "[SP]"),
         _r("/api/agents/icd10/suggest", "ICD-10 Kod Oneren", "Tani metni -> en uygun 5 kod", "ai", "[IC]"),

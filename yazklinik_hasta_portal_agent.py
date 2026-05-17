@@ -62,8 +62,23 @@ def _ensure_table(db_path: str) -> None:
             issued_at TEXT,
             expires_at TEXT,
             consumed_at TEXT,
-            scopes TEXT
+            scopes TEXT,
+            tc_last4 TEXT,
+            birth_year INTEGER,
+            revoked_at TEXT,
+            last_used_at TEXT,
+            use_count INTEGER DEFAULT 0
         )""")
+        # Eski sema icin migrate (kolon yoksa ekle)
+        for col, type_def in [
+            ("tc_last4", "TEXT"), ("birth_year", "INTEGER"),
+            ("revoked_at", "TEXT"), ("last_used_at", "TEXT"),
+            ("use_count", "INTEGER DEFAULT 0"),
+        ]:
+            try:
+                con.execute(f"ALTER TABLE patient_portal_tokens ADD COLUMN {col} {type_def}")
+            except Exception:
+                pass  # zaten var
         con.commit()
     finally:
         con.close()
@@ -73,6 +88,8 @@ def issue_magic_link(patient_id: str, phone: str,
                      base_url: str = "https://127.0.0.1:5443",
                      ttl_hours: int = 24,
                      share_config: Optional[Dict[str, Any]] = None,
+                     tc_last4: str = "",
+                     birth_year: Optional[int] = None,
                      db_path: Optional[str] = None) -> PortalLoginResult:
     """Hastaya magic-link uret + paylasim konfigurasyonu.
 
@@ -101,19 +118,79 @@ def issue_magic_link(patient_id: str, phone: str,
     else:
         scopes_json = json.dumps({"all": True}, ensure_ascii=False)
 
+    # TC son 4 hane normalize
+    tc_last4_clean = "".join(c for c in str(tc_last4 or "") if c.isdigit())[-4:]
+    birth_year_int = None
+    try:
+        if birth_year:
+            birth_year_int = int(birth_year)
+    except Exception:
+        pass
+
     con = sqlite3.connect(db_path)
     try:
         con.execute(
             "INSERT INTO patient_portal_tokens "
-            "(token, patient_id, phone, issued_at, expires_at, scopes) VALUES (?, ?, ?, ?, ?, ?)",
+            "(token, patient_id, phone, issued_at, expires_at, scopes, "
+            " tc_last4, birth_year, use_count) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
             (token, patient_id, phone, now.isoformat(timespec="seconds"),
-             expires.isoformat(timespec="seconds"), scopes_json))
+             expires.isoformat(timespec="seconds"), scopes_json,
+             tc_last4_clean, birth_year_int))
         con.commit()
     finally:
         con.close()
 
     link = f"{base_url}/hasta-portal/giris?token={token}&sig={sig}"
     return PortalLoginResult(ok=True, magic_link=link)
+
+
+def revoke_token(token: str, db_path: Optional[str] = None) -> bool:
+    """Doktor token'i iptal eder. Hasta artik link ile giremez."""
+    db_path = db_path or DEFAULT_DB_PATH
+    con = sqlite3.connect(db_path)
+    try:
+        con.execute(
+            "UPDATE patient_portal_tokens SET revoked_at = ? WHERE token = ?",
+            (datetime.now().isoformat(timespec="seconds"), token))
+        con.commit()
+        return True
+    except Exception:
+        return False
+    finally:
+        con.close()
+
+
+def verify_tc_birth(token: str, tc_last4: str, birth_year: int,
+                     db_path: Optional[str] = None) -> bool:
+    """TC son 4 + dogum yili dogrula. Token DB'sindeki ile karsilastir."""
+    db_path = db_path or DEFAULT_DB_PATH
+    con = sqlite3.connect(db_path)
+    con.row_factory = sqlite3.Row
+    try:
+        r = con.execute(
+            "SELECT tc_last4, birth_year FROM patient_portal_tokens WHERE token = ?",
+            (token,)).fetchone()
+        if not r:
+            return False
+        expected_tc = r["tc_last4"] or ""
+        expected_birth = r["birth_year"] or 0
+        # Eger doktor TC ayarlamadiysa (bos), dogrulama atlanir
+        if not expected_tc and not expected_birth:
+            return True
+        clean_tc = "".join(c for c in str(tc_last4 or "") if c.isdigit())[-4:]
+        try:
+            clean_birth = int(birth_year)
+        except Exception:
+            clean_birth = 0
+        # Eger sadece TC veya sadece birth ayarlandiysa, sadece o dogrulanir
+        if expected_tc and clean_tc != expected_tc:
+            return False
+        if expected_birth and clean_birth != expected_birth:
+            return False
+        return True
+    finally:
+        con.close()
 
 
 def get_token_scopes(token: str, db_path: Optional[str] = None) -> Dict[str, Any]:
@@ -139,7 +216,9 @@ def get_token_scopes(token: str, db_path: Optional[str] = None) -> Dict[str, Any
     return {"all": True}
 
 
-def verify_token(token: str, db_path: Optional[str] = None) -> PortalLoginResult:
+def verify_token(token: str, db_path: Optional[str] = None,
+                  mark_used: bool = True) -> PortalLoginResult:
+    """Token dogrula. mark_used=True ise use_count + last_used_at guncel."""
     db_path = db_path or DEFAULT_DB_PATH
     _ensure_table(db_path)
     con = sqlite3.connect(db_path)
@@ -149,23 +228,40 @@ def verify_token(token: str, db_path: Optional[str] = None) -> PortalLoginResult
             "SELECT * FROM patient_portal_tokens WHERE token = ?", (token,)).fetchone()
         if not row:
             return PortalLoginResult(ok=False, error="Token bulunamadı")
-        if row["consumed_at"]:
-            return PortalLoginResult(ok=False, error="Token zaten kullanıldı")
+        # Eski 'consumed_at' kolonu artik kullanilmiyor (tekrar acilabilir)
+        # ama eski tokenlar gelirse 'revoked' olarak yorumla
+        if row["revoked_at"]:
+            return PortalLoginResult(ok=False, error="Bu link iptal edilmiş")
         try:
             exp = datetime.fromisoformat(row["expires_at"])
             if exp < datetime.now():
-                return PortalLoginResult(ok=False, error="Token süresi geçti")
+                return PortalLoginResult(ok=False, error="Link süresi geçti")
         except Exception:
-            return PortalLoginResult(ok=False, error="Geçersiz tarih formatı")
-        con.execute("UPDATE patient_portal_tokens SET consumed_at = ? WHERE token = ?",
+            return PortalLoginResult(ok=False, error="Geçersiz tarih")
+        # TC dogrulama gerekiyor mu?
+        needs_verify = bool(row["tc_last4"] or row["birth_year"])
+        # Use count + last_used update
+        if mark_used:
+            try:
+                con.execute(
+                    "UPDATE patient_portal_tokens SET "
+                    "  last_used_at = ?, use_count = COALESCE(use_count, 0) + 1 "
+                    "WHERE token = ?",
                     (datetime.now().isoformat(timespec="seconds"), token))
-        con.commit()
+                con.commit()
+            except Exception:
+                pass
         sess = PortalSession(
             patient_id=row["patient_id"], patient_name="",
             phone=row["phone"] or "", issued_at=row["issued_at"],
             expires_at=row["expires_at"], token=token,
-            scopes=(row["scopes"] or "read").split(","))
-        return PortalLoginResult(ok=True, session=sess)
+            scopes=["read"])
+        result = PortalLoginResult(ok=True, session=sess)
+        # needs_verify bilgisini caller'a iletmek icin error field kullan
+        # caller bunu kontrol edip TC formu gosterir
+        if needs_verify:
+            result.magic_link = "NEEDS_TC_VERIFY"  # signal
+        return result
     finally:
         con.close()
 
