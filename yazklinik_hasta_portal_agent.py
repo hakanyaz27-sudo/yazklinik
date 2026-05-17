@@ -130,13 +130,72 @@ def verify_token(token: str, db_path: Optional[str] = None) -> PortalLoginResult
 
 
 def list_my_visits(patient_id: str, db_path: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Hastanin ziyaret listesi.
+
+    D300 2026-05-17: Kolon isimleri visits tablosuna gore duzeltildi.
+    - patient_folder_key (NOT patient_id)
+    - examination, control_note, notes (NOT complaints/diagnosis)
+    - archived_at filtre eklendi
+    """
     db_path = db_path or DEFAULT_DB_PATH
     con = sqlite3.connect(db_path)
     con.row_factory = sqlite3.Row
     try:
         rows = con.execute(
-            "SELECT visit_date, visit_type, complaints, diagnosis "
-            "FROM visits WHERE patient_id = ? ORDER BY visit_date DESC LIMIT 20",
+            "SELECT visit_date, visit_type, examination, control_note, notes, "
+            "  clinical_section, source, pdf_count, image_count "
+            "FROM visits "
+            "WHERE patient_folder_key = ? AND (archived_at IS NULL OR archived_at = '') "
+            "ORDER BY visit_date DESC LIMIT 30",
+            (patient_id,)).fetchall()
+        # Hastaya gostermek icin sade liste
+        out = []
+        for r in rows:
+            d = dict(r)
+            # Tek satirlik 'diagnosis' yaz - examination veya control_note veya notes
+            d["diagnosis"] = (d.get("examination") or d.get("control_note")
+                               or d.get("notes") or "")
+            # complaints = notes ilk satiri
+            n = d.get("notes") or ""
+            d["complaints"] = n[:200] if n else ""
+            out.append(d)
+        return out
+    except Exception:
+        return []
+    finally:
+        con.close()
+
+
+def list_my_pdfs(patient_id: str, db_path: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Hastanin PDF raporlari (USG, lab vs)."""
+    db_path = db_path or DEFAULT_DB_PATH
+    con = sqlite3.connect(db_path)
+    con.row_factory = sqlite3.Row
+    try:
+        rows = con.execute(
+            "SELECT file_name, report_type, created_at, source, rel_path "
+            "FROM patient_pdf_archive "
+            "WHERE patient_key = ? AND deleted_at IS NULL "
+            "ORDER BY created_at DESC LIMIT 20",
+            (patient_id,)).fetchall()
+        return [dict(r) for r in rows]
+    except Exception:
+        return []
+    finally:
+        con.close()
+
+
+def list_my_meds(patient_id: str, db_path: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Hastanin aktif ilac listesi."""
+    db_path = db_path or DEFAULT_DB_PATH
+    con = sqlite3.connect(db_path)
+    con.row_factory = sqlite3.Row
+    try:
+        rows = con.execute(
+            "SELECT drug_name, dose, frequency, indication, start_date "
+            "FROM patient_medications "
+            "WHERE patient_key = ? AND COALESCE(active, 1) = 1 "
+            "ORDER BY start_date DESC LIMIT 20",
             (patient_id,)).fetchall()
         return [dict(r) for r in rows]
     except Exception:

@@ -3063,12 +3063,24 @@ def hasta_portal_home():
     # MOD 1: Hasta gormus magic-link ile gelmis
     if portal_pid:
         visits = []
+        pdfs = []
+        meds = []
         if portal_mod:
             try:
                 visits = portal_mod.list_my_visits(portal_pid)
             except Exception:
                 pass
-        return render_template_string(_PORTAL_HASTA_PAGE, visits=visits, pid=portal_pid)
+            try:
+                pdfs = portal_mod.list_my_pdfs(portal_pid)
+            except Exception:
+                pass
+            try:
+                meds = portal_mod.list_my_meds(portal_pid)
+            except Exception:
+                pass
+        return render_template_string(_PORTAL_HASTA_PAGE,
+                                       visits=visits, pdfs=pdfs, meds=meds,
+                                       pid=portal_pid)
 
     # MOD 2: Doktor login - yonetim paneli
     if doktor_user:
@@ -3145,14 +3157,47 @@ box-shadow:0 1px 3px rgba(0,0,0,.06)}
   <p>Hasta dosyanız - son ziyaretler ve raporlar</p>
 </div>
 {% if visits %}
+  <h3 style="color:#0d4f8b;font-size:16px;margin:14px 0 8px">📋 Ziyaretler ({{visits|length}})</h3>
   {% for v in visits %}
   <div class="card">
-    <b>{{v.visit_date}}</b> - {{v.visit_type or 'Muayene'}}
-    {% if v.diagnosis %}<div class="meta">Tanı: {{v.diagnosis}}</div>{% endif %}
-    {% if v.complaints %}<div class="meta">Şikayet: {{v.complaints[:120]}}</div>{% endif %}
+    <b>{{v.visit_date or '-'}}</b> - {{v.visit_type or 'Muayene'}}
+    {% if v.source %}<span style="font-size:11px;color:#5e7185;float:right">{{v.source}}</span>{% endif %}
+    {% if v.examination %}<div class="meta">📋 {{v.examination[:200]}}</div>{% endif %}
+    {% if v.control_note %}<div class="meta">📝 {{v.control_note[:200]}}</div>{% endif %}
+    {% if v.notes and not v.examination %}<div class="meta">📌 {{v.notes[:200]}}</div>{% endif %}
+    {% if v.pdf_count and v.pdf_count > 0 %}
+      <div class="meta">📄 {{v.pdf_count}} PDF ekli</div>
+    {% endif %}
+    {% if v.image_count and v.image_count > 0 %}
+      <div class="meta">🖼 {{v.image_count}} görüntü</div>
+    {% endif %}
   </div>
   {% endfor %}
-{% else %}
+{% endif %}
+
+{% if pdfs %}
+  <h3 style="color:#0a8a76;font-size:16px;margin:14px 0 8px">📄 Raporlar / PDF'ler ({{pdfs|length}})</h3>
+  {% for p in pdfs %}
+  <div class="card">
+    <b>{{p.file_name}}</b>
+    {% if p.report_type %}<span style="font-size:11px;color:#5e7185;float:right">{{p.report_type}}</span>{% endif %}
+    <div class="meta">📅 {{p.created_at[:10] if p.created_at else '-'}} • {{p.source or 'klinik'}}</div>
+  </div>
+  {% endfor %}
+{% endif %}
+
+{% if meds %}
+  <h3 style="color:#b87333;font-size:16px;margin:14px 0 8px">💊 Aktif İlaçlar ({{meds|length}})</h3>
+  {% for m in meds %}
+  <div class="card">
+    <b>{{m.drug_name}}</b> {% if m.dose %}- {{m.dose}}{% endif %}
+    {% if m.frequency %}<div class="meta">⏰ {{m.frequency}}</div>{% endif %}
+    {% if m.indication %}<div class="meta">💡 {{m.indication}}</div>{% endif %}
+  </div>
+  {% endfor %}
+{% endif %}
+
+{% if not visits and not pdfs and not meds %}
   <div class="card empty">
     Henüz kayıt bulunmamaktadır.<br>
     Klinik ekibimiz veri girdikten sonra burada görünecektir.
