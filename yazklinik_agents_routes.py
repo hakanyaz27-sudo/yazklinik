@@ -3458,48 +3458,85 @@ function escapeHtml(s){
   return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// --- Magic link uretici ---
-async function issueLink(){
+// --- Magic link uretici (XHR - Funnel/SW bypass) ---
+function issueLink(callback){
   const pid = document.getElementById('pid').value.trim();
   const phone = document.getElementById('phone').value.trim();
   const ttl = parseInt(document.getElementById('ttl').value || '24');
   if(!pid){
     alert('Once yukaridan hasta sec (arama kutusu)');
     searchInput.focus();
-    return null;
+    if(callback) callback(null);
+    return;
   }
-  const r = await fetch('/api/agents/portal/issue-link', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    credentials:'same-origin',
-    body: JSON.stringify({patient_id: pid, phone: phone, ttl_hours: ttl})
-  });
-  const d = await r.json();
   const result = document.getElementById('result');
   result.classList.add('show');
-  if(d.ok && d.result && d.result.magic_link){
-    const link = d.result.magic_link;
-    result.innerHTML = '<b style="color:#16815f">✓ Magic Link uretildi (24 saat gecerli):</b><br><br>' +
-      '<div style="background:#fff;padding:10px;border-radius:6px;border:1px solid #cdd9e3;word-break:break-all">' +
-      '<a href="' + link + '" target="_blank">' + link + '</a></div><br>' +
-      '<button onclick="copyLink(\'' + link + '\')" style="background:#5e7185">📋 Kopyala</button> ' +
-      '<button onclick="window.open(\'' + link + '\', \'_blank\')" style="background:#1769aa">👁 Onizle</button>';
-    setTimeout(() => location.reload(), 4000);
-  } else {
-    result.innerHTML = '<b style="color:#b3261e">Hata:</b> ' + (d.error || JSON.stringify(d));
-  }
-  return d;
+  result.innerHTML = '<i>Link uretiliyor...</i>';
+  console.log('[YK-PORTAL] issueLink START pid=' + pid + ' phone=' + phone);
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/agents/portal/issue-link?_t=' + Date.now(), true);
+  xhr.withCredentials = true;
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('Cache-Control', 'no-cache');
+  xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+  xhr.timeout = 15000;
+  xhr.ontimeout = function(){
+    console.warn('[YK-PORTAL] issueLink TIMEOUT 15s');
+    result.innerHTML = '<b style="color:#b3261e">⚠ Sunucu cevap vermedi (15s)</b>';
+    if(callback) callback(null);
+  };
+  xhr.onerror = function(){
+    console.error('[YK-PORTAL] issueLink ERROR');
+    result.innerHTML = '<b style="color:#b3261e">⚠ Ag hatasi - tekrar dene</b>';
+    if(callback) callback(null);
+  };
+  xhr.onload = function(){
+    console.log('[YK-PORTAL] issueLink DONE status:', xhr.status);
+    if(xhr.status === 401){
+      result.innerHTML = '<b style="color:#b3261e">⚠ Yetki YOK - tekrar login</b>';
+      if(callback) callback(null); return;
+    }
+    if(xhr.status !== 200){
+      result.innerHTML = '<b style="color:#b3261e">⚠ HTTP ' + xhr.status + '</b><br>' +
+        '<small>' + escapeHtml(xhr.responseText.substring(0, 200)) + '</small>';
+      if(callback) callback(null); return;
+    }
+    let d;
+    try { d = JSON.parse(xhr.responseText); }
+    catch(e){
+      result.innerHTML = '<b style="color:#b3261e">JSON parse hatasi</b>';
+      if(callback) callback(null); return;
+    }
+    if(d.ok && d.result && d.result.magic_link){
+      const link = d.result.magic_link;
+      result.innerHTML = '<b style="color:#16815f">✓ Magic Link uretildi (' + ttl + ' saat gecerli):</b><br><br>' +
+        '<div style="background:#fff;padding:10px;border-radius:6px;border:1px solid #cdd9e3;word-break:break-all">' +
+        '<a href="' + link + '" target="_blank">' + link + '</a></div><br>' +
+        '<button id="btnCopy" style="background:#5e7185">📋 Kopyala</button> ' +
+        '<button id="btnPreview" style="background:#1769aa">👁 Onizle</button>';
+      // Event listenerlari ekle (inline onclick yerine)
+      document.getElementById('btnCopy').addEventListener('click', () => copyLink(link));
+      document.getElementById('btnPreview').addEventListener('click', () => window.open(link, '_blank'));
+      if(callback) callback(d);
+    } else {
+      result.innerHTML = '<b style="color:#b3261e">Hata:</b> ' +
+        escapeHtml(d.error || JSON.stringify(d));
+      if(callback) callback(null);
+    }
+  };
+  xhr.send(JSON.stringify({patient_id: pid, phone: phone, ttl_hours: ttl}));
 }
 
-async function issueAndWhatsApp(){
+function issueAndWhatsApp(){
   const phone = document.getElementById('phone').value.trim();
   if(!phone){
     alert('Telefon gerekli - hasta secince otomatik dolar veya elle gir');
     return;
   }
-  const d = await issueLink();
-  if(d && d.ok && d.result && d.result.magic_link){
+  issueLink((d) => {
+    if(!d || !d.ok || !d.result || !d.result.magic_link) return;
     const cleanPhone = phone.replace(/\D/g, '');
-    // Eger Turk telefonu 0 ile basliyorsa 90 ekle
     let waPhone = cleanPhone;
     if(waPhone.startsWith('0')) waPhone = '90' + waPhone.substring(1);
     else if(!waPhone.startsWith('90') && waPhone.length === 10) waPhone = '90' + waPhone;
@@ -3511,7 +3548,7 @@ async function issueAndWhatsApp(){
       '- Op. Dr. Hakan Yaz Klinigi'
     );
     window.open('https://wa.me/' + waPhone + '?text=' + msg, '_blank');
-  }
+  });
 }
 
 function copyLink(text){
