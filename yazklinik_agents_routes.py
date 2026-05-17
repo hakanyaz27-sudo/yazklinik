@@ -3224,7 +3224,27 @@ font-size:13px;margin-bottom:18px;color:#7a5a00}
 </div>
 
 <script>
-// --- Hasta arama (D300 v3 - normal flow + status feedback + debug) ---
+// --- D300 KRITIK: Service Worker'i unregister + cache temizle (eski SW abort sebebi) ---
+(async function nukeSW(){
+  try {
+    if('serviceWorker' in navigator){
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for(const reg of regs){
+        await reg.unregister();
+        console.log('[YK-PORTAL] SW unregistered:', reg.scope);
+      }
+      if('caches' in window){
+        const keys = await caches.keys();
+        for(const k of keys){
+          await caches.delete(k);
+          console.log('[YK-PORTAL] Cache silindi:', k);
+        }
+      }
+    }
+  } catch(e) { console.warn('[YK-PORTAL] SW nuke hatasi:', e); }
+})();
+
+// --- Hasta arama (D300 v4 - SW bypass + xhr fallback) ---
 console.log('[YK-PORTAL] Hasta arama JS yuklendi');
 
 let searchTimer = null;
@@ -3250,46 +3270,61 @@ if(searchInput){
   });
 }
 
-async function doSearch(q){
-  const url = '/api/agents/portal/search-patients?q=' + encodeURIComponent(q);
-  console.log('[YK-PORTAL] Fetch START:', url);
+function doSearch(q){
+  // XMLHttpRequest kullaniliyor (Service Worker bazi browserlarda bypass edemiyor fetch'i)
+  // Cache buster URL'ye eklenir
+  const url = '/api/agents/portal/search-patients?q=' + encodeURIComponent(q) + '&_t=' + Date.now();
+  console.log('[YK-PORTAL] XHR START:', url);
   const t0 = performance.now();
-  // 8 saniye timeout
-  const ctrl = new AbortController();
-  const tid = setTimeout(() => {
-    console.warn('[YK-PORTAL] Fetch TIMEOUT 8s, abort!');
-    ctrl.abort();
-  }, 8000);
-  try {
-    const r = await fetch(url, {credentials:'same-origin', signal: ctrl.signal});
-    clearTimeout(tid);
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.withCredentials = true;
+  xhr.setRequestHeader('Cache-Control', 'no-cache, no-store');
+  xhr.setRequestHeader('Pragma', 'no-cache');
+  xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+  xhr.timeout = 10000;  // 10sn
+  xhr.ontimeout = function(){
+    console.warn('[YK-PORTAL] XHR TIMEOUT 10s');
+    statusBox.textContent = '⚠ Sunucu cevap vermedi (10s)';
+    statusBox.style.color = '#b3261e';
+  };
+  xhr.onerror = function(){
+    console.error('[YK-PORTAL] XHR ERROR:', xhr.status, xhr.statusText);
+    statusBox.textContent = '⚠ Ag hatasi - tekrar dene';
+    statusBox.style.color = '#b3261e';
+  };
+  xhr.onload = function(){
     const dt = Math.round(performance.now() - t0);
-    console.log('[YK-PORTAL] Fetch DONE in ' + dt + 'ms, status:', r.status);
-    if(r.status === 401){
+    console.log('[YK-PORTAL] XHR DONE in ' + dt + 'ms, status:', xhr.status);
+    if(xhr.status === 401){
       statusBox.textContent = '⚠ Yetki YOK - tekrar login yap';
       statusBox.style.color = '#b3261e';
       resultsBox.style.display = 'none';
       return;
     }
-    if(r.status !== 200){
-      statusBox.textContent = '⚠ HTTP ' + r.status + ' (beklenmedik)';
+    if(xhr.status !== 200){
+      statusBox.textContent = '⚠ HTTP ' + xhr.status;
       statusBox.style.color = '#b3261e';
-      const txt = await r.text();
-      console.warn('[YK-PORTAL] Non-200 body:', txt.substring(0, 300));
+      console.warn('[YK-PORTAL] Body:', xhr.responseText.substring(0, 300));
       return;
     }
-    console.log('[YK-PORTAL] Parsing JSON...');
     let d;
     try {
-      d = await r.json();
+      d = JSON.parse(xhr.responseText);
     } catch(je) {
-      const txt = await r.text();
-      console.error('[YK-PORTAL] JSON PARSE HATASI:', je, 'body:', txt.substring(0, 300));
+      console.error('[YK-PORTAL] JSON PARSE:', je, 'body:', xhr.responseText.substring(0, 300));
       statusBox.textContent = '⚠ JSON parse hatasi';
       statusBox.style.color = '#b3261e';
       return;
     }
     console.log('[YK-PORTAL] Response data:', d);
+    handleSearchResult(d, q);
+  };
+  xhr.send();
+}
+
+function handleSearchResult(d, q){
+  try {
     const items = (d.result || []);
     statusBox.style.color = '#5e7185';
     statusBox.textContent = items.length + ' sonuc bulundu';
