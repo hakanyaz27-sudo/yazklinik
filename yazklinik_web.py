@@ -30134,6 +30134,21 @@ BASE_HTML = """<!DOCTYPE html>
  <link rel="manifest" href="/manifest.webmanifest">
  <link rel="stylesheet" href="/static/yk-ios-mobile.css?v=d300-ios-2026-05-17">
  <meta name="theme-color" content="#1769aa">
+ <!-- iPhone 17 Pro Max + tum modeller PWA splash screen (Apple HIG) -->
+ <link rel="apple-touch-startup-image" href="/static/splash/iphone-17-pro-max-portrait.png"
+  media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+ <link rel="apple-touch-startup-image" href="/static/splash/iphone-17-pro-max-landscape.png"
+  media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)">
+ <link rel="apple-touch-startup-image" href="/static/splash/iphone-17-pro-portrait.png"
+  media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+ <link rel="apple-touch-startup-image" href="/static/splash/iphone-15-pro-max-portrait.png"
+  media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+ <link rel="apple-touch-startup-image" href="/static/splash/iphone-15-portrait.png"
+  media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+ <link rel="apple-touch-startup-image" href="/static/splash/ipad-pro-13-portrait.png"
+  media="(device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+ <link rel="apple-touch-startup-image" href="/static/splash/ipad-portrait.png"
+  media="(device-width: 810px) and (device-height: 1080px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
  <title>{{ title or 'YazKlinik' }}</title>
  <!-- D250 2026-05-12 v3: SIFIRDAN BAGIMSIZ TEMA MODALI.
       Mevcut #themePanel HTML'ine bagimli degil - kendi modalini dinamik
@@ -41712,7 +41727,7 @@ def render(content, title=None):
         if html and isinstance(html, str) and "yk-medical-theme-css" not in html:
             inject = (
                 '<link rel="stylesheet" '
-                'href="/static/yk-medical-theme.css?v=d300-medical-2026-05-17" '
+                'href="/static/yk-medical-theme.css?v=d300-medical-2026-05-17-ui2" '
                 'id="yk-medical-theme-css">'
             )
             if "</head>" in html:

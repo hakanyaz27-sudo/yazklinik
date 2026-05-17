@@ -3325,6 +3325,322 @@ def uyumluluk_page():
     return render_template_string(_COMPLIANCE_PAGE)
 
 
+@agents_bp.route("/mobil", methods=["GET"])
+def mobil_dashboard():
+    """iPhone 17 Pro Max / 6.9-inch ekran icin ozel dashboard.
+
+    Tasarim:
+        - 2x2 buyuk kart grid (ana islemler)
+        - Bugunun ozeti band
+        - Hizli komut: voice + arama
+        - Alex bar altta sabit (zaten global)
+    """
+    auth = _require_session()
+    if auth: return auth
+    return render_template_string(_MOBIL_DASHBOARD_PAGE)
+
+
+_MOBIL_DASHBOARD_PAGE = r"""<!doctype html><html lang="tr"><head>
+<meta charset="utf-8">
+<title>YazKlinik Mobil</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0d4f8b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="YazKlinik">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/static/yk-ios-mobile.css?v=d300-ios-2026-05-17">
+<style>
+:root{
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#0d4f8b;
+  --bg2:#0a8a76;
+  --card:#ffffff;
+  --ink:#122236;
+  --muted:#5e7185;
+  --accent:#ffd166;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  -webkit-text-size-adjust:100%;
+  -webkit-tap-highlight-color:transparent;
+  overscroll-behavior-y:contain;
+}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;
+  background:linear-gradient(135deg,#0d4f8b 0%,#0a8a76 100%);
+  color:#fff;
+  min-height:100vh;min-height:100dvh;
+  padding:calc(20px + var(--safe-top)) 16px calc(96px + var(--safe-bottom));
+  display:flex;flex-direction:column;
+}
+
+/* Header */
+.hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;
+}
+.hdr-title{font-size:13px;opacity:.85;letter-spacing:1px;text-transform:uppercase}
+.hdr-doctor{font-size:18px;font-weight:700;margin-top:2px}
+.hdr-time{font-size:13px;opacity:.85;font-variant-numeric:tabular-nums}
+
+/* Today stats - 3 column */
+.stats3{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+  background:rgba(255,255,255,0.1);
+  padding:14px;border-radius:14px;margin-bottom:18px;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+.s-n{font-size:24px;font-weight:800;line-height:1}
+.s-l{font-size:11px;opacity:.8;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.s-it{text-align:center}
+
+/* Search bar */
+.search{
+  background:#fff;color:var(--ink);
+  border-radius:14px;padding:14px 16px;font-size:16px;
+  border:none;width:100%;margin-bottom:18px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.1);
+  -webkit-appearance:none;
+}
+.search::placeholder{color:var(--muted)}
+
+/* 2x2 action grid */
+.grid2{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:12px;
+  margin-bottom:18px;
+}
+.card{
+  background:var(--card);color:var(--ink);
+  border-radius:16px;padding:16px 14px;
+  min-height:108px;
+  display:flex;flex-direction:column;justify-content:space-between;
+  text-decoration:none;
+  box-shadow:0 4px 14px rgba(0,0,0,0.08);
+  touch-action:manipulation;
+  -webkit-user-select:none;user-select:none;
+  transition:transform 0.15s ease;
+}
+.card:active{transform:scale(0.97)}
+.card-ico{
+  width:36px;height:36px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:700;
+}
+.card-ttl{font-weight:700;font-size:15px;margin-top:8px}
+.card-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* Renkli card varyant */
+.c-yeni .card-ico{background:#e2eef7;color:#0d4f8b}
+.c-rand .card-ico{background:#d9f4ec;color:#0a8a76}
+.c-recete .card-ico{background:#fde7f5;color:#a01e7e}
+.c-usg .card-ico{background:#fff3c4;color:#b87300}
+.c-konsult .card-ico{background:#e6e7ff;color:#4b1ea0}
+.c-stok .card-ico{background:#ffe4e1;color:#b3261e}
+
+/* Quick links footer */
+.qlinks{
+  display:flex;gap:8px;flex-wrap:wrap;
+  margin-top:auto;
+}
+.qlink{
+  flex:1;min-width:0;
+  background:rgba(255,255,255,0.12);color:#fff;
+  padding:10px 8px;border-radius:10px;text-align:center;
+  text-decoration:none;font-size:12px;font-weight:600;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  touch-action:manipulation;
+}
+.qlink:active{background:rgba(255,255,255,0.2)}
+
+/* Voice button - prominent FAB */
+.voice-fab{
+  position:fixed;
+  bottom:calc(20px + var(--safe-bottom));
+  right:16px;
+  width:60px;height:60px;border-radius:50%;
+  background:linear-gradient(135deg,#ffd166 0%,#f39c12 100%);
+  border:none;cursor:pointer;
+  box-shadow:0 6px 20px rgba(255,209,102,0.4);
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;
+  z-index:1000;
+  touch-action:manipulation;
+}
+.voice-fab:active{transform:scale(0.92)}
+
+/* iPhone 17 Pro Max 6.9" - 2 col bile genis, 3-col mumkun */
+@media (min-device-width: 430px) {
+  .grid2{gap:14px}
+  .card{min-height:120px;padding:18px 16px}
+  .card-ttl{font-size:16px}
+}
+
+/* iPad - 4 column */
+@media (min-width: 768px) {
+  body{padding:24px 28px;max-width:760px;margin:0 auto}
+  .grid2{grid-template-columns:repeat(3,1fr)}
+  .voice-fab{bottom:30px;right:30px;width:70px;height:70px}
+}
+
+/* Dynamic Island reserve top */
+@media (display-mode: standalone) {
+  body{padding-top:max(var(--safe-top),50px)}
+}
+</style></head><body>
+<div class="hdr">
+  <div>
+    <div class="hdr-title">YazKlinik</div>
+    <div class="hdr-doctor">Op. Dr. Hakan Yaz</div>
+  </div>
+  <div class="hdr-time" id="clock">--:--</div>
+</div>
+
+<div class="stats3">
+  <div class="s-it"><div class="s-n" id="today-patients">-</div><div class="s-l">Bugün</div></div>
+  <div class="s-it"><div class="s-n" id="upcoming">-</div><div class="s-l">Sıradaki</div></div>
+  <div class="s-it"><div class="s-n" id="msgs">-</div><div class="s-l">Mesaj</div></div>
+</div>
+
+<input class="search" type="search" inputmode="search"
+       placeholder="Hasta ara (ad, telefon, dosya no)..."
+       id="searchInput" autocomplete="off">
+
+<div class="grid2">
+  <a href="/yeni-hasta" class="card c-yeni">
+    <div class="card-ico">+</div>
+    <div>
+      <div class="card-ttl">Yeni Hasta</div>
+      <div class="card-sub">Hızlı kayıt</div>
+    </div>
+  </a>
+  <a href="/randevular" class="card c-rand">
+    <div class="card-ico">◷</div>
+    <div>
+      <div class="card-ttl">Randevular</div>
+      <div class="card-sub">Bugün ve yarın</div>
+    </div>
+  </a>
+  <a href="/yz-konsultasyon" class="card c-konsult">
+    <div class="card-ico">★</div>
+    <div>
+      <div class="card-ttl">YZ Konsült</div>
+      <div class="card-sub">5 adım analiz</div>
+    </div>
+  </a>
+  <a href="/hasta/aktif/usg-rapor-taslak" class="card c-usg">
+    <div class="card-ico">◉</div>
+    <div>
+      <div class="card-ttl">USG Rapor</div>
+      <div class="card-sub">Taslak + AI</div>
+    </div>
+  </a>
+  <a href="/stok" class="card c-stok">
+    <div class="card-ico">▤</div>
+    <div>
+      <div class="card-ttl">Stok</div>
+      <div class="card-sub">İlaç + miat</div>
+    </div>
+  </a>
+  <a href="/ajanlar" class="card c-recete">
+    <div class="card-ico">⚡</div>
+    <div>
+      <div class="card-ttl">Tüm Ajanlar</div>
+      <div class="card-sub">31 modül</div>
+    </div>
+  </a>
+</div>
+
+<div class="qlinks">
+  <a class="qlink" href="/dashboard">Panel</a>
+  <a class="qlink" href="/uyumluluk">Uyumluluk</a>
+  <a class="qlink" href="/status">Durum</a>
+  <a class="qlink" href="/ceviri-merkezi">Çeviri</a>
+</div>
+
+<button class="voice-fab" id="voiceBtn" aria-label="Sesli komut">🎤</button>
+
+<script>
+// Clock
+function updateClock(){
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+}
+updateClock(); setInterval(updateClock, 30000);
+
+// Today stats - fetch from API
+async function loadStats(){
+  try {
+    const r = await fetch('/api/status', {credentials:'same-origin'});
+    const d = await r.json();
+    if (d.result) {
+      document.getElementById('today-patients').textContent = d.result.db_visits_today || 0;
+    }
+  } catch(e) {}
+}
+loadStats();
+
+// Search - enter ile randevulara git
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const q = e.target.value.trim();
+    if (q) window.location.href = '/hastalar?q=' + encodeURIComponent(q);
+  }
+});
+
+// Voice button - Alex'i tetikle
+document.getElementById('voiceBtn').addEventListener('click', () => {
+  // Eger Alex global API varsa onu kullan
+  if (window.ykVoiceAgent) {
+    window.ykVoiceAgent.start({voice:true, focus:true});
+  } else {
+    // Yoksa Web Speech API
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const rec = new SR();
+      rec.lang = 'tr-TR';
+      rec.start();
+      rec.onresult = (ev) => {
+        const text = ev.results[0][0].transcript;
+        // Voice command'a yonlendir
+        fetch('/api/agents/voice-command/parse', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          credentials:'same-origin',
+          body: JSON.stringify({text: text})
+        }).then(r=>r.json()).then(d=>{
+          if (d.result && d.result.target && d.result.intent === 'navigate') {
+            window.location.href = d.result.target;
+          } else {
+            alert('Anlasildi: ' + text);
+          }
+        });
+      };
+    } else {
+      alert('Sesli komut bu tarayicida desteklenmiyor');
+    }
+  }
+});
+
+// PWA install hint (iOS)
+if (window.matchMedia('(display-mode: standalone)').matches) {
+  console.log('[YazKlinik] PWA mode aktif - tam ekran');
+} else if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+  // Show "Add to Home Screen" hint after 5sec
+  setTimeout(() => {
+    if (!sessionStorage.getItem('yk_pwa_hint_shown')) {
+      sessionStorage.setItem('yk_pwa_hint_shown', '1');
+      // Subtle bottom toast olabilir; simdilik console
+      console.log('[YazKlinik] Tip: Safari Paylas > Ana Ekrana Ekle');
+    }
+  }, 5000);
+}
+</script>
+</body></html>"""
+
+
 _COMPLIANCE_PAGE = r"""<!doctype html><html lang="tr"><head>
 <meta charset="utf-8">
 <title>ISO 27001 / KVKK Uyumluluk - YazKlinik</title>

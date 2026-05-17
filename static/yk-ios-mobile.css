@@ -263,3 +263,87 @@ a {
    ============================================================ */
 ::selection { background: rgba(23, 105, 170, 0.25); }
 ::-moz-selection { background: rgba(23, 105, 170, 0.25); }
+
+
+/* ============================================================
+   IPHONE 17 PRO MAX + PROMOTION 120Hz OPTIMIZASYONLARI
+   ============================================================ */
+
+/* Smooth scroll - 120Hz panel icin GPU katmani */
+@media (max-width: 900px) {
+  body, .scroll-container, .yk-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Cok hareketli elemanlar GPU layer'a alinir - 120Hz dropped frame onleme */
+  .yk-alex-bar, .alex-bar, #yk-alex-bar,
+  .yk-bottom-sheet, .modal, .dropdown,
+  .card, .yk-card, .agent-card {
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+}
+
+/* iPhone 17 Pro Max - 6.9" buyuk ekran (devicepixel 3, 440x956 css px) */
+@media (min-device-width: 430px) and (max-device-width: 450px)
+        and (-webkit-min-device-pixel-ratio: 3) {
+  /* Buyuk ekran - 2 kolon mumkun */
+  body { font-size: 16px; }
+  .grid-2-mobile {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  /* Dynamic Island ust safe-area daha buyuk (~59pt) */
+  body { padding-top: max(env(safe-area-inset-top), 12px); }
+}
+
+/* iPad Pro 13" - 1032x1376 css px, ipad layoutu */
+@media (min-device-width: 1000px) and (max-device-width: 1100px) and (orientation: portrait) {
+  body { max-width: 920px; margin: 0 auto; }
+  .yk-alex-bar { max-width: 600px !important; }
+}
+
+/* Dynamic Island visible padding (iPhone 14 Pro+ / 15 / 16 / 17) */
+@supports (padding-top: env(safe-area-inset-top)) {
+  @media (display-mode: standalone) {
+    body {
+      padding-top: max(env(safe-area-inset-top), 44px);
+    }
+  }
+}
+
+/* StandBy mode (iOS 17+, charging horizontal) */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Yatay landscape kucuk ekran - StandBy modunu hesaba kat */
+  .yk-alex-bar {
+    bottom: 4px !important;
+    height: 48px !important;
+    font-size: 14px !important;
+  }
+  h1 { font-size: 18px !important; }
+}
+
+/* Always-On display optimizasyon */
+@media (prefers-reduced-motion: reduce) and (display-mode: standalone) {
+  /* AOD'da animasyon yok */
+  * { transition: none !important; animation: none !important; }
+}
+
+/* Action Button (iPhone 15 Pro+) destek - PWA shortcut */
+.yk-action-button {
+  /* iOS action button shortcut'a yonlendirme */
+  -webkit-tap-highlight-color: rgba(0, 122, 255, 0.2);
+}
+
+/* Haptic feedback hint (touch + active state - iOS visual cue) */
+button:active, .btn:active, a.btn:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  button:active, .btn:active { transform: none; }
+}

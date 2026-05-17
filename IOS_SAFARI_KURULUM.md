@@ -2,6 +2,75 @@
 
 > **Hedef**: iPhone / iPad Safari'de YazKlinik'i sorunsuz kullanmak, ana ekrana ekleyip native uygulama gibi calistirmak.
 
+> **Cihaz**: iPhone 17 Pro Max (6.9" ProMotion 120Hz, Dynamic Island, iOS 19) - tam optimize
+
+---
+
+## iPhone 17 Pro Max'a Ozel Optimizasyonlar (2026-05-17)
+
+YazKlinik su an iPhone 17 Pro Max icin **tam optimize**:
+
+### 1. **`/mobil` ozel dashboard** (yeni)
+Ana ekran ikonuna tikladiginda direkt buraya gel:
+- 2x2 buyuk kart grid (Yeni Hasta / Randevular / YZ Konsult / USG / Stok / Ajanlar)
+- Saat + bugunun ozeti band
+- Hizli arama (parmagla yazi)
+- Sag altta **sari mikrofon FAB** - dokunmatik sesli komut
+- Glassmorphism + gradient (D300 mavi-yesil)
+
+URL: `https://...:5443/mobil`
+
+### 2. **ProMotion 120Hz scroll**
+- Tum animasyonlar GPU katmanli (`will-change`, `transform: translateZ(0)`)
+- Smooth scroll behavior
+- Tap delay 0ms (`touch-action: manipulation`)
+- Active state `scale(0.97)` ile haptic-benzeri feedback
+
+### 3. **Dynamic Island safe-area**
+- Body top padding `max(env(safe-area-inset-top), 44px)` standalone'da
+- Dynamic Island'a icerik girmiyor
+- Status bar `black-translucent` - mavi tema icine sigar
+
+### 4. **iPhone 17 Pro Max splash screens**
+PWA acilisinda gradient + ikon + "YazKlinik" yazi:
+- Portrait: 1320x2868 PNG (3x ProMotion)
+- Landscape: 2868x1320 PNG
+- iPhone 15/17 Pro/Pro Max/iPad Pro 13" hepsine ayri dosya var
+
+### 5. **StandBy mode** (iPhone 17 Pro Max yatay sarjdayken)
+- Yatay landscape kucuk yukseklik (`max-height: 500px`)
+- Alex bar 48px, h1 18px
+- Saat + minimum bilgi gozukur
+
+### 6. **Always-On display**
+- `prefers-reduced-motion + display-mode: standalone` ile animasyonlar pasif
+- Pil tasarrufu
+
+### 7. **iPad Pro 13" landscape uyumu**
+- 600x maximum width
+- Alex bar 600px max-width
+- 3-column action grid
+
+---
+
+## Hizli Baslat (iPhone 17 Pro Max)
+
+1. **Tailscale Funnel kur** (bilgisayarda):
+   ```
+   D:\YazKlinik_Final_D300\D300_TAILSCALE_FUNNEL_8443_KUR.bat
+   ```
+   Bu sana `https://hakan-pc.tailnet-xxxx.ts.net` adresi verir.
+
+2. **iPhone'da Tailscale yukle** (App Store), ayni hesap.
+
+3. **Safari'de adresi ac** -> Login.
+
+4. **Sag alttaki Paylas (square + up arrow)** -> **Add to Home Screen** -> "YazKlinik".
+
+5. **Ana ekrandan ikona dokun** -> direkt `/` veya `/mobil` adresi tam ekran acilir.
+
+6. **Voice komut testi**: Mikrofon ikona dokun, "ana sayfa" de.
+
 ---
 
 ## 1. Bağlantı Hazırlığı (Hangi URL ile bağlanacaksın?)
