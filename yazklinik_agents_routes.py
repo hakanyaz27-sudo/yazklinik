@@ -140,14 +140,29 @@ except Exception:  # noqa: BLE001
 
 def _require_session():
     """Web.py'in genel session kuralina hafif bagli kontrol.
-    Doktor/asistan/sekreter girisi yoksa 401 dondur.
+    Doktor/asistan/sekreter girisi yoksa:
+      - JSON istek (XHR / Accept: application/json / /api/*) icin 401 JSON
+      - HTML sayfa istegi icin /giris'e redirect (kullanici dostu)
     """
     # YazKlinik ana login'i session["user"] yazar. Eski notlarda
     # session["username"] geciyordu; iki anahtari da kabul et.
     user = (session.get("user") or session.get("username")) if hasattr(session, "get") else None
-    if not user:
+    if user:
+        return None
+    is_json_req = (
+        request.path.startswith("/api/")
+        or "application/json" in (request.headers.get("Accept", "") or "")
+        or request.headers.get("X-Requested-With") == "XMLHttpRequest"
+    )
+    if is_json_req:
         return jsonify({"ok": False, "error": "auth_required"}), 401
-    return None
+    try:
+        from flask import redirect as _flask_redirect
+        next_url = request.path + (("?" + request.query_string.decode())
+                                     if request.query_string else "")
+        return _flask_redirect("/giris?next=" + next_url)
+    except Exception:
+        return jsonify({"ok": False, "error": "auth_required"}), 401
 
 
 def _to_jsonable(value: Any) -> Any:
