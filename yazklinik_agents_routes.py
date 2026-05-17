@@ -3252,17 +3252,43 @@ if(searchInput){
 
 async function doSearch(q){
   const url = '/api/agents/portal/search-patients?q=' + encodeURIComponent(q);
-  console.log('[YK-PORTAL] Fetch:', url);
+  console.log('[YK-PORTAL] Fetch START:', url);
+  const t0 = performance.now();
+  // 8 saniye timeout
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => {
+    console.warn('[YK-PORTAL] Fetch TIMEOUT 8s, abort!');
+    ctrl.abort();
+  }, 8000);
   try {
-    const r = await fetch(url, {credentials:'same-origin'});
-    console.log('[YK-PORTAL] Response status:', r.status);
+    const r = await fetch(url, {credentials:'same-origin', signal: ctrl.signal});
+    clearTimeout(tid);
+    const dt = Math.round(performance.now() - t0);
+    console.log('[YK-PORTAL] Fetch DONE in ' + dt + 'ms, status:', r.status);
     if(r.status === 401){
       statusBox.textContent = '⚠ Yetki YOK - tekrar login yap';
       statusBox.style.color = '#b3261e';
       resultsBox.style.display = 'none';
       return;
     }
-    const d = await r.json();
+    if(r.status !== 200){
+      statusBox.textContent = '⚠ HTTP ' + r.status + ' (beklenmedik)';
+      statusBox.style.color = '#b3261e';
+      const txt = await r.text();
+      console.warn('[YK-PORTAL] Non-200 body:', txt.substring(0, 300));
+      return;
+    }
+    console.log('[YK-PORTAL] Parsing JSON...');
+    let d;
+    try {
+      d = await r.json();
+    } catch(je) {
+      const txt = await r.text();
+      console.error('[YK-PORTAL] JSON PARSE HATASI:', je, 'body:', txt.substring(0, 300));
+      statusBox.textContent = '⚠ JSON parse hatasi';
+      statusBox.style.color = '#b3261e';
+      return;
+    }
     console.log('[YK-PORTAL] Response data:', d);
     const items = (d.result || []);
     statusBox.style.color = '#5e7185';
