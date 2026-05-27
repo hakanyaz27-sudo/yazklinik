@@ -4,6 +4,11 @@ on:
   pull_request:
     types: [opened, reopened, synchronize]
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
   review:
     runs-on: ubuntu-latest
@@ -57,6 +62,10 @@ jobs:
             let data;
             try { data = JSON.parse(fs.readFileSync('review.json','utf8')); }
             catch(e) { data = { summary: 'parse failed', findings: [] }; }
+            const issueNumber = context.payload.pull_request?.number || context.issue?.number;
+            if (!issueNumber) {
+              core.warning('PR number bulunamadi, yorum atlanacak.');
+            }
             let body = '## YazKlinik PR Reviewer Agent\n\n**' + data.summary + '**\n\n';
             if (data.has_blockers) body += ':red_circle: **BLOCKER var - merge etmeden once incele**\n\n';
             for (const f of (data.findings || [])) {
@@ -66,10 +75,19 @@ jobs:
               if (f.snippet) body += '```\n' + f.snippet + '\n```\n';
               body += '\n';
             }
-            await github.rest.issues.createComment({
-              owner: context.repo.owner, repo: context.repo.repo,
-              issue_number: context.issue.number, body
-            });
+            if (body.length > 60000) {
+              body = body.slice(0, 59800) + '\n\n...(yorum kisaltildi)';
+            }
+            if (issueNumber) {
+              try {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  issue_number: issueNumber, body
+                });
+              } catch (err) {
+                core.warning('PR yorumu yazilamadi: ' + (err?.message || String(err)));
+              }
+            }
             if (data.has_blockers) {
               core.setFailed('Blockers var');
             }
