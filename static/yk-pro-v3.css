@@ -1,0 +1,2515 @@
+﻿/* ============================================================== */
+/* YK PREMIUM OVERRIDES - D700                                    */
+/* Sidebar / header / button / card premium look.                 */
+/* Yuklendigi yer: BASE_HTML <head>; tarayici tarafindan cache.   */
+/* ============================================================== */
+:root {
+  --yk-prem-accent-grad: linear-gradient(135deg, #10B981 0%, #0EA5E9 100%);
+  --yk-prem-accent-soft: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(14,165,233,0.10));
+  --yk-prem-shadow-soft: 0 1px 2px rgba(15,23,42,.04), 0 4px 16px rgba(15,23,42,.06);
+  --yk-prem-shadow-lift: 0 2px 4px rgba(15,23,42,.05), 0 12px 32px rgba(15,23,42,.10);
+  --yk-prem-shadow-glow: 0 0 0 4px rgba(16,185,129,.18), 0 8px 24px rgba(16,185,129,.22);
+  --yk-prem-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+[data-theme="dark"] {
+  --yk-prem-shadow-soft: 0 1px 2px rgba(0,0,0,.30), 0 8px 24px rgba(0,0,0,.40);
+  --yk-prem-shadow-lift: 0 2px 4px rgba(0,0,0,.40), 0 16px 40px rgba(0,0,0,.55);
+}
+
+/* --- Sidebar: premium kayan panel --- */
+.sidebar.use-modern-nav {
+  border-right: 0 !important;
+  box-shadow: var(--yk-prem-shadow-soft);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.85) 0%, rgba(248,250,252,.92) 100%),
+    var(--sidebar-bg) !important;
+  backdrop-filter: saturate(140%) blur(12px);
+  -webkit-backdrop-filter: saturate(140%) blur(12px);
+}
+[data-theme="dark"] .sidebar.use-modern-nav {
+  background:
+    linear-gradient(180deg, rgba(30,41,59,.92) 0%, rgba(15,23,42,.96) 100%),
+    var(--sidebar-bg) !important;
+}
+.sidebar.use-modern-nav::-webkit-scrollbar { width: 6px; }
+.sidebar.use-modern-nav::-webkit-scrollbar-thumb {
+  background: rgba(100,116,139,.25); border-radius: 6px;
+}
+.sidebar.use-modern-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(100,116,139,.45);
+}
+
+/* --- Sidebar brand --- */
+.sidebar-brand { transition: transform 280ms var(--yk-prem-ease); }
+.sidebar-brand:hover { transform: translateY(-1px); }
+.sidebar-brand-icon {
+  box-shadow: 0 4px 12px rgba(16,185,129,.30), 0 1px 2px rgba(15,23,42,.10) !important;
+  transition: box-shadow 280ms var(--yk-prem-ease), transform 280ms var(--yk-prem-ease);
+}
+.sidebar-brand:hover .sidebar-brand-icon {
+  transform: scale(1.05) rotate(-3deg);
+  box-shadow: var(--yk-prem-shadow-glow) !important;
+}
+
+/* --- Sidebar link: premium hover + active --- */
+.sidebar.use-modern-nav .sidebar-link {
+  transition: background 220ms var(--yk-prem-ease),
+              color 220ms var(--yk-prem-ease),
+              transform 220ms var(--yk-prem-ease),
+              box-shadow 220ms var(--yk-prem-ease) !important;
+}
+.sidebar.use-modern-nav .sidebar-link:hover {
+  background: var(--yk-prem-accent-soft) !important;
+  transform: translateX(2px);
+}
+.sidebar.use-modern-nav .sidebar-link.active {
+  background: var(--yk-prem-accent-soft) !important;
+  box-shadow: inset 0 0 0 1px rgba(16,185,129,.18), 0 2px 8px rgba(16,185,129,.10);
+}
+.sidebar.use-modern-nav .sidebar-link.active::before {
+  width: 4px !important;
+  left: -6px !important;
+  background: var(--yk-prem-accent-grad) !important;
+  border-radius: 4px !important;
+  box-shadow: 0 0 8px rgba(16,185,129,.45);
+}
+.sidebar.use-modern-nav .sidebar-link-icon,
+.sidebar.use-modern-nav .sidebar-link i {
+  transition: transform 220ms var(--yk-prem-ease);
+}
+.sidebar.use-modern-nav .sidebar-link:hover .sidebar-link-icon,
+.sidebar.use-modern-nav .sidebar-link:hover i {
+  transform: scale(1.12);
+}
+
+/* --- Top header --- */
+.top-header {
+  border-bottom: 0 !important;
+  box-shadow: 0 1px 0 rgba(15,23,42,.04), 0 6px 20px rgba(15,23,42,.04);
+  backdrop-filter: saturate(180%) blur(24px) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(24px) !important;
+}
+[data-theme="dark"] .top-header {
+  box-shadow: 0 1px 0 rgba(255,255,255,.04), 0 6px 20px rgba(0,0,0,.30);
+}
+.top-header .search-bar, .top-header input[type="search"], .top-header .yk-search {
+  transition: box-shadow 220ms var(--yk-prem-ease), background 220ms var(--yk-prem-ease);
+}
+.top-header .search-bar:focus-within,
+.top-header input[type="search"]:focus,
+.top-header .yk-search:focus-within {
+  box-shadow: 0 0 0 4px rgba(16,185,129,.14);
+}
+
+/* --- Primer butonlar --- */
+.btn-primary, .btn-success,
+button.btn-primary, button.btn-success,
+.yk-btn-primary {
+  background: var(--yk-prem-accent-grad) !important;
+  border: 0 !important;
+  box-shadow: 0 1px 2px rgba(15,23,42,.08), 0 4px 12px rgba(16,185,129,.22);
+  transition: transform 200ms var(--yk-prem-ease), box-shadow 200ms var(--yk-prem-ease), filter 200ms var(--yk-prem-ease);
+}
+.btn-primary:hover, .btn-success:hover,
+button.btn-primary:hover, button.btn-success:hover,
+.yk-btn-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow: 0 2px 4px rgba(15,23,42,.08), 0 10px 24px rgba(16,185,129,.30);
+}
+.btn-primary:active, .btn-success:active,
+button.btn-primary:active, button.btn-success:active {
+  transform: translateY(0);
+  filter: brightness(.97);
+}
+
+/* --- Kartlar --- */
+.card, .yk-card, .stat-card, .gebe-card, .preg-card, .yk-eb-card, .yk-bk-card {
+  transition: transform 260ms var(--yk-prem-ease), box-shadow 260ms var(--yk-prem-ease);
+}
+.card:hover, .yk-card:hover, .stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--yk-prem-shadow-lift);
+}
+
+/* --- Mobile bottom nav --- */
+.mobile-bottom-nav {
+  border-top: 0 !important;
+  box-shadow: 0 -2px 12px rgba(15,23,42,.06), 0 -1px 0 rgba(15,23,42,.04);
+  backdrop-filter: saturate(180%) blur(18px);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  background: rgba(255,255,255,.86) !important;
+}
+[data-theme="dark"] .mobile-bottom-nav {
+  background: rgba(30,41,59,.92) !important;
+  box-shadow: 0 -2px 12px rgba(0,0,0,.40), 0 -1px 0 rgba(255,255,255,.04);
+}
+.mobile-bottom-nav a {
+  transition: transform 200ms var(--yk-prem-ease), color 200ms var(--yk-prem-ease);
+}
+.mobile-bottom-nav a:hover, .mobile-bottom-nav a.active {
+  transform: translateY(-2px);
+  color: var(--accent) !important;
+}
+.mobile-bottom-nav a .icon i { transition: transform 200ms var(--yk-prem-ease); }
+.mobile-bottom-nav a:hover .icon i,
+.mobile-bottom-nav a.active .icon i { transform: scale(1.18); }
+
+/* --- Form inputlari --- */
+input.form-control:focus, select.form-control:focus, textarea.form-control:focus,
+input.yk-input:focus, select.yk-input:focus, textarea.yk-input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 4px rgba(16,185,129,.14) !important;
+  outline: 0 !important;
+}
+
+/* --- Tablolar --- */
+.table tbody tr, .yk-table tbody tr {
+  transition: background 160ms var(--yk-prem-ease);
+}
+.table tbody tr:hover, .yk-table tbody tr:hover {
+  background: var(--surface-hover) !important;
+}
+
+/* --- Alertler --- */
+.alert, .yk-alert {
+  border: 0 !important;
+  border-radius: var(--r-md) !important;
+  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 12px rgba(15,23,42,.05);
+}
+
+/* --- D700: Aktif hasta bandi mobil + tablet'te tamamen gizli --- */
+@media (max-width: 991px) {
+  .active-patient-banner,
+  .active-patient-banner.show,
+  [class*="active-patient"] {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+}
+
+/* --- Reduced motion saygi --- */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-brand:hover,
+  .sidebar.use-modern-nav .sidebar-link:hover,
+  .mobile-bottom-nav a:hover,
+  .card:hover, .yk-card:hover, .stat-card:hover,
+  .btn-primary:hover, .btn-success:hover {
+    transform: none !important;
+  }
+  .sidebar-brand:hover .sidebar-brand-icon { transform: none !important; }
+}
+
+/* ================================================================
+   D700 PROFESYONEL CILA - "klinik yazilim" hissi
+   Az satured renk + sÄ±kÄ± spacing + dakik tipografi + ince border.
+   Mevcut CSS'i ezerek profesyonel iz birakir.
+   ================================================================ */
+:root {
+  --pro-text: #0F172A;
+  --pro-text-soft: #475569;
+  --pro-text-fade: #94A3B8;
+  --pro-border: #E5E7EB;
+  --pro-border-soft: #F1F5F9;
+  --pro-surface: #FFFFFF;
+  --pro-bg: #F8FAFC;
+  /* D700 2026-05-12: palette-reactive accents (was hardcoded teal) */
+  --pro-accent: var(--palette-accent, #0F766E);
+  --pro-accent-soft: var(--palette-accent-soft, #CCFBF1);
+  --pro-accent-dark: var(--palette-accent-dark, #0B5E58);
+  --pro-shadow-flat: 0 1px 2px rgba(15,23,42,.04);
+  --pro-shadow-lift: 0 1px 2px rgba(15,23,42,.04), 0 8px 24px rgba(15,23,42,.06);
+}
+
+/* D700 2026-05-12: Palette-specific pro-accent overrides */
+:root[data-palette="desktop"] { --pro-accent: #0078D4; --pro-accent-soft: #CCE4F7; --pro-accent-dark: #005A9E; }
+:root[data-palette="windows-baseline"] { --pro-accent: #2563EB; --pro-accent-soft: #DBEAFE; --pro-accent-dark: #1D4ED8; }
+:root[data-palette="viewpoint6"] { --pro-accent: #0078D7; --pro-accent-soft: #D9ECFA; --pro-accent-dark: #005A9E; }
+:root[data-palette="pearl"] { --pro-accent: #2B6CB0; --pro-accent-soft: #DCEBFA; --pro-accent-dark: #1E4E8C; }
+:root[data-palette="mint"] { --pro-accent: #12A878; --pro-accent-soft: #D9FBE8; --pro-accent-dark: #08765B; }
+:root[data-palette="sapphire"] { --pro-accent: #2563EB; --pro-accent-soft: #BFDBFE; --pro-accent-dark: #1D4ED8; }
+:root[data-palette="rose"] { --pro-accent: #E66A7A; --pro-accent-soft: #FFE1E6; --pro-accent-dark: #C94A5D; }
+:root[data-palette="contrast"] { --pro-accent: #07111F; --pro-accent-soft: #F1F5F9; --pro-accent-dark: #000000; }
+:root[data-palette="forest"] { --pro-accent: #1B4332; --pro-accent-soft: #D4F3DD; --pro-accent-dark: #102E22; }
+:root[data-palette="amber"] { --pro-accent: #7C2D12; --pro-accent-soft: #FED7AA; --pro-accent-dark: #5C200D; }
+:root[data-palette="lavender"] { --pro-accent: #5B21B6; --pro-accent-soft: #DDD6FE; --pro-accent-dark: #4C1D95; }
+:root[data-palette="midnight-pro"] { --pro-accent: #6366F1; --pro-accent-soft: #C7D2FE; --pro-accent-dark: #4338CA; }
+:root[data-palette="ocean-wave"] { --pro-accent: #0E7490; --pro-accent-soft: #CFFAFE; --pro-accent-dark: #155E75; }
+:root[data-palette="sunset-glow"] { --pro-accent: #F97316; --pro-accent-soft: #FED7AA; --pro-accent-dark: #C2410C; }
+
+/* Global gevsetilmis arka plan + tipografi dengelenir */
+body {
+  background: var(--pro-bg) !important;
+  letter-spacing: -0.005em;
+}
+[data-theme="dark"] body { background: var(--bg) !important; }
+
+/* Heading sÄ±kÄ± + dakik */
+h1, .h1 { font-size: 24px !important; font-weight: 700 !important; letter-spacing: -0.025em !important; }
+h2, .h2 { font-size: 20px !important; font-weight: 700 !important; letter-spacing: -0.02em !important; }
+h3, .h3 { font-size: 16px !important; font-weight: 700 !important; letter-spacing: -0.015em !important; }
+h4 { font-size: 14px !important; font-weight: 700 !important; }
+h5 { font-size: 13px !important; font-weight: 600 !important; text-transform: uppercase; letter-spacing: 0.06em; color: var(--pro-text-soft) !important; }
+
+/* --- Sidebar mode (Basit / Doktor / Uzman) sade tab grup --- */
+.sidebar-mode, .yk-sidebar-mode-tabs, .experience-mode, .experience-mode-tabs {
+  background: var(--pro-bg) !important;
+  border: 1px solid var(--pro-border) !important;
+  border-radius: 8px !important;
+  padding: 3px !important;
+  box-shadow: none !important;
+  gap: 2px !important;
+}
+.sidebar-mode > *, .yk-sidebar-mode-tabs > *,
+.experience-mode > *, .experience-mode-tabs > * {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  padding: 5px 10px !important;
+  border-radius: 6px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--pro-text-soft) !important;
+  box-shadow: none !important;
+}
+.sidebar-mode > .active, .yk-sidebar-mode-tabs > .active,
+.experience-mode > .active, .experience-mode-tabs > .active,
+.sidebar-mode > [aria-selected="true"], .yk-sidebar-mode-tabs > [aria-selected="true"] {
+  background: var(--pro-surface) !important;
+  color: var(--pro-text) !important;
+  box-shadow: 0 1px 2px rgba(15,23,42,.08) !important;
+}
+
+/* --- Sidebar 'quick-action' kartlari (Kayit, Bul, Not, Tele, PACS, Kalite) - kompakt + sade --- */
+.quick-action, .sidebar-quick a, .sidebar-quick > * {
+  background: var(--pro-surface) !important;
+  border: 1px solid var(--pro-border) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  padding: 8px 10px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--pro-text) !important;
+  min-height: 0 !important;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease !important;
+}
+.quick-action:hover, .sidebar-quick a:hover {
+  border-color: var(--pro-accent) !important;
+  box-shadow: var(--pro-shadow-lift) !important;
+  transform: translateY(-1px);
+}
+.quick-action i, .quick-action svg, .sidebar-quick i, .sidebar-quick svg {
+  font-size: 16px !important;
+  color: var(--pro-accent) !important;
+}
+.quick-action small, .sidebar-quick small {
+  color: var(--pro-text-fade) !important;
+  font-size: 10px !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+
+/* --- Sidebar bilgi widget'larini (Bugunun Akisi, Komuta Merkezi) sade --- */
+.sidebar [class*="widget"], .sidebar [class*="komuta"], .yk-sidebar-card {
+  background: linear-gradient(180deg, var(--pro-surface) 0%, var(--pro-bg) 100%) !important;
+  border: 1px solid var(--pro-border) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+
+/* --- Patient card: data-yogun, kompakt, ince accent --- */
+.patient-card, .yk-patient-card {
+  background: var(--pro-surface) !important;
+  border: 1px solid var(--pro-border) !important;
+  border-radius: 10px !important;
+  box-shadow: var(--pro-shadow-flat) !important;
+  padding: 12px !important;
+  transition: border-color 200ms var(--yk-prem-ease, ease), box-shadow 200ms ease, transform 200ms ease !important;
+}
+.patient-card:hover, .yk-patient-card:hover {
+  border-color: #CBD5E1 !important;
+  box-shadow: var(--pro-shadow-lift) !important;
+  transform: translateY(-1px);
+}
+.patient-card h3, .patient-card .name, .yk-patient-card h3, .yk-patient-card .name {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.015em !important;
+}
+.patient-card small, .yk-patient-card small {
+  color: var(--pro-text-fade) !important;
+}
+
+/* --- Metric / stat / KPI kartlari: temiz beyaz, kalin sayilar, az dolgu --- */
+.stat-card, .yk-stat, .metric-card, .summary-card, .kpi-card,
+.yk-kpi, .yk-metric, .yk-summary-card {
+  background: var(--pro-surface) !important;
+  border: 1px solid var(--pro-border) !important;
+  border-radius: 10px !important;
+  box-shadow: var(--pro-shadow-flat) !important;
+  padding: 14px 16px !important;
+}
+.stat-card:hover, .yk-stat:hover, .metric-card:hover, .kpi-card:hover {
+  box-shadow: var(--pro-shadow-lift) !important;
+}
+.stat-card .value, .stat-card .number, .metric-card .value,
+.yk-stat .value, .kpi-card .value, .yk-kpi-value {
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.025em !important;
+  color: var(--pro-text) !important;
+  line-height: 1.1 !important;
+}
+.stat-card .label, .stat-card small, .metric-card small,
+.kpi-card .label, .yk-kpi-label {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: var(--pro-text-fade) !important;
+}
+
+/* --- Pill / badge / chip / rozet - sÄ±kÄ±, sade, profesyonel --- */
+.badge, .pill, .yk-badge, .yk-chip, .category-pill, .chip, .tag {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.07em !important;
+  text-transform: uppercase !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  line-height: 1.6 !important;
+  border: 1px solid transparent !important;
+}
+/* Renkli kategorileri yumusat: hala tanibilir ama gozu yormaz */
+.badge.bg-primary, .pill.bg-primary, .badge-primary { background: #EFF6FF !important; color: #1D4ED8 !important; }
+.badge.bg-success, .pill.bg-success, .badge-success { background: #ECFDF5 !important; color: #047857 !important; }
+.badge.bg-warning, .pill.bg-warning, .badge-warning { background: #FFFBEB !important; color: #B45309 !important; }
+.badge.bg-danger, .pill.bg-danger, .badge-danger { background: #FEF2F2 !important; color: #B91C1C !important; }
+.badge.bg-info, .pill.bg-info, .badge-info { background: #F0F9FF !important; color: #0369A1 !important; }
+.badge.bg-secondary, .pill.bg-secondary, .badge-secondary { background: #F1F5F9 !important; color: #475569 !important; }
+
+/* --- Genel butonlar dakik --- */
+.btn { font-weight: 600 !important; letter-spacing: -0.005em !important; }
+.btn-outline-primary, .btn-outline-secondary, .btn-outline-success,
+.btn-outline-danger, .btn-outline-warning, .btn-outline-info, .btn-outline-dark, .btn-light {
+  border-width: 1px !important;
+  background: var(--pro-surface) !important;
+  box-shadow: none !important;
+}
+.btn-sm { padding: 4px 10px !important; font-size: 12px !important; }
+
+/* --- Ust header sÄ±kÄ±ÅŸtÄ±r --- */
+.top-header, .yk-header {
+  height: 56px !important;
+}
+.top-header .btn, .yk-header .btn {
+  font-size: 12.5px !important;
+  padding: 6px 10px !important;
+  font-weight: 600 !important;
+}
+
+/* --- Ana icerik container daha sÄ±kÄ±, daha az aÅŸÄ±rÄ± bosluk --- */
+.main-content, .main-container {
+  padding-top: 16px !important;
+}
+.card, .yk-card {
+  border: 1px solid var(--pro-border) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--pro-shadow-flat) !important;
+}
+.card-body { padding: 16px !important; }
+
+/* --- Form kontrolleri dakik --- */
+.form-control, .form-select, .yk-input, .yk-select {
+  border: 1px solid var(--pro-border) !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  box-shadow: none !important;
+}
+.form-control:focus, .form-select:focus, .yk-input:focus {
+  border-color: var(--pro-accent) !important;
+  box-shadow: 0 0 0 3px rgba(15,118,110,.12) !important;
+}
+
+/* --- Modal / overlay daha sade --- */
+.modal-content {
+  border: 1px solid var(--pro-border) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 24px 60px rgba(15,23,42,.18) !important;
+}
+.modal-header, .modal-footer { border-color: var(--pro-border-soft) !important; }
+
+/* --- Dark mode override - yumusak teal accent --- */
+[data-theme="dark"] {
+  --pro-text: #F1F5F9;
+  --pro-text-soft: #94A3B8;
+  --pro-text-fade: #64748B;
+  --pro-border: #334155;
+  --pro-border-soft: #293548;
+  --pro-surface: #1E293B;
+  --pro-bg: #0F172A;
+}
+[data-theme="dark"] .badge.bg-primary, [data-theme="dark"] .pill.bg-primary { background: rgba(59,130,246,.18) !important; color: #93C5FD !important; }
+[data-theme="dark"] .badge.bg-success, [data-theme="dark"] .pill.bg-success { background: rgba(16,185,129,.20) !important; color: #6EE7B7 !important; }
+[data-theme="dark"] .badge.bg-warning, [data-theme="dark"] .pill.bg-warning { background: rgba(245,158,11,.20) !important; color: #FCD34D !important; }
+[data-theme="dark"] .badge.bg-danger,  [data-theme="dark"] .pill.bg-danger  { background: rgba(239,68,68,.22) !important; color: #FCA5A5 !important; }
+[data-theme="dark"] .badge.bg-info,    [data-theme="dark"] .pill.bg-info    { background: rgba(56,189,248,.20) !important; color: #7DD3FC !important; }
+
+/* --- Mobil: cok kalabalik sayfalarda heading kucult --- */
+@media (max-width: 480px) {
+  h1, .h1 { font-size: 20px !important; }
+  h2, .h2 { font-size: 17px !important; }
+  .stat-card .value, .yk-kpi-value { font-size: 22px !important; }
+  .quick-action, .sidebar-quick a { padding: 6px 8px !important; font-size: 11px !important; }
+}
+
+/* --- D700: Media viewer ust header'a yapisik - bosluk minimal --- */
+.yk-media-viewer {
+  margin-top: 4px !important;
+  top: calc(var(--header-h, 56px) + 4px) !important;
+}
+@media (max-width: 768px) {
+  .yk-media-viewer { margin-top: 4px !important; top: 0 !important; }
+}
+
+/* ================================================================
+   D700 PROFESYONEL REFINEMENT V2
+   "Klinik corporate" gorunum: sade palette, monoton ikon, slate-navy
+   sidebar, ince accent, gradient soft body.
+   ================================================================ */
+:root {
+  --yk-corp-bg: #F1F5F9;
+  --yk-corp-bg-2: #E2E8F0;
+  --yk-corp-surface: #FFFFFF;
+  --yk-corp-ink: #0F172A;
+  --yk-corp-ink-soft: #475569;
+  --yk-corp-line: #E2E8F0;
+  --yk-corp-line-soft: #F1F5F9;
+  --yk-corp-accent: #0F766E;       /* derin teal */
+  --yk-corp-accent-2: #0EA5E9;     /* sky */
+  --yk-corp-success: #059669;
+  --yk-corp-warning: #D97706;
+  --yk-corp-danger: #DC2626;
+  --yk-corp-sidebar-bg: #0F172A;   /* slate-900 navy */
+  --yk-corp-sidebar-ink: #E2E8F0;
+  --yk-corp-sidebar-muted: #94A3B8;
+  --yk-corp-sidebar-line: rgba(148,163,184,.14);
+}
+
+/* Body - hafif radial gradient + ferah corporate */
+body {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(15,118,110,.06), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(14,165,233,.05), transparent 60%),
+    var(--yk-corp-bg) !important;
+}
+
+/* Sidebar - slate-navy corporate */
+.sidebar.use-modern-nav {
+  background: linear-gradient(180deg, #0F172A 0%, #111827 100%) !important;
+  border-right: 1px solid var(--yk-corp-sidebar-line) !important;
+  box-shadow: 1px 0 0 rgba(0,0,0,.20), 0 0 40px rgba(15,23,42,.10);
+  color: var(--yk-corp-sidebar-ink) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.sidebar.use-modern-nav,
+.sidebar.use-modern-nav * {
+  color: var(--yk-corp-sidebar-ink);
+}
+.sidebar.use-modern-nav .sidebar-brand-text {
+  color: #F8FAFC !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+}
+.sidebar.use-modern-nav .sidebar-section-title,
+.sidebar.use-modern-nav .yk-sidebar-section-label,
+.sidebar.use-modern-nav [class*="section-title"] {
+  color: var(--yk-corp-sidebar-muted) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  margin: 14px 0 6px !important;
+  padding: 0 12px !important;
+}
+.sidebar.use-modern-nav .sidebar-link,
+.sidebar.use-modern-nav a {
+  color: var(--yk-corp-sidebar-ink) !important;
+  border-radius: 8px !important;
+}
+.sidebar.use-modern-nav .sidebar-link:hover {
+  background: rgba(255,255,255,0.06) !important;
+  transform: none !important;
+}
+.sidebar.use-modern-nav .sidebar-link.active {
+  background: linear-gradient(135deg, rgba(15,118,110,.20), rgba(14,165,233,.16)) !important;
+  color: #F8FAFC !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06) !important;
+}
+.sidebar.use-modern-nav .sidebar-link.active::before {
+  background: linear-gradient(180deg, #34D399, #38BDF8) !important;
+  left: -8px !important;
+  width: 4px !important;
+}
+.sidebar.use-modern-nav .sidebar-link-icon,
+.sidebar.use-modern-nav .sidebar-link i {
+  color: var(--yk-corp-sidebar-muted) !important;
+  font-size: 16px !important;
+}
+.sidebar.use-modern-nav .sidebar-link.active i,
+.sidebar.use-modern-nav .sidebar-link:hover i {
+  color: #34D399 !important;
+}
+
+/* Sidebar mode tabs (Basit / Doktor / Uzman) */
+.sidebar.use-modern-nav .sidebar-mode,
+.sidebar.use-modern-nav .yk-sidebar-mode-tabs,
+.sidebar.use-modern-nav .experience-mode-tabs {
+  background: rgba(255,255,255,.04) !important;
+  border: 1px solid var(--yk-corp-sidebar-line) !important;
+  border-radius: 8px !important;
+  padding: 3px !important;
+  margin: 8px 12px !important;
+}
+.sidebar.use-modern-nav .sidebar-mode > *,
+.sidebar.use-modern-nav .yk-sidebar-mode-tabs > *,
+.sidebar.use-modern-nav .experience-mode-tabs > * {
+  color: var(--yk-corp-sidebar-muted) !important;
+  background: transparent !important;
+}
+.sidebar.use-modern-nav .sidebar-mode > .active,
+.sidebar.use-modern-nav .yk-sidebar-mode-tabs > .active,
+.sidebar.use-modern-nav .experience-mode-tabs > .active {
+  background: linear-gradient(135deg, #0F766E, #0EA5E9) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.30) !important;
+}
+
+/* Sidebar quick-action (Kayit/Bul/Not/Tele/PACS/Kalite) */
+.sidebar.use-modern-nav .quick-action,
+.sidebar.use-modern-nav .sidebar-quick a {
+  background: rgba(255,255,255,.04) !important;
+  border: 1px solid var(--yk-corp-sidebar-line) !important;
+  color: var(--yk-corp-sidebar-ink) !important;
+}
+.sidebar.use-modern-nav .quick-action:hover,
+.sidebar.use-modern-nav .sidebar-quick a:hover {
+  background: rgba(255,255,255,.08) !important;
+  border-color: rgba(255,255,255,.18) !important;
+}
+.sidebar.use-modern-nav .quick-action i,
+.sidebar.use-modern-nav .quick-action svg,
+.sidebar.use-modern-nav .sidebar-quick i {
+  color: #34D399 !important;
+}
+.sidebar.use-modern-nav .quick-action small,
+.sidebar.use-modern-nav .sidebar-quick small {
+  color: var(--yk-corp-sidebar-muted) !important;
+}
+
+/* Sidebar "Bugunun Akisi / Klinik Komuta" widget'i */
+.sidebar.use-modern-nav [class*="widget"],
+.sidebar.use-modern-nav [class*="komuta"],
+.sidebar.use-modern-nav .yk-sidebar-card,
+.sidebar.use-modern-nav .yk-sidebar-pulse {
+  background: linear-gradient(135deg, rgba(15,118,110,.22), rgba(14,165,233,.18)) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  color: #F0FDFA !important;
+  border-radius: 12px !important;
+}
+
+/* Top header - corporate flat */
+.top-header, .yk-header {
+  background: rgba(255,255,255,0.88) !important;
+  border-bottom: 1px solid var(--yk-corp-line) !important;
+  box-shadow: none !important;
+  backdrop-filter: saturate(180%) blur(12px) !important;
+}
+
+/* Ust pill butonlar (Yeni Hasta / Randevu / Not / Akis / Ajanlar) */
+.top-header .btn, .yk-header .btn,
+.top-header [class*="header-pill"], .yk-header [class*="header-pill"] {
+  background: var(--yk-corp-surface) !important;
+  border: 1px solid var(--yk-corp-line) !important;
+  color: var(--yk-corp-ink) !important;
+  box-shadow: 0 1px 2px rgba(15,23,42,.04) !important;
+  font-weight: 600 !important;
+}
+.top-header .btn:hover, .yk-header .btn:hover {
+  border-color: var(--yk-corp-accent) !important;
+  color: var(--yk-corp-accent) !important;
+  box-shadow: 0 1px 2px rgba(15,118,110,.10), 0 4px 12px rgba(15,118,110,.08) !important;
+}
+.top-header .btn i, .yk-header .btn i {
+  color: var(--yk-corp-accent) !important;
+}
+
+/* Hasta listesi metric kartlari - dengeli ton */
+.yk-patient-metric {
+  background: var(--yk-corp-surface) !important;
+  border: 1px solid var(--yk-corp-line) !important;
+  box-shadow: 0 1px 2px rgba(15,23,42,.04) !important;
+}
+.yk-patient-metric i {
+  box-shadow: 0 4px 12px rgba(15,118,110,.12) !important;
+}
+.yk-patient-metric b {
+  color: var(--yk-corp-ink) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+}
+.yk-patient-metric small {
+  color: var(--yk-corp-ink-soft) !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* Hasta kartlari - sade accent + corporate */
+.patient-card.yk-patient-card {
+  background: var(--yk-corp-surface) !important;
+  border: 1px solid var(--yk-corp-line) !important;
+  box-shadow: 0 1px 2px rgba(15,23,42,.04) !important;
+}
+.patient-card.yk-patient-card:hover {
+  border-color: var(--yk-corp-accent) !important;
+  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 10px 28px rgba(15,118,110,.10) !important;
+  transform: translateY(-2px);
+}
+
+/* Primer butonlar - corporate gradient */
+.btn-primary, .btn-success,
+button.btn-primary, button.btn-success,
+.yk-btn-primary {
+  background: linear-gradient(135deg, #0F766E 0%, #0EA5E9 100%) !important;
+  color: #FFFFFF !important;
+  border: 0 !important;
+  box-shadow: 0 1px 2px rgba(15,23,42,.08), 0 4px 12px rgba(15,118,110,.22) !important;
+}
+
+/* Tum Bootstrap icon'lar daha ince/zarif */
+.bi { font-weight: 400 !important; }
+.btn .bi { vertical-align: -0.125em; }
+
+/* Form kontrolleri - corporate focus halka */
+.form-control:focus, .form-select:focus, .yk-input:focus, .yk-search:focus {
+  border-color: var(--yk-corp-accent) !important;
+  box-shadow: 0 0 0 3px rgba(15,118,110,.14) !important;
+  outline: 0 !important;
+}
+
+/* Genel pill (rozet) sadelestir */
+.badge, .pill, .yk-badge, .yk-chip {
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+}
+
+/* Sidebar brand icon - corporate monogram */
+.sidebar-brand-icon {
+  background: linear-gradient(135deg, #0F766E 0%, #38BDF8 100%) !important;
+  box-shadow: 0 4px 12px rgba(15,118,110,.30), 0 1px 0 rgba(255,255,255,.10) inset !important;
+  border-radius: 12px !important;
+}
+
+/* Dark mode korunmuÅŸ - sidebar zaten koyu, hasarsiz */
+
+/* ================================================================
+   D700 PROFESYONEL REFINEMENT V3 - "GE Viewpoint" enterprise klinik
+   Deep navy + tek-renk turkuaz accent + minimal renk + kompakt veri.
+   Endustri klinik yazilim hissi - parlak renkler tamamen sade.
+   ================================================================ */
+:root {
+  --ge-navy: #0B2E4F;
+  --ge-navy-2: #143E62;
+  --ge-navy-soft: #1B4A73;
+  --ge-blue: #0073B5;
+  --ge-teal: #2EA3A0;
+  --ge-bg: #F4F6F8;
+  --ge-bg-2: #ECEFF3;
+  --ge-surface: #FFFFFF;
+  --ge-line: #D6DCE2;
+  --ge-line-soft: #E5EAEF;
+  --ge-ink: #1A2A3A;
+  --ge-ink-soft: #5A6A7A;
+  --ge-ink-mute: #8B97A4;
+  --ge-success: #1D8348;
+  --ge-warning: #A06A00;
+  --ge-danger: #B23A3A;
+  --ge-info: #1F6090;
+}
+
+/* Body - enterprise duz acik gri zemin (yuksek profesyonel hissi) */
+body {
+  background: var(--ge-bg) !important;
+  font-family: 'Inter', 'Open Sans', 'Plus Jakarta Sans', system-ui, sans-serif !important;
+  letter-spacing: -0.005em;
+}
+
+/* Sidebar - deep navy enterprise */
+.sidebar.use-modern-nav {
+  background: linear-gradient(180deg, #0B2E4F 0%, #082742 100%) !important;
+  border-right: 0 !important;
+  box-shadow: 1px 0 0 rgba(0,0,0,.25), 0 4px 24px rgba(11,46,79,.10);
+  color: #DCE3EA !important;
+  width: 232px !important;
+}
+.sidebar.use-modern-nav .sidebar-brand-icon {
+  background: linear-gradient(135deg, #0073B5 0%, #2EA3A0 100%) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(0,115,181,.40), inset 0 1px 0 rgba(255,255,255,.16) !important;
+}
+.sidebar.use-modern-nav .sidebar-brand-text {
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  font-size: 17px !important;
+}
+.sidebar.use-modern-nav .sidebar-section-title,
+.sidebar.use-modern-nav [class*="section-title"] {
+  color: rgba(220,227,234,.55) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  padding: 0 14px !important;
+  margin-top: 16px !important;
+}
+.sidebar.use-modern-nav .sidebar-link {
+  color: #C2CCD6 !important;
+  font-weight: 500 !important;
+  font-size: 13.5px !important;
+  border-radius: 0 !important;
+  padding: 9px 14px !important;
+  margin: 0 !important;
+  border-left: 3px solid transparent !important;
+  position: relative;
+}
+.sidebar.use-modern-nav .sidebar-link:hover {
+  background: rgba(255,255,255,.04) !important;
+  color: #FFFFFF !important;
+  border-left-color: rgba(0,115,181,.40) !important;
+  transform: none !important;
+}
+.sidebar.use-modern-nav .sidebar-link.active {
+  background: rgba(0,115,181,.14) !important;
+  color: #FFFFFF !important;
+  border-left-color: #2EA3A0 !important;
+  box-shadow: none !important;
+}
+.sidebar.use-modern-nav .sidebar-link.active::before {
+  display: none !important;
+}
+.sidebar.use-modern-nav .sidebar-link i,
+.sidebar.use-modern-nav .sidebar-link-icon {
+  color: rgba(194,204,214,.65) !important;
+  font-size: 15px !important;
+  width: 20px !important;
+}
+.sidebar.use-modern-nav .sidebar-link.active i,
+.sidebar.use-modern-nav .sidebar-link:hover i {
+  color: #2EA3A0 !important;
+}
+
+/* Sidebar mode tabs - kompakt enterprise switcher */
+.sidebar.use-modern-nav .sidebar-mode,
+.sidebar.use-modern-nav .yk-sidebar-mode-tabs,
+.sidebar.use-modern-nav .experience-mode-tabs {
+  background: rgba(0,0,0,.20) !important;
+  border: 1px solid rgba(255,255,255,.06) !important;
+  border-radius: 4px !important;
+  padding: 2px !important;
+  margin: 12px 14px !important;
+}
+.sidebar.use-modern-nav .sidebar-mode > *,
+.sidebar.use-modern-nav .yk-sidebar-mode-tabs > *,
+.sidebar.use-modern-nav .experience-mode-tabs > * {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 4px 8px !important;
+  border-radius: 3px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  color: rgba(220,227,234,.65) !important;
+}
+.sidebar.use-modern-nav .sidebar-mode > .active,
+.sidebar.use-modern-nav .yk-sidebar-mode-tabs > .active,
+.sidebar.use-modern-nav .experience-mode-tabs > .active {
+  background: #0073B5 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.30) !important;
+}
+
+/* Sidebar quick-action - kompakt sade enterprise */
+.sidebar.use-modern-nav .quick-action,
+.sidebar.use-modern-nav .sidebar-quick a {
+  background: rgba(255,255,255,.03) !important;
+  border: 1px solid rgba(255,255,255,.06) !important;
+  color: #DCE3EA !important;
+  border-radius: 4px !important;
+  padding: 8px !important;
+  font-size: 11px !important;
+}
+.sidebar.use-modern-nav .quick-action i,
+.sidebar.use-modern-nav .sidebar-quick i {
+  color: #2EA3A0 !important;
+  font-size: 14px !important;
+}
+.sidebar.use-modern-nav .quick-action small,
+.sidebar.use-modern-nav .sidebar-quick small {
+  color: rgba(220,227,234,.50) !important;
+  font-size: 9px !important;
+  letter-spacing: 0.10em !important;
+}
+
+/* Sidebar widget (Klinik ritim hazir / Komuta Merkezi) */
+.sidebar.use-modern-nav [class*="widget"],
+.sidebar.use-modern-nav [class*="komuta"],
+.sidebar.use-modern-nav .yk-sidebar-card,
+.sidebar.use-modern-nav .yk-sidebar-pulse {
+  background: rgba(0,115,181,.10) !important;
+  border: 1px solid rgba(0,115,181,.20) !important;
+  border-radius: 6px !important;
+  color: #E3EFF7 !important;
+}
+
+/* Top header - enterprise clean white */
+.top-header, .yk-header {
+  background: #FFFFFF !important;
+  border-bottom: 1px solid var(--ge-line) !important;
+  box-shadow: 0 1px 0 rgba(15,23,42,.04) !important;
+  backdrop-filter: none !important;
+  height: 52px !important;
+}
+
+/* Header pill butonlar - kompakt enterprise */
+.top-header .btn, .yk-header .btn {
+  background: var(--ge-surface) !important;
+  border: 1px solid var(--ge-line) !important;
+  color: var(--ge-ink) !important;
+  box-shadow: none !important;
+  font-weight: 500 !important;
+  font-size: 12.5px !important;
+  padding: 5px 12px !important;
+  border-radius: 4px !important;
+  letter-spacing: 0 !important;
+}
+.top-header .btn:hover, .yk-header .btn:hover {
+  background: var(--ge-bg-2) !important;
+  border-color: var(--ge-ink-mute) !important;
+  color: var(--ge-navy) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+.top-header .btn i, .yk-header .btn i {
+  color: var(--ge-blue) !important;
+  font-size: 13px !important;
+}
+
+/* Hasta board / command panel - clean enterprise */
+.yk-patient-board {
+  background: transparent !important;
+}
+.yk-patient-command {
+  background: var(--ge-surface) !important;
+  border: 1px solid var(--ge-line) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 2px rgba(11,46,79,.04) !important;
+  padding: 16px !important;
+}
+.yk-patient-title .eyebrow,
+.eyebrow {
+  color: var(--ge-ink-mute) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+}
+.yk-patient-title h1,
+.yk-patient-title-line h1 {
+  color: var(--ge-navy) !important;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  background: none !important;
+  -webkit-text-fill-color: initial !important;
+}
+.yk-patient-count {
+  background: var(--ge-bg-2) !important;
+  color: var(--ge-navy) !important;
+  border: 1px solid var(--ge-line) !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  padding: 2px 10px !important;
+  border-radius: 4px !important;
+}
+
+/* Hasta liste metric kartlari - enterprise minimal */
+.yk-patient-metric {
+  background: var(--ge-surface) !important;
+  border: 1px solid var(--ge-line) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  padding: 10px 12px !important;
+  min-height: 48px !important;
+}
+.yk-patient-metric i {
+  background: var(--ge-bg-2) !important;
+  color: var(--ge-blue) !important;
+  width: 28px !important;
+  height: 28px !important;
+  box-shadow: none !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+}
+.yk-metric-ob i { background: rgba(0,115,181,.10) !important; color: #0073B5 !important; }
+.yk-metric-gyn i { background: rgba(53,92,154,.12) !important; color: #355C9A !important; }
+.yk-metric-birth i { background: rgba(160,106,0,.10) !important; color: #A06A00 !important; }
+.yk-metric-warn i { background: rgba(178,58,58,.10) !important; color: #B23A3A !important; }
+.yk-patient-metric b {
+  color: var(--ge-navy) !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+}
+.yk-patient-metric small {
+  color: var(--ge-ink-soft) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.10em !important;
+}
+
+/* Arama bar enterprise sade - mercek ikonu input text uzerine binmesin */
+.yk-patient-searchbar {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  height: auto !important;
+  position: relative !important;
+}
+.yk-patient-searchbar input.form-control {
+  background: var(--ge-surface) !important;
+  border: 1px solid var(--ge-line) !important;
+  border-radius: 4px !important;
+  font-size: 13.5px !important;
+  color: var(--ge-ink) !important;
+  padding-left: 42px !important;
+  min-height: 44px !important;
+  height: 44px !important;
+  box-shadow: none !important;
+}
+.yk-patient-searchbar input.form-control:focus {
+  border-color: var(--ge-blue) !important;
+  box-shadow: 0 0 0 2px rgba(0,115,181,.16) !important;
+}
+.yk-patient-searchbar .yk-patient-search-icon,
+.yk-patient-search-icon {
+  left: 14px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: var(--ge-ink-mute) !important;
+  font-size: 16px !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+}
+.yk-patient-searchbar .btn {
+  min-height: 44px !important;
+  height: 44px !important;
+  font-size: 13.5px !important;
+  border-radius: 4px !important;
+}
+.yk-patient-searchbar .btn-primary {
+  background: var(--ge-blue) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  font-weight: 600 !important;
+}
+.yk-patient-search-form .btn-outline-secondary {
+  border-radius: 4px !important;
+  font-weight: 500 !important;
+}
+
+/* Hasta kartlari - GE Viewpoint compact list-card style */
+.patient-card.yk-patient-card {
+  background: var(--ge-surface) !important;
+  border: 1px solid var(--ge-line) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  padding: 12px !important;
+  gap: 8px !important;
+  min-height: 0 !important;
+}
+.patient-card.yk-patient-card:hover {
+  border-color: var(--ge-blue) !important;
+  box-shadow: 0 0 0 1px rgba(0,115,181,.20), 0 2px 8px rgba(11,46,79,.08) !important;
+  transform: none !important;
+}
+/* Patient card brand color - left border accent uniform, color sade */
+.patient-card.yk-patient-card {
+  border-left: 3px solid var(--ge-line) !important;
+}
+.patient-card.yk-patient-type-obstetric { border-left-color: #0073B5 !important; }
+.patient-card.yk-patient-type-gynecologic { border-left-color: #6F7EDB !important; }
+.patient-card.yk-patient-card h3,
+.patient-card.yk-patient-card .name {
+  color: var(--ge-navy) !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+}
+/* Renkli yuvarlak hasta ikon - kucult, monochrome */
+.patient-card.yk-patient-card [class*="patient-icon"],
+.patient-card.yk-patient-card [class*="patient-avatar"] {
+  background: var(--ge-bg-2) !important;
+  color: var(--ge-blue) !important;
+  border-radius: 4px !important;
+  width: 34px !important;
+  height: 34px !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+/* Patient chip (Protokol / Kayit / Son / hf) - sade enterprise */
+.yk-patient-chip {
+  background: var(--ge-bg-2) !important;
+  color: var(--ge-ink-soft) !important;
+  border: 1px solid var(--ge-line-soft) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+.yk-patient-ga-chip {
+  background: rgba(245,158,11,.10) !important;
+  color: #A06A00 !important;
+  border-color: rgba(245,158,11,.30) !important;
+  font-weight: 600 !important;
+}
+
+/* OBSTETRIK / JINEKOLOJI kategori rozeti - enterprise pastel */
+.patient-card .badge,
+.patient-card .pill,
+.patient-card [class*="category"],
+[class*="patient-type-obstetric"] .badge,
+[class*="patient-type-gynecologic"] .badge {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.10em !important;
+  padding: 2px 7px !important;
+  border-radius: 3px !important;
+  text-transform: uppercase !important;
+  box-shadow: none !important;
+  border-width: 1px !important;
+}
+
+/* Card altindaki "Ac / Sil" butonlari - kucult enterprise */
+.patient-card .btn, .patient-card a.btn {
+  font-size: 11px !important;
+  padding: 4px 10px !important;
+  border-radius: 3px !important;
+  font-weight: 500 !important;
+}
+
+/* Yeni Hasta Kayit accent buton - GE-blue enterprise */
+.btn-success.yk-rx-cta,
+[class*="yeni-hasta"].btn-success,
+.yk-patient-toolbar .btn-success {
+  background: linear-gradient(135deg, #0073B5 0%, #005A8E 100%) !important;
+  border: 0 !important;
+  box-shadow: 0 1px 2px rgba(0,115,181,.30) !important;
+  font-weight: 600 !important;
+}
+
+/* Toolbar outline buton (NAS Senkronizasyon / Doguranlar / Hasta Birlestir / Silinenler) */
+.yk-patient-toolbar .btn-outline-secondary,
+.yk-patient-toolbar .btn-outline-dark {
+  background: var(--ge-surface) !important;
+  border: 1px solid var(--ge-line) !important;
+  color: var(--ge-ink) !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  padding: 5px 11px !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+.yk-patient-toolbar .btn-outline-secondary:hover {
+  background: var(--ge-bg-2) !important;
+  border-color: var(--ge-navy) !important;
+  color: var(--ge-navy) !important;
+}
+.yk-patient-toolbar .btn i {
+  color: var(--ge-blue) !important;
+}
+
+/* Form kontrolleri enterprise */
+.form-control, .form-select, .yk-input {
+  border: 1px solid var(--ge-line) !important;
+  border-radius: 4px !important;
+  background: var(--ge-surface) !important;
+  font-size: 13.5px !important;
+  padding: 6px 10px !important;
+}
+.form-control:focus, .form-select:focus {
+  border-color: var(--ge-blue) !important;
+  box-shadow: 0 0 0 2px rgba(0,115,181,.16) !important;
+  outline: 0 !important;
+}
+
+/* Genel heading enterprise */
+h1, .h1 { color: var(--ge-navy) !important; font-size: 22px !important; font-weight: 700 !important; letter-spacing: -0.02em !important; }
+h2, .h2 { color: var(--ge-navy) !important; font-size: 18px !important; font-weight: 700 !important; letter-spacing: -0.015em !important; }
+h3, .h3 { color: var(--ge-navy) !important; font-size: 15px !important; font-weight: 700 !important; }
+h4 { color: var(--ge-navy) !important; font-size: 13.5px !important; font-weight: 700 !important; }
+h5 { color: var(--ge-ink-soft) !important; font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.10em !important; }
+
+/* Page wrapper - enterprise compact padding */
+.main-content, .main-container {
+  padding-top: 14px !important;
+}
+.card, .yk-card {
+  border-radius: 6px !important;
+  border: 1px solid var(--ge-line) !important;
+  box-shadow: 0 1px 2px rgba(11,46,79,.04) !important;
+}
+.card-body { padding: 14px !important; }
+
+/* Bootstrap icons - cizgi inceltme */
+.bi { font-weight: 400 !important; }
+
+/* Alert kutucuklari enterprise */
+.alert {
+  border-radius: 4px !important;
+  border-width: 1px !important;
+  font-size: 13px !important;
+}
+
+/* Dark mode override - GE'nin koyu modu daha derin */
+[data-theme="dark"] {
+  --ge-bg: #0A1929;
+  --ge-bg-2: #122739;
+  --ge-surface: #142A40;
+  --ge-line: #1F3854;
+  --ge-line-soft: #1A3048;
+  --ge-ink: #E2ECF5;
+  --ge-ink-soft: #9EAFC0;
+  --ge-ink-mute: #6E8298;
+}
+
+/* ================================================================
+   D700 DRAMATIC TEMA PRESETS - "Goz alici" 3 yeni palette
+   Mevcut data-palette mekanizmasini kullanir, theme panel'den secilir.
+   ================================================================ */
+
+/* MIDNIGHT PRO - Tamamen koyu, mavi-mor cosmic gradient.
+   Klasik klinik PC'lerinden cikis; modern tech-lab hissi. */
+:root[data-palette="midnight-pro"] {
+  --bg: #0B0F2E !important;
+  --surface: #161B3D !important;
+  --surface-hover: #1F2552 !important;
+  --sidebar-bg: #060920 !important;
+  --header-bg: rgba(11,15,46,0.92) !important;
+  --text: #E0E7FF !important;
+  --text-muted: #8B93C7 !important;
+  --text-fade: #5A6299 !important;
+  --border: #2A3060 !important;
+  --border-light: #1F2552 !important;
+  --accent: #818CF8 !important;
+  --accent-dark: #6366F1 !important;
+  --accent-light: #4F46E5 !important;
+  --accent-bg: rgba(129,140,248,0.18) !important;
+}
+:root[data-palette="midnight-pro"] body {
+  background:
+    radial-gradient(1400px 800px at 20% -10%, rgba(99,102,241,0.20), transparent 50%),
+    radial-gradient(1200px 700px at 110% 110%, rgba(167,139,250,0.16), transparent 50%),
+    linear-gradient(180deg, #0B0F2E 0%, #060920 100%) !important;
+  color: #E0E7FF !important;
+}
+:root[data-palette="midnight-pro"] .sidebar.use-modern-nav {
+  background: linear-gradient(180deg, #060920 0%, #03051A 100%) !important;
+  border-right: 1px solid rgba(129,140,248,0.18) !important;
+}
+:root[data-palette="midnight-pro"] .sidebar.use-modern-nav .sidebar-brand-icon {
+  background: linear-gradient(135deg, #6366F1 0%, #A78BFA 100%) !important;
+  box-shadow: 0 4px 20px rgba(99,102,241,0.50), inset 0 1px 0 rgba(255,255,255,0.20) !important;
+}
+:root[data-palette="midnight-pro"] .top-header, :root[data-palette="midnight-pro"] .yk-header {
+  background: rgba(11,15,46,0.85) !important;
+  border-bottom: 1px solid rgba(129,140,248,0.20) !important;
+}
+:root[data-palette="midnight-pro"] .top-header .btn, :root[data-palette="midnight-pro"] .yk-header .btn {
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(129,140,248,0.20) !important;
+  color: #E0E7FF !important;
+}
+:root[data-palette="midnight-pro"] .btn-primary, :root[data-palette="midnight-pro"] .btn-success {
+  background: linear-gradient(135deg, #6366F1 0%, #A78BFA 100%) !important;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.40) !important;
+}
+:root[data-palette="midnight-pro"] .card, :root[data-palette="midnight-pro"] .yk-card,
+:root[data-palette="midnight-pro"] .patient-card.yk-patient-card,
+:root[data-palette="midnight-pro"] .yk-patient-metric,
+:root[data-palette="midnight-pro"] .yk-patient-command {
+  background: rgba(22,27,61,0.85) !important;
+  background-image: none !important;
+  border-color: rgba(129,140,248,0.20) !important;
+  color: #E0E7FF !important;
+  backdrop-filter: blur(8px);
+}
+:root[data-palette="midnight-pro"] .yk-patient-title h1 {
+  color: #F0E7FF !important;
+  background: linear-gradient(135deg, #C7D2FE, #DDD6FE) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+/* OCEAN WAVE - Canli mavi-cyan-turkuaz dinamik gradient.
+   Modern tech, taze, dikkat cekici. */
+:root[data-palette="ocean-wave"] {
+  --bg: #ECFEFF !important;
+  --surface: #FFFFFF !important;
+  --surface-hover: #CFFAFE !important;
+  --sidebar-bg: #0E7490 !important;
+  --header-bg: rgba(255,255,255,0.92) !important;
+  --text: #0F172A !important;
+  --text-muted: #475569 !important;
+  --text-fade: #94A3B8 !important;
+  --border: #A5F3FC !important;
+  --border-light: #E0F2FE !important;
+  --accent: #0891B2 !important;
+  --accent-dark: #0E7490 !important;
+  --accent-light: #67E8F9 !important;
+  --accent-bg: rgba(8,145,178,0.12) !important;
+}
+:root[data-palette="ocean-wave"] body {
+  background:
+    radial-gradient(1500px 900px at 0% 0%, rgba(8,145,178,0.18), transparent 55%),
+    radial-gradient(1300px 800px at 110% 100%, rgba(56,189,248,0.16), transparent 55%),
+    linear-gradient(180deg, #ECFEFF 0%, #DBEAFE 100%) !important;
+}
+:root[data-palette="ocean-wave"] .sidebar.use-modern-nav {
+  background: linear-gradient(180deg, #0E7490 0%, #155E75 100%) !important;
+  border-right: 0 !important;
+}
+:root[data-palette="ocean-wave"] .sidebar.use-modern-nav .sidebar-brand-icon {
+  background: linear-gradient(135deg, #06B6D4 0%, #38BDF8 100%) !important;
+  box-shadow: 0 4px 20px rgba(6,182,212,0.50) !important;
+}
+:root[data-palette="ocean-wave"] .top-header, :root[data-palette="ocean-wave"] .yk-header {
+  background: rgba(255,255,255,0.92) !important;
+  border-bottom: 1px solid rgba(8,145,178,0.20) !important;
+}
+:root[data-palette="ocean-wave"] .btn-primary, :root[data-palette="ocean-wave"] .btn-success {
+  background: linear-gradient(135deg, #06B6D4 0%, #38BDF8 100%) !important;
+  box-shadow: 0 4px 16px rgba(6,182,212,0.36) !important;
+}
+:root[data-palette="ocean-wave"] .patient-card.yk-patient-card {
+  border-left: 4px solid #06B6D4 !important;
+}
+:root[data-palette="ocean-wave"] .yk-patient-title h1 {
+  background: linear-gradient(135deg, #0E7490, #38BDF8) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+/* SUNSET GLOW - Sicak turuncu-pembe gradient, butik klinik. */
+:root[data-palette="sunset-glow"] {
+  --bg: #FFF7ED !important;
+  --surface: #FFFFFF !important;
+  --surface-hover: #FED7AA !important;
+  --sidebar-bg: #7C2D12 !important;
+  --header-bg: rgba(255,255,255,0.94) !important;
+  --text: #431407 !important;
+  --text-muted: #78350F !important;
+  --text-fade: #A8A29E !important;
+  --border: #FED7AA !important;
+  --border-light: #FFEDD5 !important;
+  --accent: #EA580C !important;
+  --accent-dark: #C2410C !important;
+  --accent-light: #FB923C !important;
+  --accent-bg: rgba(234,88,12,0.12) !important;
+}
+:root[data-palette="sunset-glow"] body {
+  background:
+    radial-gradient(1500px 900px at 0% 0%, rgba(251,146,60,0.20), transparent 55%),
+    radial-gradient(1300px 800px at 110% 100%, rgba(236,72,153,0.16), transparent 55%),
+    linear-gradient(180deg, #FFF7ED 0%, #FEE2E2 100%) !important;
+}
+:root[data-palette="sunset-glow"] .sidebar.use-modern-nav {
+  background: linear-gradient(180deg, #7C2D12 0%, #581C0C 100%) !important;
+  border-right: 0 !important;
+  color: #FFEDD5 !important;
+}
+:root[data-palette="sunset-glow"] .sidebar.use-modern-nav .sidebar-brand-icon {
+  background: linear-gradient(135deg, #F97316 0%, #EC4899 100%) !important;
+  box-shadow: 0 4px 20px rgba(249,115,22,0.50) !important;
+}
+:root[data-palette="sunset-glow"] .top-header, :root[data-palette="sunset-glow"] .yk-header {
+  background: rgba(255,255,255,0.94) !important;
+  border-bottom: 1px solid rgba(234,88,12,0.20) !important;
+}
+:root[data-palette="sunset-glow"] .btn-primary, :root[data-palette="sunset-glow"] .btn-success {
+  background: linear-gradient(135deg, #F97316 0%, #EC4899 100%) !important;
+  box-shadow: 0 4px 16px rgba(249,115,22,0.36) !important;
+}
+:root[data-palette="sunset-glow"] .patient-card.yk-patient-card {
+  border-left: 4px solid #F97316 !important;
+}
+:root[data-palette="sunset-glow"] .yk-patient-title h1 {
+  background: linear-gradient(135deg, #EA580C, #EC4899) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+/* --- D700: search-box icon \F52A bug fix - yk-core.css'te cift backslash
+   ('\\F52A') ile yanlis yazilmis, CSS bunu literal yazi olarak gosterir.
+   Cozum: ikonu tamamen kapat veya dogru hex ile gosterelim. --- */
+.search-box::before {
+  content: none !important;
+  display: none !important;
+}
+.search-box input {
+  padding-left: 14px !important;
+}
+
+/* --- D700: Tema panelini buyut + sidebar section ayraci belirgin --- */
+.theme-panel {
+  max-height: 88vh !important;
+  width: 360px !important;
+  /* Scrollbar belirgin - kullanici "alt kisim var" anlasin */
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(15,118,110,.50) rgba(15,23,42,.05) !important;
+}
+.theme-panel::-webkit-scrollbar { width: 10px !important; }
+.theme-panel::-webkit-scrollbar-track { background: rgba(15,23,42,.05) !important; }
+.theme-panel::-webkit-scrollbar-thumb {
+  background: rgba(15,118,110,.55) !important;
+  border-radius: 6px !important;
+  border: 2px solid transparent !important;
+  background-clip: padding-box !important;
+}
+.theme-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(15,118,110,.80) !important;
+  background-clip: padding-box !important;
+}
+/* Panel altinda "daha fazla asagida" gostergesi */
+.theme-panel::after {
+  content: "â–¼ Sol bar temalari icin asagi kaydir â–¼";
+  display: block;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #0F766E;
+  background: rgba(15,118,110,.10);
+  border-top: 1px solid rgba(15,118,110,.25);
+  padding: 6px 0;
+  position: sticky;
+  bottom: 0;
+  pointer-events: none;
+}
+.theme-panel-section-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: var(--palette-ink, #0F172A) !important;
+  margin: 18px 0 10px !important;
+  padding: 10px 12px !important;
+  border-top: 2px solid var(--palette-border, #E2E8F0) !important;
+  background: rgba(15,118,110,.06) !important;
+  border-radius: 8px !important;
+}
+.theme-panel-section-title i {
+  font-size: 16px !important;
+  color: var(--accent, #0F766E) !important;
+}
+
+/* ================================================================
+   D700 SIDEBAR THEME (data-sidebar-palette) - icerik temasindan
+   bagimsiz, sadece sol sidebar'i etkiler. CSS variable tabanli.
+   ================================================================ */
+:root {
+  --yk-sb-bg-1: #0F172A;
+  --yk-sb-bg-2: #082742;
+  --yk-sb-ink: #DCE3EA;
+  --yk-sb-muted: #94A3B8;
+  --yk-sb-accent: #2EA3A0;
+  --yk-sb-active-bg: rgba(0,115,181,.14);
+  --yk-sb-line: rgba(148,163,184,.14);
+  --yk-sb-brand-grad: linear-gradient(135deg, #0073B5 0%, #2EA3A0 100%);
+}
+
+/* SIDEBAR PALETLER */
+:root[data-sidebar-palette="navy"] {
+  --yk-sb-bg-1: #0F172A; --yk-sb-bg-2: #082742;
+  --yk-sb-ink: #DCE3EA; --yk-sb-muted: #94A3B8;
+  --yk-sb-accent: #2EA3A0;
+  --yk-sb-active-bg: rgba(0,115,181,.14);
+  --yk-sb-brand-grad: linear-gradient(135deg, #0073B5 0%, #2EA3A0 100%);
+}
+:root[data-sidebar-palette="light"] {
+  --yk-sb-bg-1: #FFFFFF; --yk-sb-bg-2: #F8FAFC;
+  --yk-sb-ink: #0F172A; --yk-sb-muted: #64748B;
+  --yk-sb-accent: #10B981;
+  --yk-sb-active-bg: rgba(16,185,129,.10);
+  --yk-sb-line: rgba(15,23,42,.08);
+  --yk-sb-brand-grad: linear-gradient(135deg, #10B981 0%, #0EA5E9 100%);
+}
+:root[data-sidebar-palette="midnight"] {
+  --yk-sb-bg-1: #0B0F2E; --yk-sb-bg-2: #060920;
+  --yk-sb-ink: #E0E7FF; --yk-sb-muted: #8B93C7;
+  --yk-sb-accent: #A78BFA;
+  --yk-sb-active-bg: rgba(99,102,241,.22);
+  --yk-sb-line: rgba(129,140,248,.16);
+  --yk-sb-brand-grad: linear-gradient(135deg, #6366F1 0%, #A78BFA 100%);
+}
+:root[data-sidebar-palette="ocean"] {
+  --yk-sb-bg-1: #0E7490; --yk-sb-bg-2: #155E75;
+  --yk-sb-ink: #F0F9FF; --yk-sb-muted: #A5F3FC;
+  --yk-sb-accent: #67E8F9;
+  --yk-sb-active-bg: rgba(6,182,212,.28);
+  --yk-sb-line: rgba(165,243,252,.16);
+  --yk-sb-brand-grad: linear-gradient(135deg, #06B6D4 0%, #38BDF8 100%);
+}
+:root[data-sidebar-palette="sunset"] {
+  --yk-sb-bg-1: #7C2D12; --yk-sb-bg-2: #581C0C;
+  --yk-sb-ink: #FFEDD5; --yk-sb-muted: #FED7AA;
+  --yk-sb-accent: #FB923C;
+  --yk-sb-active-bg: rgba(249,115,22,.30);
+  --yk-sb-line: rgba(254,215,170,.16);
+  --yk-sb-brand-grad: linear-gradient(135deg, #F97316 0%, #EC4899 100%);
+}
+:root[data-sidebar-palette="forest"] {
+  --yk-sb-bg-1: #064E3B; --yk-sb-bg-2: #022C22;
+  --yk-sb-ink: #D1FAE5; --yk-sb-muted: #A7F3D0;
+  --yk-sb-accent: #34D399;
+  --yk-sb-active-bg: rgba(16,185,129,.26);
+  --yk-sb-line: rgba(167,243,208,.14);
+  --yk-sb-brand-grad: linear-gradient(135deg, #059669 0%, #10B981 100%);
+}
+:root[data-sidebar-palette="steel"] {
+  --yk-sb-bg-1: #1F2937; --yk-sb-bg-2: #111827;
+  --yk-sb-ink: #E5E7EB; --yk-sb-muted: #9CA3AF;
+  --yk-sb-accent: #60A5FA;
+  --yk-sb-active-bg: rgba(96,165,250,.22);
+  --yk-sb-line: rgba(156,163,175,.14);
+  --yk-sb-brand-grad: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+}
+:root[data-sidebar-palette="pearl"] {
+  --yk-sb-bg-1: #F8FBFF; --yk-sb-bg-2: #EFF6FE;
+  --yk-sb-ink: #0B2545; --yk-sb-muted: #475569;
+  --yk-sb-accent: #2B6CB0;
+  --yk-sb-active-bg: rgba(43,108,176,.12);
+  --yk-sb-line: rgba(11,37,69,.10);
+  --yk-sb-brand-grad: linear-gradient(135deg, #2B6CB0 0%, #4A90D9 100%);
+}
+:root[data-sidebar-palette="rose"] {
+  --yk-sb-bg-1: #831843; --yk-sb-bg-2: #500724;
+  --yk-sb-ink: #FCE7F3; --yk-sb-muted: #F9A8D4;
+  --yk-sb-accent: #F472B6;
+  --yk-sb-active-bg: rgba(244,114,182,.26);
+  --yk-sb-line: rgba(249,168,212,.14);
+  --yk-sb-brand-grad: linear-gradient(135deg, #DB2777 0%, #EC4899 100%);
+}
+
+/* SIDEBAR rules - variable'lara baglandi (her palet otomatik uygulanir) */
+.sidebar.use-modern-nav,
+[data-sidebar-palette] .sidebar.use-modern-nav {
+  background: linear-gradient(180deg, var(--yk-sb-bg-1) 0%, var(--yk-sb-bg-2) 100%) !important;
+  color: var(--yk-sb-ink) !important;
+  border-right: 1px solid var(--yk-sb-line) !important;
+  backdrop-filter: none !important;
+}
+[data-sidebar-palette] .sidebar.use-modern-nav .sidebar-brand-icon {
+  background: var(--yk-sb-brand-grad) !important;
+}
+[data-sidebar-palette] .sidebar.use-modern-nav .sidebar-brand-text {
+  color: var(--yk-sb-ink) !important;
+}
+[data-sidebar-palette] .sidebar.use-modern-nav .sidebar-section-title,
+[data-sidebar-palette] .sidebar.use-modern-nav [class*="section-title"] {
+  color: var(--yk-sb-muted) !important;
+  opacity: 0.7;
+}
+[data-sidebar-palette] .sidebar.use-modern-nav .sidebar-link {
+  color: var(--yk-sb-ink) !important;
+  border-left: 3px solid transparent !important;
+}
+[data-sidebar-palette] .sidebar.use-modern-nav .sidebar-link:hover {
+  background: rgba(255,255,255,.06) !important;
+  border-left-color: var(--yk-sb-accent) !important;
+}
+[data-sidebar-palette="light"] .sidebar.use-modern-nav .sidebar-link:hover,
+[data-sidebar-palette="pearl"] .sidebar.use-modern-nav .sidebar-link:hover {
+  background: rgba(15,23,42,.04) !important;
+}
+[data-sidebar-palette] .sidebar.use-modern-nav .sidebar-link.active {
+  background: var(--yk-sb-active-bg) !important;
+  color: var(--yk-sb-ink) !important;
+  border-left-color: var(--yk-sb-accent) !important;
+}
+[data-sidebar-palette] .sidebar.use-modern-nav .sidebar-link.active::before {
+  display: none !important;
+}
+[data-sidebar-palette] .sidebar.use-modern-nav .sidebar-link i,
+[data-sidebar-palette] .sidebar.use-modern-nav .sidebar-link-icon {
+  color: var(--yk-sb-muted) !important;
+}
+[data-sidebar-palette] .sidebar.use-modern-nav .sidebar-link.active i,
+[data-sidebar-palette] .sidebar.use-modern-nav .sidebar-link:hover i {
+  color: var(--yk-sb-accent) !important;
+}
+[data-sidebar-palette] .sidebar.use-modern-nav .sidebar-mode,
+[data-sidebar-palette] .sidebar.use-modern-nav .yk-sidebar-mode-tabs,
+[data-sidebar-palette] .sidebar.use-modern-nav .experience-mode-tabs {
+  background: rgba(0,0,0,.18) !important;
+  border-color: var(--yk-sb-line) !important;
+}
+[data-sidebar-palette="light"] .sidebar.use-modern-nav .sidebar-mode,
+[data-sidebar-palette="pearl"] .sidebar.use-modern-nav .sidebar-mode {
+  background: rgba(15,23,42,.05) !important;
+}
+[data-sidebar-palette] .sidebar.use-modern-nav .sidebar-mode > .active,
+[data-sidebar-palette] .sidebar.use-modern-nav .yk-sidebar-mode-tabs > .active {
+  background: var(--yk-sb-brand-grad) !important;
+  color: #FFFFFF !important;
+}
+[data-sidebar-palette] .sidebar.use-modern-nav .quick-action,
+[data-sidebar-palette] .sidebar.use-modern-nav .sidebar-quick a {
+  background: rgba(255,255,255,.04) !important;
+  border-color: var(--yk-sb-line) !important;
+  color: var(--yk-sb-ink) !important;
+}
+[data-sidebar-palette="light"] .sidebar.use-modern-nav .quick-action,
+[data-sidebar-palette="pearl"] .sidebar.use-modern-nav .quick-action {
+  background: rgba(15,23,42,.03) !important;
+}
+[data-sidebar-palette] .sidebar.use-modern-nav .quick-action i,
+[data-sidebar-palette] .sidebar.use-modern-nav .sidebar-quick i {
+  color: var(--yk-sb-accent) !important;
+}
+[data-sidebar-palette] .sidebar.use-modern-nav .quick-action small,
+[data-sidebar-palette] .sidebar.use-modern-nav .sidebar-quick small {
+  color: var(--yk-sb-muted) !important;
+  opacity: 0.75;
+}
+[data-sidebar-palette] .sidebar.use-modern-nav [class*="widget"],
+[data-sidebar-palette] .sidebar.use-modern-nav [class*="komuta"],
+[data-sidebar-palette] .sidebar.use-modern-nav .yk-sidebar-card {
+  background: var(--yk-sb-active-bg) !important;
+  border: 1px solid var(--yk-sb-line) !important;
+  color: var(--yk-sb-ink) !important;
+}
+
+/* --- D700 2026-05-12: 3 AYRI DROPDOWN TAMAMEN KAPATILDI ---
+   Kullanici tek baglanti istedi (header'daki palet ikonu). Eski
+   "make-visible" kurallari KALDIRILDI; cache'te kalmis HTML
+   gelirse de gizli kalsin diye guclu hide override aktif. */
+.yk-theme-quick,
+.yk-theme-quick-removed,
+#ykThemePaletteSelect,
+#ykThemeSidebarSelect,
+#ykThemeModeSelect,
+.yk-theme-native-select,
+.header-actions .yk-theme-quick,
+.header-actions .yk-theme-native-select {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  left: -99999px !important;
+}
+
+/* --- D700: Recete cikti tablo sutun genislikleri - sutunlar uygun pay alsin,
+   AGIZDAN dikey yazilmasin, basliklar ust uste binmesin --- */
+.rx-drug-table {
+  table-layout: fixed !important;
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+.rx-drug-table th, .rx-drug-table td {
+  white-space: normal !important;
+  word-break: keep-all !important;
+  overflow-wrap: break-word !important;
+  vertical-align: top !important;
+  padding: 3px 5px !important;
+  text-align: left !important;
+}
+/* Sutun genisligi proportional */
+.rx-drug-table .rx-drug-col-no    { width: 6%  !important; text-align: center !important; }
+.rx-drug-table .rx-drug-col-name  { width: 32% !important; }
+.rx-drug-table .rx-drug-col-route { width: 22% !important; }
+.rx-drug-table .rx-drug-col-dose  { width: 12% !important; text-align: center !important; }
+.rx-drug-table .rx-drug-col-daily { width: 14% !important; text-align: center !important; }
+.rx-drug-table .rx-drug-col-box   { width: 14% !important; text-align: center !important; }
+/* Hidden sutun var ise diger sutun-genislikleri otomatik dagÄ±lÄ±r */
+.rx-drug-table th {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.04em !important;
+  text-transform: uppercase !important;
+  border-bottom: 1px solid #1f4466 !important;
+  padding-bottom: 4px !important;
+  color: #1f4466 !important;
+  line-height: 1.25 !important;
+}
+.rx-drug-table td {
+  font-size: 10px !important;
+  line-height: 1.30 !important;
+  border-bottom: 1px solid #E2E8F0 !important;
+}
+/* Ilac adi kalin */
+.rx-drug-table .rx-drug-col-name {
+  font-weight: 700 !important;
+}
+/* A5 kagitta daha ufak (kompakt) */
+html[data-rx-paper="a5"] .rx-drug-table th { font-size: 8.5px !important; }
+html[data-rx-paper="a5"] .rx-drug-table td { font-size: 9.5px !important; }
+
+/* --- D700: Alex bar X kapatma butonu - tiklamaya guvenli kayit --- */
+#ykVoiceQuickClose, #ykVoiceClose {
+  cursor: pointer !important;
+  position: relative !important;
+  z-index: 10 !important;
+  pointer-events: auto !important;
+  user-select: none !important;
+}
+#ykVoiceQuickClose:hover, #ykVoiceClose:hover {
+  background: rgba(239,68,68,0.10) !important;
+  color: #dc2626 !important;
+}
+
+/* --- D700: Resim gecis aninda bombos beyaz olmasin - loading spinner + fade-in.
+   Sorun: renderCurrent() innerHTML='' yapip yeni img'i async yukluyor; aralikta
+   3-6 sn beyaz alan goruluyor. CSS-only cozum: arka katmanda donen spinner
+   her zaman gorunur, img yuklendiginde uzerinde fade-in ile belirir. --- */
+.yk-media-viewer-content,
+.yk-mv-stage {
+  position: relative;
+  background: #07111F;
+  border-radius: 14px;
+  min-height: 240px;
+}
+.yk-media-viewer-content::before,
+.yk-mv-stage::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border: 4px solid rgba(255,255,255,0.14);
+  border-top-color: rgba(16,185,129,0.95);
+  border-radius: 50%;
+  animation: yk-media-spin 0.9s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+.yk-media-viewer-content > img,
+.yk-media-viewer-content > video,
+.yk-mv-stage > img,
+.yk-mv-stage > video {
+  position: relative;
+  z-index: 1;
+  animation: yk-media-fade-in 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+@keyframes yk-media-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes yk-media-fade-in {
+  from { opacity: 0; transform: scale(0.985); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* --- D700: Viewer ACIK iken sayfada altta gozuken kucuk resim galerisi tamamen gizli ---
+   B312 kurali (body.yk-b312-viewer-active) inline CSS extract sirasinda kayip oldu;
+   :has() ile dogrudan kosul tetiklenir. Modern Chromium-tabanli WebShell destekler. */
+body:has(.yk-media-viewer.show) .yk-media-grid,
+body:has(.yk-media-viewer.show) .yk-media-section-head,
+body:has(.yk-mv-b409.show) .yk-media-grid,
+body:has(.yk-mv-b409.show) .yk-media-section-head,
+body.yk-b312-viewer-active .yk-media-grid,
+body.yk-b312-viewer-active .yk-media-section-head,
+body.yk-viewer-open .yk-media-grid,
+body.yk-viewer-open .yk-media-section-head {
+  display: none !important;
+}
+
+/* --- D700: Viewer'in IC thumbnail strip'i (.yk-media-thumb-strip) tamamen gizli.
+   Doktor "ust menu altinda kucuk resimler istemiyorum" - sadece buyuk ana resim kalir.
+   Sayfa arasi gecisler sol/sag oklar ile yapilir. --- */
+.yk-media-thumb-strip,
+.yk-media-viewer .yk-media-thumb-strip,
+.yk-mv-stage .yk-media-thumb-strip {
+  display: none !important;
+}
+
+/* ================================================================
+   D700 DARK MODE OKUNABILIRLIK FIX
+   Bazi kartlar light tema icin yazilmis (gradient white background +
+   gri metin); dark zeminde acik kalip metin okunmuyor. Bu blok tum
+   yaygin kart class'larini dark surface'a ceker, heading ve metni
+   parlaklastirir, rozetleri yumusak pastel'e cevirir.
+   ================================================================ */
+[data-theme="dark"] .card,
+[data-theme="dark"] .yk-card,
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .kpi-card,
+[data-theme="dark"] .yk-kpi,
+[data-theme="dark"] .summary-card,
+[data-theme="dark"] .metric-card,
+[data-theme="dark"] .patient-card,
+[data-theme="dark"] .yk-patient-card,
+[data-theme="dark"] .info-card,
+[data-theme="dark"] .dashboard-card,
+[data-theme="dark"] .yk-section,
+[data-theme="dark"] .yk-widget,
+[data-theme="dark"] .yk-panel,
+[data-theme="dark"] [class*="-card"]:not(.pdf-image-card):not(.pdf-row):not(.pdf-card),
+[data-theme="dark"] [class*="-panel"]:not(.pdf-panel),
+[data-theme="dark"] .accordion-item,
+[data-theme="dark"] section.yk-section {
+  background: var(--surface, #1E293B) !important;
+  background-image: none !important;
+  border-color: var(--border, #334155) !important;
+  color: var(--text, #F1F5F9) !important;
+}
+
+/* Heading + paragraph + label dark zeminde parlak okunsun */
+[data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3,
+[data-theme="dark"] h4, [data-theme="dark"] h5, [data-theme="dark"] h6,
+[data-theme="dark"] .card h1, [data-theme="dark"] .card h2, [data-theme="dark"] .card h3,
+[data-theme="dark"] .card h4, [data-theme="dark"] .card h5, [data-theme="dark"] .card h6,
+[data-theme="dark"] .yk-card h1, [data-theme="dark"] .yk-card h2, [data-theme="dark"] .yk-card h3,
+[data-theme="dark"] .yk-card h4, [data-theme="dark"] .yk-card h5,
+[data-theme="dark"] .yk-card p,
+[data-theme="dark"] .card p,
+[data-theme="dark"] .stat-card .label, [data-theme="dark"] .stat-card .value, [data-theme="dark"] .stat-card .number,
+[data-theme="dark"] .yk-kpi-label, [data-theme="dark"] .yk-kpi-value,
+[data-theme="dark"] .metric-card .value, [data-theme="dark"] .metric-card .label,
+[data-theme="dark"] .yk-widget *, [data-theme="dark"] .yk-section *:not(.btn):not(.badge):not(.pill) {
+  color: var(--text, #F1F5F9) !important;
+}
+
+/* Muted/secondary - silik ama okunabilir */
+[data-theme="dark"] .text-muted,
+[data-theme="dark"] small, [data-theme="dark"] .small,
+[data-theme="dark"] .card small, [data-theme="dark"] .yk-card small,
+[data-theme="dark"] .stat-card small,
+[data-theme="dark"] [class*="-meta"], [data-theme="dark"] [class*="-hint"],
+[data-theme="dark"] .form-text {
+  color: #94A3B8 !important;
+}
+
+/* Rozet/pill/badge - dark uyumlu yumusak pastel */
+[data-theme="dark"] .badge:not([class*="bg-"]),
+[data-theme="dark"] .pill:not([class*="bg-"]),
+[data-theme="dark"] .yk-badge:not([class*="bg-"]),
+[data-theme="dark"] .yk-chip:not([class*="bg-"]),
+[data-theme="dark"] .category-pill:not([class*="bg-"]),
+[data-theme="dark"] .chip:not([class*="bg-"]),
+[data-theme="dark"] .tag:not([class*="bg-"]) {
+  background: rgba(255,255,255,0.08) !important;
+  color: #E2E8F0 !important;
+  border-color: rgba(255,255,255,0.12) !important;
+}
+[data-theme="dark"] .badge.bg-success, [data-theme="dark"] .pill.bg-success,
+[data-theme="dark"] .badge-success { background: rgba(16,185,129,.22) !important; color: #6EE7B7 !important; border-color: rgba(16,185,129,.30) !important; }
+[data-theme="dark"] .badge.bg-warning, [data-theme="dark"] .pill.bg-warning,
+[data-theme="dark"] .badge-warning { background: rgba(245,158,11,.22) !important; color: #FCD34D !important; border-color: rgba(245,158,11,.30) !important; }
+[data-theme="dark"] .badge.bg-danger,  [data-theme="dark"] .pill.bg-danger,
+[data-theme="dark"] .badge-danger { background: rgba(239,68,68,.24) !important; color: #FCA5A5 !important; border-color: rgba(239,68,68,.30) !important; }
+[data-theme="dark"] .badge.bg-info,    [data-theme="dark"] .pill.bg-info,
+[data-theme="dark"] .badge-info { background: rgba(56,189,248,.22) !important; color: #7DD3FC !important; border-color: rgba(56,189,248,.30) !important; }
+
+/* Alert kutucuklari dark uyumlu */
+[data-theme="dark"] .alert, [data-theme="dark"] .yk-alert {
+  background: rgba(255,255,255,0.04) !important;
+  color: var(--text, #F1F5F9) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+}
+[data-theme="dark"] .alert-info, [data-theme="dark"] .alert.alert-info {
+  background: rgba(56,189,248,.10) !important; color: #BAE6FD !important; border-color: rgba(56,189,248,.22) !important;
+}
+[data-theme="dark"] .alert-success, [data-theme="dark"] .alert.alert-success {
+  background: rgba(16,185,129,.10) !important; color: #A7F3D0 !important; border-color: rgba(16,185,129,.22) !important;
+}
+[data-theme="dark"] .alert-warning, [data-theme="dark"] .alert.alert-warning {
+  background: rgba(245,158,11,.10) !important; color: #FDE68A !important; border-color: rgba(245,158,11,.22) !important;
+}
+[data-theme="dark"] .alert-danger, [data-theme="dark"] .alert.alert-danger {
+  background: rgba(239,68,68,.10) !important; color: #FCA5A5 !important; border-color: rgba(239,68,68,.22) !important;
+}
+[data-theme="dark"] .alert-light, [data-theme="dark"] .alert.alert-light {
+  background: rgba(255,255,255,0.05) !important; color: #CBD5E1 !important; border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* Bordur ve divider dark uyumlu */
+[data-theme="dark"] hr, [data-theme="dark"] .divider, [data-theme="dark"] .separator {
+  border-color: var(--border, #334155) !important;
+  background: var(--border, #334155) !important;
+}
+
+/* Tablo dark uyumlu */
+[data-theme="dark"] .table, [data-theme="dark"] .yk-table {
+  color: var(--text, #F1F5F9) !important;
+}
+[data-theme="dark"] .table thead, [data-theme="dark"] .yk-table thead {
+  background: rgba(255,255,255,0.04) !important;
+  color: #CBD5E1 !important;
+}
+[data-theme="dark"] .table tbody tr, [data-theme="dark"] .yk-table tbody tr {
+  border-color: var(--border, #334155) !important;
+}
+[data-theme="dark"] .table tbody tr:hover, [data-theme="dark"] .yk-table tbody tr:hover {
+  background: rgba(255,255,255,0.04) !important;
+}
+
+/* Quick action kartlari da dark uyumlu */
+[data-theme="dark"] .quick-action, [data-theme="dark"] .sidebar-quick a {
+  background: var(--surface, #1E293B) !important;
+  border-color: var(--border, #334155) !important;
+  color: var(--text, #F1F5F9) !important;
+}
+[data-theme="dark"] .quick-action small, [data-theme="dark"] .sidebar-quick small {
+  color: #64748B !important;
+}
+
+/* --- D700: Hasta listesi (/hastalar) sayfasi dark mode okunabilirlik ---
+   Board, eyebrow, title, count badge, metric kartlari ve search bar
+   light tema gradient/beyaz background'lari dark zeminde okunmuyor. */
+[data-theme="dark"] .yk-patient-board,
+[data-theme="dark"] .yk-patient-command {
+  background: var(--surface, #1E293B) !important;
+  background-image: none !important;
+  border-color: var(--border, #334155) !important;
+  color: var(--text, #F1F5F9) !important;
+}
+[data-theme="dark"] .yk-patient-title .eyebrow,
+[data-theme="dark"] .eyebrow {
+  color: #94A3B8 !important;
+}
+[data-theme="dark"] .yk-patient-title h1,
+[data-theme="dark"] .yk-patient-title-line h1 {
+  color: #F8FAFC !important;
+  background: none !important;
+  background-image: none !important;
+  -webkit-background-clip: initial !important;
+  background-clip: initial !important;
+  -webkit-text-fill-color: initial !important;
+}
+[data-theme="dark"] .yk-patient-count {
+  background: rgba(255,255,255,0.08) !important;
+  color: #F8FAFC !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+}
+
+/* yk-patient-metric kartlari: light beyaz semi-saydam zemin -> dark surface */
+[data-theme="dark"] .yk-patient-metric {
+  background: var(--surface, #1E293B) !important;
+  border-color: var(--border, #334155) !important;
+  color: var(--text, #F1F5F9) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03) !important;
+}
+[data-theme="dark"] .yk-patient-metric b {
+  color: #F8FAFC !important;
+}
+[data-theme="dark"] .yk-patient-metric small {
+  color: #94A3B8 !important;
+}
+
+/* Arama bar dark mode */
+[data-theme="dark"] .yk-patient-searchbar {
+  background: var(--surface, #1E293B) !important;
+  border-color: var(--border, #334155) !important;
+}
+[data-theme="dark"] .yk-patient-search-form .form-control,
+[data-theme="dark"] .yk-patient-searchbar .form-control,
+[data-theme="dark"] .yk-patient-searchbar input[type="text"] {
+  background: transparent !important;
+  color: var(--text, #F1F5F9) !important;
+  border-color: var(--border, #334155) !important;
+}
+[data-theme="dark"] .yk-patient-search-form .form-control::placeholder,
+[data-theme="dark"] .yk-patient-searchbar input::placeholder {
+  color: #94A3B8 !important;
+}
+[data-theme="dark"] .yk-patient-search-icon {
+  color: #94A3B8 !important;
+}
+
+/* "X hasta bu sayfada listeleniyor" hint */
+[data-theme="dark"] .yk-patient-summary,
+[data-theme="dark"] .yk-patient-listing-hint,
+[data-theme="dark"] .yk-patient-result-info,
+[data-theme="dark"] [class*="patient-result"],
+[data-theme="dark"] [class*="patient-summary"] {
+  color: #94A3B8 !important;
+}
+
+/* Toolbar buton'lari (NAS Senkronizasyon / Doguranlar / Hasta Birlestir / Silinenler) */
+[data-theme="dark"] .yk-patient-toolbar .btn-outline-secondary,
+[data-theme="dark"] .yk-patient-toolbar .btn-outline-dark {
+  background: rgba(255,255,255,0.04) !important;
+  color: var(--text, #F1F5F9) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+}
+[data-theme="dark"] .yk-patient-toolbar .btn-outline-secondary:hover,
+[data-theme="dark"] .yk-patient-toolbar .btn-outline-dark:hover {
+  background: rgba(255,255,255,0.08) !important;
+}
+
+/* --- D700: Klinik konsult kartlari (PPH 4T / Trauma / Hellp gibi) dark mode --- */
+[data-theme="dark"] .yk-vp-pcard {
+  background: var(--surface, #1E293B) !important;
+  background-image: none !important;
+  color: var(--text, #F1F5F9) !important;
+  border-color: rgba(255,255,255,0.06) !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.30) !important;
+}
+[data-theme="dark"] .yk-vp-pcard .pcard-title { color: #F8FAFC !important; }
+[data-theme="dark"] .yk-vp-pcard .pcard-body  { color: #CBD5E1 !important; }
+[data-theme="dark"] .yk-vp-pcard .pcard-meta  { color: #94A3B8 !important; }
+
+/* Klinik tablolar (HELLP, Bishop, Pelvis vs) */
+[data-theme="dark"] .table th, [data-theme="dark"] .yk-table th {
+  background: rgba(255,255,255,0.04) !important;
+  color: #CBD5E1 !important;
+  border-color: var(--border, #334155) !important;
+}
+[data-theme="dark"] .table td, [data-theme="dark"] .yk-table td {
+  color: var(--text, #F1F5F9) !important;
+  border-color: var(--border, #334155) !important;
+}
+[data-theme="dark"] .table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(255,255,255,0.02) !important;
+}
+
+/* --- D700: Hasta dosyasi action hub (Sik kullanilanlar + alt section'lar) dark --- */
+[data-theme="dark"] .yk-action-hub {
+  background: var(--surface, #1E293B) !important;
+  background-image: none !important;
+  border: 1px solid var(--border, #334155) !important;
+  color: var(--text, #F1F5F9) !important;
+}
+[data-theme="dark"] .yk-action-hub-head h3 {
+  color: #F8FAFC !important;
+}
+[data-theme="dark"] .yk-action-hub-head .eyebrow {
+  color: #94A3B8 !important;
+}
+[data-theme="dark"] .yk-action-total {
+  background: rgba(255,255,255,0.08) !important;
+  color: #F8FAFC !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+}
+
+/* Alt section'lar: Gunluk Takip, Medya ve USG, AI/Not/Mektup, Yardimcilar */
+[data-theme="dark"] .yk-action-section,
+[data-theme="dark"] details.yk-action-section {
+  background: var(--surface, #1E293B) !important;
+  background-image: none !important;
+  border: 1px solid var(--border, #334155) !important;
+  color: var(--text, #F1F5F9) !important;
+  border-radius: 10px !important;
+  margin-top: 8px !important;
+}
+[data-theme="dark"] .yk-action-section summary {
+  color: #F8FAFC !important;
+  background: transparent !important;
+}
+[data-theme="dark"] .yk-action-section summary span,
+[data-theme="dark"] .yk-action-section summary i {
+  color: inherit !important;
+}
+[data-theme="dark"] .yk-action-section summary b {
+  background: rgba(255,255,255,0.08) !important;
+  color: #F8FAFC !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  min-width: 28px !important;
+  text-align: center !important;
+}
+
+/* Action grid butonlari (Takip Medyasi / NAS-DICOM / DICOM-USG vs) */
+[data-theme="dark"] .yk-action-grid a,
+[data-theme="dark"] .yk-action-grid button,
+[data-theme="dark"] .yk-action-grid .yk-action-link {
+  background: var(--surface, #1E293B) !important;
+  background-image: none !important;
+  border: 1px solid var(--border, #334155) !important;
+  color: var(--text, #F1F5F9) !important;
+}
+[data-theme="dark"] .yk-action-grid a:hover,
+[data-theme="dark"] .yk-action-grid button:hover {
+  background: rgba(255,255,255,0.04) !important;
+  border-color: rgba(255,255,255,0.16) !important;
+}
+[data-theme="dark"] .yk-action-grid a *,
+[data-theme="dark"] .yk-action-grid button * {
+  color: inherit !important;
+}
+[data-theme="dark"] .yk-action-grid a small,
+[data-theme="dark"] .yk-action-grid button small,
+[data-theme="dark"] .yk-action-grid .yk-action-link small {
+  color: #94A3B8 !important;
+}
+
+/* ================================================================
+   D700 PDF ATOLYESI SAG PANEL OKUNABILIRLIK FIX
+   Sag panel kasitli koyu lacivert (#0F172A) tasarim - hem light hem
+   dark tema'da boyle gozukmesi gerekiyor. Ama mevcut bazi metinler
+   silik kalmis (Secili nesne basligi, dosya meta). Net kontrast.
+   ================================================================ */
+.pdf-pro-studio-v2 .pdf-image-sidebar {
+  color: #E2E8F0;
+}
+.pdf-pro-studio-v2 .pdf-image-sidebar h1,
+.pdf-pro-studio-v2 .pdf-image-sidebar h2,
+.pdf-pro-studio-v2 .pdf-image-sidebar h3,
+.pdf-pro-studio-v2 .pdf-image-sidebar h4,
+.pdf-pro-studio-v2 .pdf-image-sidebar h5,
+.pdf-pro-studio-v2 .pdf-image-sidebar h6,
+.pdf-pro-studio-v2 .pdf-image-sidebar b,
+.pdf-pro-studio-v2 .pdf-image-sidebar strong,
+.pdf-pro-studio-v2 .pdf-inspector b,
+.pdf-pro-studio-v2 .pdf-sidebar-head h4 {
+  color: #F8FAFC !important;
+  font-weight: 700;
+}
+.pdf-pro-studio-v2 .pdf-image-sidebar .text-muted,
+.pdf-pro-studio-v2 .pdf-image-sidebar small,
+.pdf-pro-studio-v2 .pdf-image-sidebar .small,
+.pdf-pro-studio-v2 .pdf-inspector .text-muted,
+.pdf-pro-studio-v2 .pdf-image-card .pdf-image-meta small,
+.pdf-pro-studio-v2 .pdf-image-card small {
+  color: #94A3B8 !important;
+}
+.pdf-pro-studio-v2 .pdf-image-card .pdf-image-meta b,
+.pdf-pro-studio-v2 .pdf-image-card b {
+  color: #E2E8F0 !important;
+}
+.pdf-pro-studio-v2 .pdf-inspector-grid span {
+  color: #DDE9F6 !important;
+  background: #0B1220 !important;
+  border-color: #25364B !important;
+}
+.pdf-pro-studio-v2 .pdf-image-search {
+  background: #111D32 !important;
+  border-color: #334155 !important;
+  color: #F8FAFC !important;
+}
+.pdf-pro-studio-v2 .pdf-image-search::placeholder {
+  color: #94A3B8 !important;
+}
+.pdf-pro-studio-v2 .pdf-muted-badge {
+  background: rgba(255,255,255,0.08) !important;
+  color: #CBD5E1 !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+}
+/* ==============================================================
+   D700 2026-05-12: Strong Palette Theme Control
+   The palette selector must drive the whole shell, not only accents.
+   ============================================================== */
+:root[data-palette] {
+  --yk-theme-page: var(--palette-bg-1, #f8fafc);
+  --yk-theme-page-2: var(--palette-bg-2, #eef6fb);
+  --yk-theme-page-3: var(--palette-bg-3, #e3edf6);
+  --yk-theme-surface: color-mix(in srgb, var(--palette-card-strong, #ffffff), var(--palette-bg-1, #f8fafc) 14%);
+  --yk-theme-surface-soft: color-mix(in srgb, var(--palette-card, #ffffff), var(--palette-bg-2, #eef6fb) 26%);
+  --yk-theme-surface-strong: var(--palette-card-strong, #ffffff);
+  --yk-theme-header: color-mix(in srgb, var(--palette-header, #ffffff), var(--palette-accent, #0ea5e9) 7%);
+  --yk-theme-sidebar: color-mix(in srgb, var(--palette-card-strong, #ffffff), var(--palette-bg-2, #eef6fb) 42%);
+  --yk-theme-sidebar-2: color-mix(in srgb, var(--palette-card, #ffffff), var(--palette-bg-3, #e3edf6) 54%);
+  --yk-theme-line: color-mix(in srgb, var(--palette-border, #dbe7f1), var(--palette-accent, #0ea5e9) 16%);
+  --yk-theme-line-strong: color-mix(in srgb, var(--palette-border, #dbe7f1), var(--palette-accent, #0ea5e9) 28%);
+  --yk-theme-text: var(--text, #1f3448);
+  --yk-theme-muted: var(--muted, #64748b);
+  --yk-theme-glow-a: color-mix(in srgb, var(--palette-accent, #0ea5e9), transparent 80%);
+  --yk-theme-glow-b: color-mix(in srgb, var(--palette-warm, #f59e0b), transparent 86%);
+  --yk-theme-shadow: color-mix(in srgb, var(--palette-accent, #0ea5e9), transparent 86%);
+
+  --bg: var(--yk-theme-page) !important;
+  --surface: var(--yk-theme-surface) !important;
+  --surface-hover: var(--yk-theme-surface-soft) !important;
+  --header-bg: var(--yk-theme-header) !important;
+  --sidebar-bg: var(--yk-theme-sidebar) !important;
+  --card-bg: var(--yk-theme-surface) !important;
+  --paper: var(--yk-theme-surface) !important;
+  --cream: var(--yk-theme-page-2) !important;
+  --sand: var(--yk-theme-page-3) !important;
+  --pro-bg: var(--yk-theme-page) !important;
+  --pro-bg-2: var(--yk-theme-page-2) !important;
+  --pro-bg-3: var(--yk-theme-page-3) !important;
+  --pro-surface: var(--yk-theme-surface) !important;
+  --pro-header: var(--yk-theme-header) !important;
+  --pro-border: var(--yk-theme-line) !important;
+}
+
+:root[data-palette="desktop"] {
+  --yk-theme-page: #edf7fb;
+  --yk-theme-page-2: #e4f2f8;
+  --yk-theme-page-3: #f3f8fc;
+  --yk-theme-header: rgba(247, 252, 255, 0.94);
+}
+
+:root[data-palette="windows-baseline"] {
+  --yk-theme-page: #F8FAFC;
+  --yk-theme-page-2: #F3F4F6;
+  --yk-theme-page-3: #E5E7EB;
+  --yk-theme-surface: #FFFFFF;
+  --yk-theme-surface-soft: #F9FAFB;
+  --yk-theme-surface-strong: #FFFFFF;
+  --yk-theme-header: rgba(255,255,255,.96);
+  --yk-theme-sidebar: #FFFFFF;
+  --yk-theme-sidebar-2: #F3F4F6;
+  --yk-theme-line: #D1D5DB;
+  --yk-theme-line-strong: #9CA3AF;
+  --yk-theme-text: #111827;
+  --yk-theme-muted: #4B5563;
+  --yk-theme-glow-a: rgba(37,99,235,.10);
+  --yk-theme-glow-b: rgba(107,114,128,.08);
+  --yk-theme-shadow: rgba(17,24,39,.08);
+  --text: #111827 !important;
+  --muted: #4B5563 !important;
+}
+
+:root[data-palette="viewpoint6"] {
+  --yk-theme-page: #eaf2f7;
+  --yk-theme-page-2: #dceaf3;
+  --yk-theme-page-3: #c9dcea;
+  --yk-theme-surface: rgba(249, 252, 254, 0.94);
+  --yk-theme-surface-soft: rgba(239, 246, 251, 0.96);
+  --yk-theme-surface-strong: rgba(255, 255, 255, 0.98);
+  --yk-theme-header: rgba(232, 243, 250, 0.96);
+  --yk-theme-sidebar: rgba(244, 248, 251, 0.98);
+  --yk-theme-sidebar-2: rgba(224, 236, 246, 0.98);
+  --yk-theme-line: rgba(98, 128, 154, 0.26);
+  --yk-theme-line-strong: rgba(74, 104, 130, 0.36);
+  --yk-theme-text: #17324a;
+  --yk-theme-muted: #526d82;
+  --yk-theme-glow-a: rgba(0, 120, 215, 0.18);
+  --yk-theme-glow-b: rgba(0, 166, 178, 0.12);
+  --yk-theme-shadow: rgba(37, 76, 112, 0.14);
+  --yk-vp-ink: #17324a;
+  --yk-vp-ink-soft: #314d66;
+  --yk-vp-muted: #526d82;
+  --yk-vp-line: #b7c8d8;
+  --yk-vp-line-soft: #dce8f1;
+  --yk-vp-bg: #eaf2f7;
+  --yk-vp-card: #f9fcfe;
+  --yk-vp-accent: #0078d7;
+  --yk-vp-accent-soft: #00a6b2;
+  --yk-vp-radius: 6px;
+  --yk-vp-radius-lg: 8px;
+  --text: var(--yk-theme-text) !important;
+  --muted: var(--yk-theme-muted) !important;
+}
+
+:root[data-palette="pearl"] {
+  --yk-theme-page: #f5f7fb;
+  --yk-theme-page-2: #eef4f8;
+  --yk-theme-page-3: #e5eef5;
+  --yk-theme-header: rgba(249, 251, 253, 0.94);
+}
+
+:root[data-palette="mint"] {
+  --yk-theme-page: #ecfff8;
+  --yk-theme-page-2: #dcfbed;
+  --yk-theme-page-3: #eefcf3;
+  --yk-theme-header: rgba(244, 255, 249, 0.94);
+}
+
+:root[data-palette="sapphire"] {
+  --yk-theme-page: #edf5ff;
+  --yk-theme-page-2: #dfeeff;
+  --yk-theme-page-3: #f4f8ff;
+  --yk-theme-header: rgba(244, 249, 255, 0.94);
+}
+
+:root[data-palette="rose"] {
+  --yk-theme-page: #fff1f6;
+  --yk-theme-page-2: #ffe4ef;
+  --yk-theme-page-3: #fff7fb;
+  --yk-theme-header: rgba(255, 247, 251, 0.94);
+}
+
+:root[data-palette="forest"] {
+  --yk-theme-page: #ecfff4;
+  --yk-theme-page-2: #dbf7e9;
+  --yk-theme-page-3: #f2fff8;
+  --yk-theme-header: rgba(244, 255, 249, 0.94);
+}
+
+:root[data-palette="amber"] {
+  --yk-theme-page: #fff8e6;
+  --yk-theme-page-2: #ffefc7;
+  --yk-theme-page-3: #fffaf0;
+  --yk-theme-header: rgba(255, 251, 241, 0.94);
+}
+
+:root[data-palette="lavender"] {
+  --yk-theme-page: #f5f0ff;
+  --yk-theme-page-2: #ece4ff;
+  --yk-theme-page-3: #fbf8ff;
+  --yk-theme-header: rgba(250, 247, 255, 0.94);
+}
+
+:root[data-palette="ocean-wave"] {
+  --yk-theme-page: #e8fbff;
+  --yk-theme-page-2: #d5f4fb;
+  --yk-theme-page-3: #f2fdff;
+  --yk-theme-header: rgba(241, 253, 255, 0.94);
+}
+
+:root[data-palette="sunset-glow"] {
+  --yk-theme-page: #fff2e8;
+  --yk-theme-page-2: #ffe6d1;
+  --yk-theme-page-3: #fff8f2;
+  --yk-theme-header: rgba(255, 248, 242, 0.94);
+}
+
+:root[data-palette="midnight-pro"],
+:root[data-theme="dark"][data-palette] {
+  --yk-theme-page: #0b1220;
+  --yk-theme-page-2: #111b2e;
+  --yk-theme-page-3: #17243a;
+  --yk-theme-surface: rgba(20, 31, 50, 0.92);
+  --yk-theme-surface-soft: rgba(28, 42, 66, 0.92);
+  --yk-theme-surface-strong: rgba(18, 28, 47, 0.98);
+  --yk-theme-header: rgba(14, 24, 40, 0.94);
+  --yk-theme-sidebar: rgba(15, 26, 43, 0.96);
+  --yk-theme-sidebar-2: rgba(20, 34, 56, 0.96);
+  --yk-theme-line: rgba(125, 168, 215, 0.24);
+  --yk-theme-line-strong: rgba(125, 168, 215, 0.34);
+  --yk-theme-text: #eaf2ff;
+  --yk-theme-muted: #a9bad0;
+  --yk-theme-glow-a: rgba(45, 156, 219, 0.25);
+  --yk-theme-glow-b: rgba(251, 191, 36, 0.12);
+  --yk-theme-shadow: rgba(0, 0, 0, 0.32);
+  --text: var(--yk-theme-text) !important;
+  --muted: var(--yk-theme-muted) !important;
+}
+
+:root[data-palette="contrast"] {
+  --yk-theme-page: #ffffff;
+  --yk-theme-page-2: #eef2ff;
+  --yk-theme-page-3: #e2e8f0;
+  --yk-theme-header: #ffffff;
+  --yk-theme-surface: #ffffff;
+  --yk-theme-surface-soft: #f8fafc;
+  --yk-theme-sidebar: #ffffff;
+  --yk-theme-line: #1f2937;
+  --yk-theme-line-strong: #0f172a;
+}
+
+:root[data-palette],
+:root[data-palette] body {
+  background:
+    radial-gradient(circle at 10% 0%, var(--yk-theme-glow-a) 0, transparent 34%),
+    radial-gradient(circle at 88% 8%, var(--yk-theme-glow-b) 0, transparent 32%),
+    linear-gradient(135deg, var(--yk-theme-page) 0%, var(--yk-theme-page-2) 54%, var(--yk-theme-page-3) 100%) !important;
+  color: var(--yk-theme-text) !important;
+}
+
+:root[data-palette] .app-shell,
+:root[data-palette] .main-shell,
+:root[data-palette] .main-content,
+:root[data-palette] .content,
+:root[data-palette] .content-area,
+:root[data-palette] .page-content,
+:root[data-palette] .yk-page,
+:root[data-palette] .yk-shell,
+:root[data-palette] .yk-patient-shell,
+:root[data-palette] .yk-patient-page,
+:root[data-palette] .yk-patient-list-shell,
+:root[data-palette] main {
+  background: transparent !important;
+}
+
+:root[data-palette] .top-header,
+:root[data-palette] .navbar,
+:root[data-palette] .header,
+:root[data-palette] .yk-header,
+:root[data-palette] .mobile-bottom-nav {
+  background: var(--yk-theme-header) !important;
+  border-color: var(--yk-theme-line) !important;
+  box-shadow: 0 14px 36px var(--yk-theme-shadow) !important;
+  backdrop-filter: blur(18px) saturate(1.2);
+}
+
+:root[data-palette] .sidebar,
+:root[data-palette] .sidebar.use-modern-nav,
+:root[data-palette] .yk-sidebar,
+:root[data-palette] .sidebar-footer {
+  background:
+    linear-gradient(180deg, var(--yk-theme-sidebar) 0%, var(--yk-theme-sidebar-2) 100%) !important;
+  border-color: var(--yk-theme-line) !important;
+  box-shadow: 18px 0 42px var(--yk-theme-shadow) !important;
+}
+
+:root[data-palette] .card,
+:root[data-palette] .yk-card,
+:root[data-palette] .patient-card,
+:root[data-palette] .yk-patient-card,
+:root[data-palette] .stat-card,
+:root[data-palette] .metric-card,
+:root[data-palette] .tool-card,
+:root[data-palette] .quick-primary,
+:root[data-palette] .quick-secondary,
+:root[data-palette] .tools-collapse,
+:root[data-palette] .list-group-item,
+:root[data-palette] .dropdown-menu,
+:root[data-palette] .modal-content,
+:root[data-palette] .popover,
+:root[data-palette] .toast,
+:root[data-palette] .yk-panel,
+:root[data-palette] .yk-patient-board,
+:root[data-palette] .yk-patient-command,
+:root[data-palette] .yk-patient-metric,
+:root[data-palette] .table,
+:root[data-palette] .table-responsive {
+  background:
+    linear-gradient(180deg, var(--yk-theme-surface) 0%, var(--yk-theme-surface-soft) 100%) !important;
+  border-color: var(--yk-theme-line) !important;
+  color: var(--yk-theme-text) !important;
+  box-shadow: 0 18px 44px var(--yk-theme-shadow) !important;
+}
+
+:root[data-palette] .form-control,
+:root[data-palette] .form-select,
+:root[data-palette] .input-group-text,
+:root[data-palette] .search-box,
+:root[data-palette] .yk-patient-searchbar,
+:root[data-palette] textarea,
+:root[data-palette] input,
+:root[data-palette] select {
+  background: color-mix(in srgb, var(--yk-theme-surface-strong), var(--yk-theme-page) 12%) !important;
+  border-color: var(--yk-theme-line-strong) !important;
+  color: var(--yk-theme-text) !important;
+}
+
+:root[data-palette] .btn-light,
+:root[data-palette] .btn-outline-light,
+:root[data-palette] .btn-outline-secondary,
+:root[data-palette] .btn-soft,
+:root[data-palette] .nav-link,
+:root[data-palette] .menu-item,
+:root[data-palette] .sidebar .nav-link {
+  background: color-mix(in srgb, var(--yk-theme-surface), transparent 8%) !important;
+  border-color: var(--yk-theme-line) !important;
+  color: var(--yk-theme-text) !important;
+}
+
+:root[data-palette] .text-muted,
+:root[data-palette] .muted,
+:root[data-palette] small {
+  color: var(--yk-theme-muted) !important;
+}
+
+/* D700 readability hardening: patient header + BK warning never fades */
+.yk-patient-folder-hero .text-muted,
+.yk-patient-folder-hero .small,
+.yk-patient-folder-hero small,
+.yk-patient-detail-page .alert .text-muted,
+.yk-patient-detail-page .alert .small,
+.yk-patient-detail-page .alert small {
+  color: #334155 !important;
+  opacity: 1 !important;
+}
+[data-theme="dark"] .yk-patient-folder-hero .text-muted,
+[data-theme="dark"] .yk-patient-folder-hero .small,
+[data-theme="dark"] .yk-patient-folder-hero small,
+[data-theme="dark"] .yk-patient-detail-page .alert .text-muted,
+[data-theme="dark"] .yk-patient-detail-page .alert .small,
+[data-theme="dark"] .yk-patient-detail-page .alert small {
+  color: #CBD5E1 !important;
+  opacity: 1 !important;
+}
+
+.yk-patient-folder-hero,
+.yk-patient-folder-hero .yk-patient-top-stat b,
+.yk-patient-folder-hero .yk-patient-top-stat .yk-pts-copy b {
+  color: #0f172a !important;
+}
+.yk-patient-folder-hero .yk-patient-top-stat small,
+.yk-patient-folder-hero .yk-patient-top-stat .yk-pts-copy small {
+  color: #334155 !important;
+  opacity: 1 !important;
+}
+[data-theme="dark"] .yk-patient-folder-hero,
+[data-theme="dark"] .yk-patient-folder-hero .yk-patient-top-stat b,
+[data-theme="dark"] .yk-patient-folder-hero .yk-patient-top-stat .yk-pts-copy b {
+  color: #e2e8f0 !important;
+}
+[data-theme="dark"] .yk-patient-folder-hero .yk-patient-top-stat small,
+[data-theme="dark"] .yk-patient-folder-hero .yk-patient-top-stat .yk-pts-copy small {
+  color: #cbd5e1 !important;
+  opacity: 1 !important;
+}
+
+:root[data-palette] .table > :not(caption) > * > * {
+  background: color-mix(in srgb, var(--yk-theme-surface), transparent 4%) !important;
+  border-color: var(--yk-theme-line) !important;
+  color: var(--yk-theme-text) !important;
+}
+
+:root[data-palette="viewpoint6"] .top-header,
+:root[data-palette="viewpoint6"] .navbar,
+:root[data-palette="viewpoint6"] .header,
+:root[data-palette="viewpoint6"] .yk-header {
+  background: linear-gradient(180deg, #f8fbfd 0%, #e5f0f7 100%) !important;
+  border-bottom: 1px solid #9fb8cd !important;
+}
+
+:root[data-palette="viewpoint6"] .sidebar,
+:root[data-palette="viewpoint6"] .sidebar.use-modern-nav,
+:root[data-palette="viewpoint6"] .yk-sidebar {
+  background: linear-gradient(180deg, #f5f9fc 0%, #ddeaf3 100%) !important;
+  border-right: 1px solid #a9bfd2 !important;
+}
+
+:root[data-palette="viewpoint6"] .card,
+:root[data-palette="viewpoint6"] .yk-card,
+:root[data-palette="viewpoint6"] .patient-card,
+:root[data-palette="viewpoint6"] .modal-content,
+:root[data-palette="viewpoint6"] .form-control,
+:root[data-palette="viewpoint6"] .form-select {
+  border-color: #b7c8d8 !important;
+  border-radius: 6px !important;
+}
+
+:root[data-palette="viewpoint6"] .btn-primary,
+:root[data-palette="viewpoint6"] .btn.btn-primary,
+:root[data-palette="viewpoint6"] .btn-success {
+  background: linear-gradient(180deg, #168be2 0%, #006fbd 100%) !important;
+  border-color: #005a9e !important;
+}
+

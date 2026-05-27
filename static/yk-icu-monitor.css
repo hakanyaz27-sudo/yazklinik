@@ -1,0 +1,538 @@
+﻿/* ============================================================
+   YazKlinik Hospital ICU Monitor - Tum Hastalar
+   Scope: .yk-patient-board
+   Siyah zemin + neon EKG yesili + monospace metrikler.
+   Anestezi/ICU monitor estetigi.
+   D700 v19 2026-05-18
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+
+/* === BODY - tam siyah + EKG grid hairlines === */
+html.yk-page-home, html.yk-page-home body,
+body.yk-page-home {
+  background:
+    linear-gradient(rgba(0, 255, 136, 0.025) 1px, transparent 1px) 0 0 / 100% 32px,
+    linear-gradient(90deg, rgba(0, 255, 136, 0.025) 1px, transparent 1px) 0 0 / 32px 100%,
+    radial-gradient(ellipse at top, #04140c 0%, #000 70%) !important;
+  background-attachment: fixed !important;
+  color: #00ff88 !important;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+body.yk-page-home .yk-patient-board,
+body.yk-page-home .yk-patient-board * {
+  color-scheme: dark;
+}
+
+/* === BOARD WRAPPER === */
+.yk-patient-board {
+  padding: 24px 12px !important;
+  max-width: 1360px;
+  margin: 0 auto;
+  font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+}
+
+/* === COMMAND PANEL - ICU header === */
+.yk-patient-board .yk-patient-command {
+  background:
+    linear-gradient(180deg, rgba(0, 30, 18, 0.6) 0%, rgba(4, 20, 12, 0.85) 100%) !important;
+  border: 1px solid rgba(0, 255, 136, 0.35) !important;
+  border-radius: 4px !important;
+  padding: 20px 24px !important;
+  margin-bottom: 16px !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 136, 0.08) inset,
+    0 0 32px rgba(0, 255, 136, 0.10),
+    0 0 0 0 rgba(0, 0, 0, 0.5) !important;
+  position: relative;
+  overflow: hidden;
+}
+/* Sag ust "LIVE" pulse dot */
+.yk-patient-board .yk-patient-command::after {
+  content: '\25CF  LIVE';
+  position: absolute;
+  top: 12px; right: 16px;
+  font: 700 11px 'JetBrains Mono', monospace;
+  color: #ff0040;
+  letter-spacing: 0.15em;
+  text-shadow: 0 0 8px rgba(255, 0, 64, 0.8);
+  animation: ykIcuPulse 1.4s ease-in-out infinite;
+}
+@keyframes ykIcuPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* === TITLE === */
+.yk-patient-board .yk-patient-title .eyebrow {
+  text-transform: uppercase !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  color: rgba(0, 255, 136, 0.55) !important;
+  letter-spacing: 0.22em !important;
+  margin-bottom: 6px !important;
+  display: block;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+.yk-patient-board .yk-patient-title h1 {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  color: #00ff88 !important;
+  letter-spacing: 0.04em !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  text-shadow: 0 0 12px rgba(0, 255, 136, 0.55);
+  font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase;
+}
+.yk-patient-board .yk-patient-count {
+  background: transparent !important;
+  color: #00ff88 !important;
+  padding: 4px 10px !important;
+  border: 1px solid rgba(0, 255, 136, 0.55) !important;
+  border-radius: 2px !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  margin-left: 10px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-shadow: 0 0 8px rgba(0, 255, 136, 0.55);
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* === TOOLBAR - terminal style === */
+.yk-patient-board .yk-patient-toolbar .btn {
+  border-radius: 3px !important;
+  padding: 8px 14px !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  border: 1px solid rgba(0, 255, 136, 0.35) !important;
+  background: rgba(0, 30, 18, 0.55) !important;
+  color: #00ff88 !important;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace !important;
+  transition: all 0.15s linear !important;
+}
+.yk-patient-board .yk-patient-toolbar .btn:hover {
+  background: rgba(0, 255, 136, 0.10) !important;
+  border-color: #00ff88 !important;
+  color: #fff !important;
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.50);
+  text-shadow: 0 0 6px rgba(0, 255, 136, 0.80);
+  transform: none !important;
+}
+.yk-patient-board .yk-patient-toolbar .btn-outline-secondary {
+  color: rgba(0, 255, 136, 0.75) !important;
+}
+
+/* === METRIC CARDS - ICU monitor panels === */
+.yk-patient-board .yk-patient-metrics,
+.yk-patient-board [class*="metric"] {
+  gap: 10px !important;
+}
+.yk-patient-board .yk-patient-metric,
+.yk-patient-board .yk-stat,
+.yk-patient-board .stat-card {
+  background: linear-gradient(180deg, #04140c 0%, #000 100%) !important;
+  border: 1px solid rgba(0, 255, 136, 0.30) !important;
+  border-radius: 4px !important;
+  padding: 14px 16px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  color: #00ff88 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5) inset,
+    0 0 16px rgba(0, 255, 136, 0.06) !important;
+  transition: all 0.18s linear !important;
+}
+.yk-patient-board .yk-patient-metric:hover,
+.yk-patient-board .yk-stat:hover {
+  border-color: rgba(0, 255, 136, 0.70) !important;
+  box-shadow: 0 0 24px rgba(0, 255, 136, 0.30) !important;
+  transform: none !important;
+}
+/* Sol kenar neon - her metric farkli renk (ICU vital sign rengi) */
+.yk-patient-board .yk-patient-metric:nth-of-type(1)::before,
+.yk-patient-board .yk-stat:nth-of-type(1)::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: #00ff88; box-shadow: 0 0 12px rgba(0,255,136,0.9);
+}
+.yk-patient-board .yk-patient-metric:nth-of-type(2)::before,
+.yk-patient-board .yk-stat:nth-of-type(2)::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: #00e5ff; box-shadow: 0 0 12px rgba(0,229,255,0.9);
+}
+.yk-patient-board .yk-patient-metric:nth-of-type(3)::before,
+.yk-patient-board .yk-stat:nth-of-type(3)::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: #00ffd5; box-shadow: 0 0 12px rgba(0,255,213,0.9);
+}
+.yk-patient-board .yk-patient-metric:nth-of-type(4)::before,
+.yk-patient-board .yk-stat:nth-of-type(4)::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: #ffeb3b; box-shadow: 0 0 12px rgba(255,235,59,0.9);
+}
+.yk-patient-board .yk-patient-metric:nth-of-type(5)::before,
+.yk-patient-board .yk-stat:nth-of-type(5)::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: #ff0040; box-shadow: 0 0 12px rgba(255,0,64,1);
+  animation: ykIcuPulse 1.2s ease-in-out infinite;
+}
+
+/* Metric label (ust) */
+.yk-patient-board .yk-patient-metric .label,
+.yk-patient-board .yk-patient-metric > div:first-child,
+.yk-patient-board .yk-stat .label {
+  color: rgba(0, 255, 136, 0.55) !important;
+  text-transform: uppercase !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.18em !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+/* Metric value - BIG monospace */
+.yk-patient-board .yk-patient-metric .value,
+.yk-patient-board .yk-patient-metric > div:last-child,
+.yk-patient-board .yk-stat .value {
+  font-size: 38px !important;
+  font-weight: 700 !important;
+  color: #00ff88 !important;
+  letter-spacing: 0.04em !important;
+  margin-top: 4px !important;
+  font-variant-numeric: tabular-nums !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-shadow: 0 0 14px rgba(0, 255, 136, 0.55);
+  line-height: 1;
+}
+/* Metric'in renkleri: 2. cyan, 3. teal, 4. sari, 5. kirmizi */
+.yk-patient-board .yk-patient-metric:nth-of-type(2) .value,
+.yk-patient-board .yk-stat:nth-of-type(2) .value {
+  color: #00e5ff !important; text-shadow: 0 0 14px rgba(0,229,255,0.55);
+}
+.yk-patient-board .yk-patient-metric:nth-of-type(3) .value,
+.yk-patient-board .yk-stat:nth-of-type(3) .value {
+  color: #00ffd5 !important; text-shadow: 0 0 14px rgba(0,255,213,0.55);
+}
+.yk-patient-board .yk-patient-metric:nth-of-type(4) .value,
+.yk-patient-board .yk-stat:nth-of-type(4) .value {
+  color: #ffeb3b !important; text-shadow: 0 0 14px rgba(255,235,59,0.55);
+}
+.yk-patient-board .yk-patient-metric:nth-of-type(5) .value,
+.yk-patient-board .yk-stat:nth-of-type(5) .value {
+  color: #ff0040 !important; text-shadow: 0 0 14px rgba(255,0,64,0.65);
+}
+
+/* === SEARCH BAR - terminal input === */
+.yk-patient-board .yk-patient-search-form { margin-top: 16px; }
+.yk-patient-board .yk-patient-searchbar {
+  background: rgba(0, 30, 18, 0.55) !important;
+  border-radius: 4px !important;
+  padding: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  border: 1px solid rgba(0, 255, 136, 0.35) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+.yk-patient-board .yk-patient-searchbar:focus-within {
+  border-color: #00ff88 !important;
+  box-shadow: 0 0 16px rgba(0, 255, 136, 0.45) !important;
+}
+.yk-patient-board #searchBox {
+  border: none !important;
+  background: transparent !important;
+  padding: 12px 14px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #00ff88 !important;
+  flex: 1 !important;
+  outline: none !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  letter-spacing: 0.05em;
+}
+.yk-patient-board #searchBox::placeholder {
+  color: rgba(0, 255, 136, 0.35) !important;
+  font-style: italic;
+}
+.yk-patient-board #searchBox:focus { box-shadow: none !important; }
+.yk-patient-board .yk-patient-searchbar .btn {
+  border-radius: 3px !important;
+  padding: 10px 18px !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+.yk-patient-board .yk-patient-searchbar .btn-primary {
+  background: #00ff88 !important;
+  border: none !important;
+  color: #000 !important;
+  box-shadow: 0 0 16px rgba(0, 255, 136, 0.55) !important;
+}
+
+/* === PATIENT CARDS === */
+.yk-patient-board #patientList {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)) !important;
+  gap: 12px !important;
+}
+.yk-patient-board #patientList .patient-card {
+  background: linear-gradient(180deg, #04140c 0%, #020a06 100%) !important;
+  border: 1px solid rgba(0, 255, 136, 0.30) !important;
+  border-radius: 4px !important;
+  padding: 16px !important;
+  color: #00ff88 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5) inset,
+    0 0 12px rgba(0, 255, 136, 0.04) !important;
+  transition: all 0.18s linear !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+.yk-patient-board #patientList .patient-card::before {
+  display: none !important;
+}
+/* Sag ust pulse "active" dot */
+.yk-patient-board #patientList .patient-card::after {
+  content: '';
+  position: absolute;
+  top: 10px; right: 10px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #00ff88;
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.9);
+  animation: ykIcuPulse 1.8s ease-in-out infinite;
+}
+.yk-patient-board #patientList .patient-card:hover {
+  border-color: #00ff88 !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 136, 0.6) inset,
+    0 0 28px rgba(0, 255, 136, 0.35) !important;
+  transform: none !important;
+}
+
+/* Avatar - kare, neon outline */
+.yk-patient-board #patientList .yk-patient-avatar {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 4px !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  background: #04140c !important;
+  border: 1px solid #00ff88 !important;
+  box-shadow:
+    0 0 12px rgba(0, 255, 136, 0.45),
+    0 0 0 1px rgba(0, 255, 136, 0.20) inset !important;
+  color: #00ff88 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-shadow: 0 0 6px rgba(0, 255, 136, 0.7);
+  position: relative;
+}
+/* Avatar kose: kucuk nabiz noktasi */
+.yk-patient-board #patientList .yk-patient-avatar::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; right: -2px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #00ff88;
+  border: 1.5px solid #04140c;
+  box-shadow: 0 0 6px rgba(0, 255, 136, 0.9);
+  animation: ykIcuPulse 1.4s ease-in-out infinite;
+}
+/* Gebe - cyan */
+.yk-patient-board #patientList .patient-card.yk-patient-status-pregnant .yk-patient-avatar {
+  border-color: #00e5ff !important;
+  color: #00e5ff !important;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.5) !important;
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.7);
+}
+.yk-patient-board #patientList .patient-card.yk-patient-status-pregnant .yk-patient-avatar::after {
+  background: #00e5ff; box-shadow: 0 0 6px rgba(0,229,255,0.9);
+}
+/* Yeni - sari */
+.yk-patient-board #patientList .patient-card.yk-patient-status-new .yk-patient-avatar {
+  border-color: #ffeb3b !important;
+  color: #ffeb3b !important;
+  box-shadow: 0 0 12px rgba(255, 235, 59, 0.5) !important;
+  text-shadow: 0 0 6px rgba(255, 235, 59, 0.7);
+}
+.yk-patient-board #patientList .patient-card.yk-patient-status-new .yk-patient-avatar::after {
+  background: #ffeb3b; box-shadow: 0 0 6px rgba(255,235,59,0.9);
+}
+/* Riskli - kirmizi + hizli pulse */
+.yk-patient-board #patientList .patient-card.yk-patient-status-risk .yk-patient-avatar {
+  border-color: #ff0040 !important;
+  color: #ff0040 !important;
+  box-shadow:
+    0 0 16px rgba(255, 0, 64, 0.7),
+    0 0 0 1px rgba(255, 0, 64, 0.30) inset !important;
+  text-shadow: 0 0 8px rgba(255, 0, 64, 0.9);
+}
+.yk-patient-board #patientList .patient-card.yk-patient-status-risk .yk-patient-avatar::after {
+  background: #ff0040;
+  box-shadow: 0 0 8px rgba(255, 0, 64, 1);
+  animation: ykIcuPulse 0.8s ease-in-out infinite;
+}
+.yk-patient-board #patientList .patient-card.yk-patient-status-risk::after {
+  background: #ff0040;
+  box-shadow: 0 0 10px rgba(255, 0, 64, 1);
+  animation: ykIcuPulse 0.8s ease-in-out infinite;
+}
+
+/* Patient name */
+.yk-patient-board #patientList .yk-patient-name {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: #00ff88 !important;
+  letter-spacing: 0.02em !important;
+  margin: 0 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-shadow: 0 0 8px rgba(0, 255, 136, 0.30);
+  text-transform: uppercase;
+}
+.yk-patient-board #patientList .yk-patient-meta {
+  font-size: 11.5px !important;
+  color: rgba(0, 255, 136, 0.55) !important;
+  margin-top: 3px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+
+/* Kart icindeki butonlar */
+.yk-patient-board #patientList .patient-card .btn {
+  background: transparent !important;
+  border: 1px solid rgba(0, 255, 136, 0.35) !important;
+  color: rgba(0, 255, 136, 0.85) !important;
+  border-radius: 3px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase;
+  font-size: 10.5px !important;
+  letter-spacing: 0.10em !important;
+  font-weight: 600 !important;
+}
+.yk-patient-board #patientList .patient-card .btn:hover {
+  background: rgba(0, 255, 136, 0.10) !important;
+  border-color: #00ff88 !important;
+  color: #fff !important;
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.40);
+}
+.yk-patient-board #patientList .patient-card .btn-primary {
+  background: #00ff88 !important;
+  color: #000 !important;
+  border: none !important;
+  font-weight: 700 !important;
+}
+
+/* === STAGGER FADE-IN === */
+.yk-patient-board #patientList .patient-card {
+  animation: ykIcuStagger 0.35s linear backwards;
+}
+.yk-patient-board #patientList .patient-card:nth-child(1) { animation-delay: 0.04s; }
+.yk-patient-board #patientList .patient-card:nth-child(2) { animation-delay: 0.07s; }
+.yk-patient-board #patientList .patient-card:nth-child(3) { animation-delay: 0.10s; }
+.yk-patient-board #patientList .patient-card:nth-child(4) { animation-delay: 0.13s; }
+.yk-patient-board #patientList .patient-card:nth-child(5) { animation-delay: 0.16s; }
+.yk-patient-board #patientList .patient-card:nth-child(6) { animation-delay: 0.19s; }
+.yk-patient-board #patientList .patient-card:nth-child(7) { animation-delay: 0.22s; }
+.yk-patient-board #patientList .patient-card:nth-child(8) { animation-delay: 0.25s; }
+.yk-patient-board #patientList .patient-card:nth-child(9) { animation-delay: 0.28s; }
+.yk-patient-board #patientList .patient-card:nth-child(10){ animation-delay: 0.31s; }
+@keyframes ykIcuStagger {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* === GRID/LISTE TOGGLE === */
+.yk-patient-board .yk-patient-view-toggle {
+  background: rgba(0, 30, 18, 0.55) !important;
+  border-radius: 3px !important;
+  padding: 4px !important;
+  border: 1px solid rgba(0, 255, 136, 0.30) !important;
+}
+.yk-patient-board .yk-patient-view-toggle button {
+  border-radius: 2px !important;
+  padding: 6px 12px !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  background: transparent !important;
+  color: rgba(0, 255, 136, 0.65) !important;
+  border: none !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.yk-patient-board .yk-patient-view-toggle button.active {
+  background: #00ff88 !important;
+  color: #000 !important;
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.55) !important;
+}
+
+/* === PAGER === */
+.yk-patient-board .yk-patient-pager,
+.yk-patient-board [class*="pager"] {
+  background: rgba(0, 30, 18, 0.55) !important;
+  border: 1px solid rgba(0, 255, 136, 0.30) !important;
+  border-radius: 4px !important;
+  padding: 12px 16px !important;
+  margin-bottom: 14px !important;
+  color: rgba(0, 255, 136, 0.85) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+}
+.yk-patient-board .yk-patient-pager .btn,
+.yk-patient-board [class*="pager"] .btn {
+  border-radius: 3px !important;
+  padding: 6px 12px !important;
+  font-weight: 600 !important;
+  background: transparent !important;
+  color: rgba(0, 255, 136, 0.85) !important;
+  border: 1px solid rgba(0, 255, 136, 0.30) !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase;
+  font-size: 10.5px !important;
+  letter-spacing: 0.08em !important;
+}
+.yk-patient-board .yk-patient-pager .btn:hover {
+  background: rgba(0, 255, 136, 0.10) !important;
+  border-color: #00ff88 !important;
+}
+
+/* === BADGE / TAG === */
+.yk-patient-board .badge,
+.yk-patient-board .yk-tag,
+.yk-patient-board [class*="tag-"] {
+  background: transparent !important;
+  border: 1px solid rgba(0, 255, 136, 0.45) !important;
+  color: rgba(0, 255, 136, 0.85) !important;
+  border-radius: 2px !important;
+  padding: 2px 8px !important;
+  font-weight: 600 !important;
+  font-size: 10px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* === MOBILE === */
+@media (max-width: 720px) {
+  .yk-patient-board .yk-patient-title h1 { font-size: 18px !important; }
+  .yk-patient-board .yk-patient-command { padding: 14px 12px !important; }
+  .yk-patient-board #patientList { grid-template-columns: 1fr !important; }
+  .yk-patient-board .yk-patient-metric .value,
+  .yk-patient-board .yk-stat .value { font-size: 28px !important; }
+}
+
+/* === REDUCED MOTION === */
+@media (prefers-reduced-motion: reduce) {
+  .yk-patient-board .yk-patient-command::after,
+  .yk-patient-board #patientList .patient-card,
+  .yk-patient-board #patientList .yk-patient-avatar::after,
+  .yk-patient-board #patientList .patient-card::after {
+    animation: none !important;
+  }
+}
+

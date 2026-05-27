@@ -1,0 +1,99 @@
+# YazKlinik D500 safe source repo ignore rules
+
+# Python / build artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Runtime logs and process markers
+*.log
+*.log.*
+*.pid
+*.status
+*.tmp
+*.bak
+*.bak.*
+
+# Local secrets, credentials, sessions, and machine identity
+.secret_key
+config.env
+config.*.env
+!config.env.example
+users.json
+active_patient.json
+
+# Akillilik Docker stack data (Vaultwarden/n8n/UptimeKuma/OpenWebUI)
+akillilik/data/
+akillilik/.env
+bulutklinik_session.json
+bulutklinik_browser_profile/
+yazklinik_config.json
+yazklinik_install.json
+yazklinik_settings.json
+VERSION.json
+terminal_env.ps1
+terminal_env.sh
+terminal_server_url.txt
+terminal_sync_status.json
+server_actual_url.txt
+desktop_mode.txt
+
+# Databases and patient data
+local_db/
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+data/
+local_multimedia/
+uploads/
+exports/
+bk_exports/
+auto_backups/
+voice_records/
+dicom_cache/
+runtime_state/
+runtime_reports/
+temp/
+migrated_from_c_users/
+
+# AI/model/cache exports
+models/
+ollama_modelfiles/
+rag_data/
+alex_training_export/
+
+# Certificates and private keys
+certs/
+*.crt
+*.cer
+*.pem
+*.key
+*.pfx
+*.p12
+
+# Installer/runtime byproducts
+unins000.*
+test_via_server.bin
+QR
+
+# Local assistant/editor state
+.claude/
+
+# Extra local backup/cache artifacts
+*.bak_*
+webui_tools/.lh-run-tmp/
+compile_web_err.txt
+compile_web_out.txt
+mobile_scroll_err.txt
+mobile_scroll_out.txt
+tmp_warn.txt
+qc
+query

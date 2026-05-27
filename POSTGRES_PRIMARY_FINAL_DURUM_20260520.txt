@@ -1,0 +1,20 @@
+﻿YazKlinik D700 - PostgreSQL Primary Final Durum
+Tarih: 2026-05-20 08:19 Europe/Istanbul
+
+Sonuc:
+- Sistem PostgreSQL primary modda calisiyor.
+- config.env: YAZKLINIK_DB_DIALECT=postgresql, YAZKLINIK_DB_PRIMARY=postgresql, YAZKLINIK_POSTGRES_MODE=primary.
+- PostgreSQL runtime smoke: POSTGRES_PRIMARY_SMOKE_OK, patients=3468.
+- CODEX_QUICK_CHECK.py: CODEX_D500_QUICK_CHECK_OK, Hata=0, Uyari=0.
+- Route smoke: 16/16 OK.
+- Canli probe: HTTP /giris 200, HTTPS /giris 200, /api/terminal/ping 200.
+
+Duzeltilen kritik noktalar:
+- SQLite unixepoch datetime SQL'i PostgreSQL'e cevriliyor.
+- SQL compatibility scan buyuk legacy dosyada takilmadan tamamliyor.
+- Health monitor TCP acik ama HTTP cevapsiz durumu artik saglikli saymiyor.
+- Sessiz SQLite rollback bat dosyasi artik --confirm olmadan calismiyor.
+
+Geri donus notu:
+- Rollback gerekirse POSTGRES_PRIMARY_ROLLBACK_SQLITE.bat --confirm kullanilir; oncesinde config backup alir.
+

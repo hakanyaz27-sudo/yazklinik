@@ -1,0 +1,7 @@
+# Satir formati:
+# ILAC ADI|Opsiyonel doz satiri
+# Ornek:
+# PAROL 500 MG TABLET|Agizdan (Oral) S: 2x1 (Gun)
+#
+# Bu dosyaya tum Turkiye ilac katalogunu satir satir ekleyebilirsiniz.
+# Uygulama bu dosyayi otomatik okuyup "Tum ilaclar" listesine ekler.

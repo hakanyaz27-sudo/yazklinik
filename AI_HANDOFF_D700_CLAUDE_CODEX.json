@@ -1,0 +1,41 @@
+{
+  "project_name": "YazKlinik Final D700",
+  "project_root": "D:\\YazKlinik_Final_D700",
+  "language": "tr",
+  "style": {
+    "response": "kisa_dogrudan",
+    "when_user_says_yap": "uygula_test_et_teslim_et"
+  },
+  "entrypoints": {
+    "first_time_setup": "D700_ILK_KURULUM.bat",
+    "normal_start": "D700_BASLAT.bat",
+    "quick_check": "CODEX_QUICK_CHECK.py"
+  },
+  "critical_files": [
+    "yazklinik_web.py",
+    "yazklinik_feature_sync.py",
+    "config.env",
+    "CODEX_QUICK_CHECK.py",
+    "AGENTS.md",
+    "CLAUDE_HANDOFF.md"
+  ],
+  "hard_rules": [
+    "yazklinik_v68.py dosyasina zorunlu olmadikca dokunma",
+    "hasta verisi silme yapma",
+    "NAS klasorunde dosya silme yapma",
+    "buyuk refactor yerine kucuk hedefli patch yap",
+    "degisiklik sonrasi mutlaka quick check calistir"
+  ],
+  "medgemma_install": {
+    "selector": "MEDGEMMA_KURULUM_SECENEKLI.bat",
+    "online": "MEDGEMMA_ONLINE_KUR.bat",
+    "offline": "MEDGEMMA_OFFLINE_KUR.bat"
+  },
+  "new_pc_packages": {
+    "core_setup": "J:\\YazKlinik_D700_CORE_SETUP_20260525_222848\\KURULUM_CORE_BASLAT.bat",
+    "offline_ollama_pack": "J:\\YazKlinik_D700_OLLAMA_MODELS_PACK_20260525_222848\\KURULUM_OLLAMA_OFFLINE_PAKET.bat"
+  },
+  "validation_command": "D:\\YazKlinik_Final_D700\\.venv\\Scripts\\python.exe CODEX_QUICK_CHECK.py",
+  "expected_validation_token": "CODEX_D700_QUICK_CHECK_OK",
+  "generated_at": "2026-05-25"
+}

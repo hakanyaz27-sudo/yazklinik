@@ -1,0 +1,25 @@
+[Unit]
+Description=YazKlinik D700 Gunicorn
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=yazklinik
+Group=yazklinik
+WorkingDirectory=/opt/yazklinik/d700
+EnvironmentFile=/etc/yazklinik/d700.env
+ExecStart=/opt/yazklinik/d700/.venv-linux/bin/gunicorn --chdir /opt/yazklinik/d700 --bind 127.0.0.1:${YAZKLINIK_WEB_PORT} --workers ${YAZKLINIK_GUNICORN_WORKERS} --threads ${YAZKLINIK_GUNICORN_THREADS} --worker-class gthread --timeout ${YAZKLINIK_GUNICORN_TIMEOUT} --graceful-timeout 60 --keep-alive 5 --access-logfile - --error-logfile - yazklinik_wsgi:application
+Restart=always
+RestartSec=5
+TimeoutStopSec=75
+KillSignal=SIGTERM
+
+# Conservative hardening. Disable if a helper needs broader filesystem access.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/opt/yazklinik/d700 /mnt/yazklinik-voluson
+
+[Install]
+WantedBy=multi-user.target

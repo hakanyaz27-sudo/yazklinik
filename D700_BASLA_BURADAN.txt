@@ -1,0 +1,18 @@
+﻿YazKlinik Final D700 (D:\YazKlinik_Final_D700)
+
+1) Yeni PC'de ilk acilis (Yonetici):
+   D700_WINDOWS_STABILIZE_ADMIN.bat
+
+2) Ilk kurulum:
+   D700_ILK_KURULUM.bat
+
+3) Sonraki normal acilis:
+   D700_BASLAT.bat
+
+4) Hizli kontrol:
+   .venv\Scripts\python.exe CODEX_QUICK_CHECK.py
+
+Not:
+- Varsayilan HTTPS port: 5443
+- Config: config.env
+- Versiyon: YazKlinik Final D700

@@ -1,0 +1,4020 @@
+﻿/* ============================================================
+   YazKlinik D700 Final Polish
+   Additive final UI layer. Loaded after medical/modern clinic CSS.
+   Goal: calmer premium clinic software feel without changing behavior.
+   ============================================================ */
+
+html:not([data-theme="dark"]) {
+  --d700-bg: #f4f8fb;
+  --d700-bg-2: #eef7f3;
+  --d700-surface: #ffffff;
+  --d700-surface-soft: #f9fcfd;
+  --d700-text: #132439;
+  --d700-muted: #617287;
+  --d700-border: #d5e1ea;
+  --d700-border-strong: #b9ccd8;
+  --d700-blue: #126ca8;
+  --d700-teal: #0c8373;
+  --d700-green: #16815f;
+  --d700-rose: #ad3d65;
+  --d700-amber: #a96d13;
+  --d700-red: #b3261e;
+  --d700-radius: 8px;
+  --d700-shadow: 0 6px 20px rgba(18, 45, 72, 0.08);
+  --d700-shadow-strong: 0 12px 34px rgba(18, 45, 72, 0.13);
+  --d700-focus: 0 0 0 3px rgba(12, 131, 115, 0.17);
+}
+
+html:not([data-theme="dark"]) body {
+  background:
+    linear-gradient(135deg, rgba(18, 108, 168, 0.045) 0%, transparent 34%),
+    linear-gradient(225deg, rgba(12, 131, 115, 0.04) 0%, transparent 32%),
+    linear-gradient(180deg, var(--d700-bg) 0%, var(--d700-bg-2) 100%) !important;
+  color: var(--d700-text) !important;
+  font-family: "Segoe UI", Inter, Roboto, Arial, sans-serif !important;
+  letter-spacing: 0 !important;
+  text-rendering: optimizeLegibility;
+}
+
+html:not([data-theme="dark"]) :where(.main-container, .page-content, .content, main, .yk-main) {
+  background: transparent !important;
+}
+
+html:not([data-theme="dark"]) :where(h1, h2, h3, h4, h5, h6, .page-title, .yk-title, .card-title) {
+  color: var(--d700-text) !important;
+  letter-spacing: 0 !important;
+}
+
+html:not([data-theme="dark"]) :where(p, small, .small, .text-muted, .muted, .form-text, .help-text, .yk-hint) {
+  color: var(--d700-muted) !important;
+}
+
+html:not([data-theme="dark"]) :where(.top-header, .yk-header, .navbar, .app-header, header.header) {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-bottom: 1px solid var(--d700-border) !important;
+  box-shadow: 0 5px 18px rgba(18, 45, 72, 0.07) !important;
+  backdrop-filter: blur(12px);
+}
+
+html:not([data-theme="dark"]) :where(.sidebar, #leftSidebar, .yk-sidebar, .sidebar.use-modern-nav, .app-sidebar) {
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbfb 100%) !important;
+  border-right: 1px solid var(--d700-border) !important;
+  box-shadow: 5px 0 18px rgba(18, 45, 72, 0.055) !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar-brand, .brand-box, .clinic-brand, .sidebar .brand) {
+  color: var(--d700-text) !important;
+  font-weight: 800 !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar a, .sidebar-link, .yk-sidebar a, .quick-action, .sidebar-quick a) {
+  border-radius: var(--d700-radius) !important;
+  color: var(--d700-text) !important;
+  border: 1px solid transparent !important;
+  font-weight: 650 !important;
+  letter-spacing: 0 !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar a:hover, .sidebar-link:hover, .yk-sidebar a:hover, .quick-action:hover, .sidebar-quick a:hover) {
+  background: #eef8f7 !important;
+  border-color: #cce4df !important;
+  color: #075f55 !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar a.active, .sidebar-link.active, .yk-sidebar a.active) {
+  background: linear-gradient(135deg, var(--d700-blue), var(--d700-teal)) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 8px 18px rgba(18, 108, 168, 0.22) !important;
+}
+
+html:not([data-theme="dark"]) :where(.card, .yk-card, .panel, .yk-panel, .section-card, .stat-card, .kpi-card, .metric-card, .patient-card, .agent-card, .tool-card, .dashboard-card, .summary-card, .info-card, .yk-widget, .yk-section, .accordion-item, .theme-panel, .dropdown-menu, .modal-content, .offcanvas, .list-group-item) {
+  background: linear-gradient(180deg, #ffffff 0%, var(--d700-surface-soft) 100%) !important;
+  border: 1px solid var(--d700-border) !important;
+  border-radius: var(--d700-radius) !important;
+  box-shadow: var(--d700-shadow) !important;
+  color: var(--d700-text) !important;
+  letter-spacing: 0 !important;
+}
+
+html:not([data-theme="dark"]) :where(.card, .yk-card, .patient-card, .agent-card, .tool-card, .dashboard-card, .summary-card, .metric-card, .stat-card) {
+  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease !important;
+}
+
+html:not([data-theme="dark"]) :where(.card:hover, .yk-card:hover, .patient-card:hover, .agent-card:hover, .tool-card:hover, .dashboard-card:hover, .summary-card:hover, .metric-card:hover, .stat-card:hover) {
+  transform: translateY(-1px) !important;
+  border-color: var(--d700-border-strong) !important;
+  box-shadow: var(--d700-shadow-strong) !important;
+}
+
+html:not([data-theme="dark"]) :where(.card-header, .yk-card-header, .section-header, .modal-header, .offcanvas-header, .accordion-header) {
+  background: linear-gradient(180deg, #f8fbfd 0%, #f2f7fa 100%) !important;
+  border-bottom: 1px solid var(--d700-border) !important;
+  color: var(--d700-text) !important;
+  border-radius: var(--d700-radius) var(--d700-radius) 0 0 !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn, button.btn, .yk-btn, .header-icon-btn, .theme-picker-btn, .theme-mode-btn, .experience-mode-btn, .profile-chip) {
+  border-radius: var(--d700-radius) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  min-height: 34px;
+  box-shadow: none !important;
+  transition: transform 130ms ease, border-color 130ms ease, background 130ms ease, color 130ms ease !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn:hover, button.btn:hover, .yk-btn:hover, .header-icon-btn:hover, .theme-picker-btn:hover) {
+  transform: translateY(-1px) !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-primary, .yk-primary, .primary-btn, .btn-success, .new-patient-btn, .search-btn, button[type="submit"]) {
+  background: linear-gradient(135deg, var(--d700-blue), var(--d700-teal)) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-outline-primary, .btn-outline-secondary, .btn-light, .btn-secondary, .header-icon-btn, .theme-picker-btn, .theme-mode-btn, .experience-mode-btn, .profile-chip) {
+  background: #ffffff !important;
+  border-color: var(--d700-border) !important;
+  color: var(--d700-text) !important;
+  -webkit-text-fill-color: var(--d700-text) !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-danger, .btn-outline-danger) {
+  border-color: rgba(179, 38, 30, 0.35) !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-warning, .btn-outline-warning) {
+  border-color: rgba(169, 109, 19, 0.38) !important;
+}
+
+html:not([data-theme="dark"]) :where(.form-control, .form-select, input:not([type="checkbox"]):not([type="radio"]), select, textarea, .yk-patient-searchbar) {
+  background: #ffffff !important;
+  border: 1px solid var(--d700-border) !important;
+  border-radius: var(--d700-radius) !important;
+  color: var(--d700-text) !important;
+  -webkit-text-fill-color: var(--d700-text) !important;
+  box-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) :where(.form-control:focus, .form-select:focus, input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus, .yk-patient-searchbar:focus-within) {
+  border-color: var(--d700-teal) !important;
+  box-shadow: var(--d700-focus) !important;
+  outline: none !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-searchbar {
+  display: grid !important;
+  grid-template-columns: minmax(260px, 1fr) 96px 98px !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+  padding: 6px !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-searchbar .yk-patient-search-icon {
+  display: none !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-searchbar input.form-control,
+html:not([data-theme="dark"]) .yk-patient-search-form input.form-control-lg {
+  padding-left: 16px !important;
+  min-height: 48px !important;
+  height: 48px !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-searchbar .btn {
+  min-width: 0 !important;
+  width: 100% !important;
+  min-height: 48px !important;
+  height: 48px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  overflow-wrap: normal !important;
+  line-height: 1 !important;
+  padding: 0 14px !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-searchbar .btn i {
+  flex: 0 0 auto !important;
+  font-size: 17px !important;
+  line-height: 1 !important;
+}
+
+html:not([data-theme="dark"]) :where(label, .form-label) {
+  color: var(--d700-text) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+}
+
+html:not([data-theme="dark"]) :where(.table, .yk-table) {
+  background: #ffffff !important;
+  border: 1px solid var(--d700-border) !important;
+  border-radius: var(--d700-radius) !important;
+  overflow: hidden !important;
+}
+
+html:not([data-theme="dark"]) :where(.table thead, .yk-table thead) {
+  background: #eaf4f7 !important;
+}
+
+html:not([data-theme="dark"]) :where(.table thead th, .yk-table thead th) {
+  color: var(--d700-text) !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  border-bottom: 1px solid var(--d700-border-strong) !important;
+}
+
+html:not([data-theme="dark"]) :where(.table td, .table th, .yk-table td, .yk-table th) {
+  border-color: #e1ebf1 !important;
+}
+
+html:not([data-theme="dark"]) :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: #f1faf8 !important;
+}
+
+html:not([data-theme="dark"]) :where(.badge, .chip, .yk-chip, .tag, .pill) {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid var(--d700-border) !important;
+  border-radius: 999px !important;
+  background: #eef7f7 !important;
+  color: #075f55 !important;
+  -webkit-text-fill-color: #075f55 !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.15 !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+
+html:not([data-theme="dark"]) :where(.card .pill, .agent-card .pill, .yk-agent-card .pill, .yk-service-agent-card .pill, .s7-status-pill) {
+  flex: 0 0 auto !important;
+  min-width: max-content !important;
+  max-width: 112px !important;
+  padding: 5px 9px !important;
+  font-size: 11px !important;
+}
+
+html:not([data-theme="dark"]) :where(.badge.bg-primary, .chip-primary, .pill.bg-primary) {
+  background: #e7f1fb !important;
+  color: var(--d700-blue) !important;
+  -webkit-text-fill-color: var(--d700-blue) !important;
+}
+
+html:not([data-theme="dark"]) :where(.badge.bg-success, .chip-success, .pill.bg-success) {
+  background: #e6f6ee !important;
+  color: var(--d700-green) !important;
+  -webkit-text-fill-color: var(--d700-green) !important;
+}
+
+html:not([data-theme="dark"]) :where(.badge.bg-warning, .chip-warning, .pill.bg-warning) {
+  background: #fff3da !important;
+  color: var(--d700-amber) !important;
+  -webkit-text-fill-color: var(--d700-amber) !important;
+}
+
+html:not([data-theme="dark"]) :where(.badge.bg-danger, .chip-danger, .pill.bg-danger) {
+  background: #fde8e7 !important;
+  color: var(--d700-red) !important;
+  -webkit-text-fill-color: var(--d700-red) !important;
+}
+
+html:not([data-theme="dark"]) :where(.nav-tabs, .yk-tabs, .tabbar) {
+  border-bottom: 1px solid var(--d700-border) !important;
+  gap: 6px;
+}
+
+html:not([data-theme="dark"]) :where(.nav-tabs .nav-link, .yk-tab, .tabbar button) {
+  border-radius: var(--d700-radius) var(--d700-radius) 0 0 !important;
+  border-color: transparent !important;
+  color: var(--d700-muted) !important;
+  font-weight: 750 !important;
+}
+
+html:not([data-theme="dark"]) :where(.nav-tabs .nav-link.active, .yk-tab.active, .tabbar button.active) {
+  background: #ffffff !important;
+  border-color: var(--d700-border) var(--d700-border) #ffffff !important;
+  color: var(--d700-blue) !important;
+}
+
+html:not([data-theme="dark"]) :where(.alert, .yk-alert, .toast, .toastify) {
+  border-radius: var(--d700-radius) !important;
+  border: 1px solid var(--d700-border) !important;
+  box-shadow: var(--d700-shadow) !important;
+}
+
+html:not([data-theme="dark"]) :where(.dropdown-menu, .modal-content, .offcanvas) {
+  background: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) :where(code, pre, .code, .endpoint, .mono, kbd) {
+  border-radius: 6px !important;
+  background: #eef5f8 !important;
+  color: #0f4d73 !important;
+  border: 1px solid #d2e3ec !important;
+}
+
+html:not([data-theme="dark"]) :where(.yk-service-agent-card, .agent-card, .yk-agent-card, .ai-card, .agent-tile, .yk-action-card) {
+  position: relative;
+  overflow: hidden;
+}
+
+html:not([data-theme="dark"]) :where(.yk-service-agent-card, .agent-card, .yk-agent-card, .ai-card, .agent-tile, .yk-action-card)::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--d700-blue), var(--d700-teal));
+  opacity: 0.95;
+}
+
+html:not([data-theme="dark"]) :where(.yk-status-warn, .status-warn, .agent-warn)::before {
+  background: linear-gradient(180deg, var(--d700-amber), #d49b2d) !important;
+}
+
+html:not([data-theme="dark"]) :where(.yk-status-high, .status-high, .agent-high)::before {
+  background: linear-gradient(180deg, var(--d700-red), var(--d700-rose)) !important;
+}
+
+html:not([data-theme="dark"]) :where(.yk-status-ok, .status-ok, .agent-ok)::before {
+  background: linear-gradient(180deg, var(--d700-green), var(--d700-teal)) !important;
+}
+
+html:not([data-theme="dark"]) :where(.yk-service-agent-card a, .agent-card a, .yk-agent-card a, .ai-card a, .agent-tile a) {
+  color: var(--d700-blue) !important;
+  font-weight: 750;
+}
+
+html:not([data-theme="dark"]) :where(.yk-premium-kokpit, .dashboard-hero, .summary-hero, .hero-card, .yk-patient-board .yk-patient-command) {
+  border-radius: var(--d700-radius) !important;
+  border: 1px solid var(--d700-border) !important;
+  background:
+    linear-gradient(135deg, rgba(18, 108, 168, 0.075) 0%, transparent 30%),
+    linear-gradient(225deg, rgba(12, 131, 115, 0.065) 0%, transparent 32%),
+    #ffffff !important;
+  box-shadow: var(--d700-shadow-strong) !important;
+}
+
+html:not([data-theme="dark"]) :where(.yk-premium-card, .yk-premium-action) {
+  border-radius: var(--d700-radius) !important;
+  border-color: var(--d700-border) !important;
+}
+
+html:not([data-theme="dark"]) :where(.theme-swatch, .color-swatch, .palette-swatch) {
+  border-radius: 999px !important;
+  border: 2px solid rgba(255, 255, 255, 0.95) !important;
+  box-shadow: 0 0 0 1px var(--d700-border), 0 4px 12px rgba(18, 45, 72, 0.12) !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+html:not([data-theme="dark"]) :where(.theme-swatch.active, .color-swatch.active, .palette-swatch.active, .theme-mode-btn.active, .experience-mode-btn.active) {
+  box-shadow: 0 0 0 3px rgba(18, 108, 168, 0.22) !important;
+}
+
+html:not([data-theme="dark"]) #ykVoiceAgentBox,
+html:not([data-theme="dark"]) .yk-voice-agent-panel,
+html:not([data-theme="dark"]) .yk-alex-bar {
+  border-radius: var(--d700-radius) !important;
+  border: 1px solid rgba(12, 131, 115, 0.28) !important;
+  box-shadow: 0 12px 38px rgba(18, 45, 72, 0.18) !important;
+}
+
+html:not([data-theme="dark"]) #yk-hasta-portal-fab {
+  border-radius: var(--d700-radius) !important;
+  box-shadow: 0 12px 26px rgba(12, 131, 115, 0.28) !important;
+}
+
+html:not([data-theme="dark"]) :where(a:not(.btn):not(.nav-link):not(.sidebar-link)) {
+  color: var(--d700-blue);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+html:not([data-theme="dark"]) :where(::selection) {
+  background: rgba(12, 131, 115, 0.22);
+  color: var(--d700-text);
+}
+
+@media (max-width: 900px) {
+  html:not([data-theme="dark"]) body {
+    background: linear-gradient(180deg, #f7fafc 0%, #eef7f3 100%) !important;
+  }
+
+  html:not([data-theme="dark"]) :where(.card, .yk-card, .panel, .yk-panel, .patient-card, .agent-card, .tool-card, .yk-service-agent-card) {
+    box-shadow: 0 4px 14px rgba(18, 45, 72, 0.075) !important;
+  }
+
+  html:not([data-theme="dark"]) :where(.btn, button.btn, .yk-btn) {
+    min-height: 38px;
+  }
+
+  html:not([data-theme="dark"]) .yk-patient-searchbar {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-theme="dark"]) :where(*, *::before, *::after) {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  html:not([data-theme="dark"]) body {
+    background: #ffffff !important;
+  }
+
+  html:not([data-theme="dark"]) :where(.card, .yk-card, .panel, .yk-panel, .table, .yk-table) {
+    box-shadow: none !important;
+    border-color: #cfd8df !important;
+  }
+}
+
+/* ============================================================
+   D700 Premium Contrast pass
+   A stronger shell and clearer work surface for a finished product feel.
+   ============================================================ */
+
+html:not([data-theme="dark"]) {
+  --d700-bg: #e7eef5;
+  --d700-bg-2: #dde8ef;
+  --d700-surface: #ffffff;
+  --d700-surface-soft: #f7fafc;
+  --d700-text: #0e2135;
+  --d700-muted: #43586e;
+  --d700-border: #b9cad8;
+  --d700-border-strong: #8fb0c4;
+  --d700-blue: #075f9f;
+  --d700-teal: #087b73;
+  --d700-green: #0f7a56;
+  --d700-shadow: 0 12px 30px rgba(8, 27, 46, 0.13);
+  --d700-shadow-strong: 0 22px 52px rgba(8, 27, 46, 0.18);
+  color-scheme: light;
+}
+
+html:not([data-theme="dark"]) body {
+  background:
+    linear-gradient(180deg, rgba(15, 38, 62, 0.20) 0, rgba(15, 38, 62, 0.07) 118px, transparent 270px),
+    linear-gradient(135deg, rgba(7, 95, 159, 0.11) 0%, transparent 36%),
+    linear-gradient(225deg, rgba(8, 123, 115, 0.10) 0%, transparent 34%),
+    linear-gradient(180deg, var(--d700-bg) 0%, var(--d700-bg-2) 100%) !important;
+  color: var(--d700-text) !important;
+}
+
+html:not([data-theme="dark"]) :where(.top-header, .yk-header, .navbar, .app-header, header.header) {
+  background:
+    linear-gradient(135deg, #0d253d 0%, #123b56 54%, #0b6d68 125%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-top: 0 !important;
+  box-shadow: 0 18px 44px rgba(7, 25, 45, 0.30) !important;
+  color: #f8fbff !important;
+}
+
+html:not([data-theme="dark"]) :where(.top-header, .yk-header, .navbar, .app-header, header.header) :where(.btn, button, .header-icon-btn, .theme-picker-btn, .theme-mode-btn, .experience-mode-btn, .profile-chip) {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(255, 255, 255, 0.42) !important;
+  color: #10243a !important;
+  -webkit-text-fill-color: #10243a !important;
+  box-shadow: 0 8px 20px rgba(3, 12, 22, 0.16) !important;
+}
+
+html:not([data-theme="dark"]) :where(.top-header, .yk-header, .navbar, .app-header, header.header) :where(input:not([type="checkbox"]):not([type="radio"]), .form-control, .form-select, select) {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(255, 255, 255, 0.42) !important;
+  color: #10243a !important;
+  -webkit-text-fill-color: #10243a !important;
+}
+
+html:not([data-theme="dark"]) :where(.top-header, .yk-header, .navbar, .app-header, header.header) :where(.text-muted, small, .small) {
+  color: #d9e8f2 !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar, #leftSidebar, .yk-sidebar, .sidebar.use-modern-nav, .app-sidebar) {
+  background:
+    linear-gradient(180deg, #0d253d 0%, #102f48 56%, #0b403f 100%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.13) !important;
+  box-shadow: 16px 0 40px rgba(7, 25, 45, 0.22) !important;
+  color: #e8f2f8 !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar-brand, .brand-box, .clinic-brand, .sidebar .brand, .sidebar-section-title, .yk-sidebar-section-label, .sidebar .section-title) {
+  color: #f8fbff !important;
+  -webkit-text-fill-color: #f8fbff !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar a, .sidebar-link, .yk-sidebar a, .quick-action, .sidebar-quick a) {
+  color: #e7f0f7 !important;
+  -webkit-text-fill-color: #e7f0f7 !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar a:hover, .sidebar-link:hover, .yk-sidebar a:hover, .quick-action:hover, .sidebar-quick a:hover) {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar a.active, .sidebar-link.active, .yk-sidebar a.active) {
+  background: linear-gradient(135deg, #168bd0, #11a192) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) :where(.card, .yk-card, .panel, .yk-panel, .section-card, .stat-card, .kpi-card, .metric-card, .patient-card, .agent-card, .tool-card, .dashboard-card, .summary-card, .info-card, .yk-widget, .yk-section, .accordion-item, .theme-panel, .dropdown-menu, .modal-content, .offcanvas, .list-group-item) {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(247, 251, 253, 0.99) 100%) !important;
+  border-color: var(--d700-border) !important;
+  box-shadow: var(--d700-shadow) !important;
+  color: var(--d700-text) !important;
+}
+
+html:not([data-theme="dark"]) :where(.yk-patient-board, .yk-premium-kokpit, .dashboard-hero, .summary-hero, .hero-card, .yk-patient-board .yk-patient-command) {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 252, 253, 0.98)) !important;
+  border-color: var(--d700-border-strong) !important;
+  box-shadow: var(--d700-shadow-strong) !important;
+}
+
+html:not([data-theme="dark"]) :where(.card-header, .yk-card-header, .section-header, .modal-header, .offcanvas-header, .accordion-header) {
+  background: linear-gradient(180deg, #eef6fa 0%, #e5f0f6 100%) !important;
+  border-bottom-color: var(--d700-border) !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-primary, .yk-primary, .primary-btn, .btn-success, .new-patient-btn, .search-btn, button[type="submit"]) {
+  background: linear-gradient(135deg, #076eaf 0%, #07867a 100%) !important;
+  box-shadow: 0 12px 24px rgba(7, 95, 159, 0.24) !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-outline-primary, .btn-outline-secondary, .btn-light, .btn-secondary, .header-icon-btn, .theme-picker-btn, .theme-mode-btn, .experience-mode-btn, .profile-chip) {
+  border-color: var(--d700-border) !important;
+  box-shadow: 0 5px 14px rgba(8, 27, 46, 0.08) !important;
+}
+
+html:not([data-theme="dark"]) :where(.form-control, .form-select, input:not([type="checkbox"]):not([type="radio"]), select, textarea, .yk-patient-searchbar) {
+  border-color: var(--d700-border-strong) !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-searchbar {
+  box-shadow:
+    0 0 0 3px rgba(7, 95, 159, 0.13),
+    0 20px 38px rgba(8, 27, 46, 0.14) !important;
+}
+
+html:not([data-theme="dark"]) :where(.stat-card, .kpi-card, .metric-card) {
+  background:
+    linear-gradient(90deg, rgba(7, 95, 159, 0.075) 0 4px, transparent 4px),
+    linear-gradient(180deg, #ffffff 0%, #f5f9fc 100%) !important;
+}
+
+html:not([data-theme="dark"]) :where(.patient-card) {
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f7fbfd 100%) !important;
+  border-color: var(--d700-border) !important;
+}
+
+html:not([data-theme="dark"]) :where(.patient-card:hover, .card:hover, .yk-card:hover, .agent-card:hover, .tool-card:hover) {
+  border-color: var(--d700-border-strong) !important;
+  box-shadow: var(--d700-shadow-strong) !important;
+}
+
+html:not([data-theme="dark"]) :where(.table thead, .yk-table thead) {
+  background: #dfeaf1 !important;
+}
+
+html:not([data-theme="dark"]) :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: #eaf5f5 !important;
+}
+
+@media (max-width: 900px) {
+  html:not([data-theme="dark"]) :where(.top-header, .yk-header, .navbar, .app-header, header.header) {
+    background: linear-gradient(135deg, #0d253d 0%, #123b56 100%) !important;
+  }
+}
+
+/* Palette/win chrome specificity lock: keep the final premium layer on top. */
+html.yk-win-chrome[data-palette]:not([data-theme="dark"]) body .top-header,
+html.yk-win-chrome[data-palette]:not([data-theme="dark"]) body .yk-header,
+html.yk-win-chrome[data-palette]:not([data-theme="dark"]) body .navbar,
+html.yk-win-chrome[data-palette]:not([data-theme="dark"]) body .app-header,
+html[data-palette]:not([data-theme="dark"]) body .top-header,
+html[data-palette]:not([data-theme="dark"]) body .yk-header,
+html[data-palette]:not([data-theme="dark"]) body .navbar,
+html[data-palette]:not([data-theme="dark"]) body .app-header {
+  background: linear-gradient(135deg, #0d253d 0%, #123b56 54%, #0b6d68 125%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-top: 0 !important;
+  box-shadow: 0 18px 44px rgba(7, 25, 45, 0.30) !important;
+  color: #f8fbff !important;
+}
+
+html.yk-win-chrome[data-palette]:not([data-theme="dark"]) body .top-header :where(.btn, button, .header-icon-btn, .theme-picker-btn, .theme-mode-btn, .experience-mode-btn, .profile-chip),
+html[data-palette]:not([data-theme="dark"]) body .top-header :where(.btn, button, .header-icon-btn, .theme-picker-btn, .theme-mode-btn, .experience-mode-btn, .profile-chip),
+html.yk-win-chrome[data-palette]:not([data-theme="dark"]) body .yk-header :where(.btn, button, .header-icon-btn, .theme-picker-btn, .theme-mode-btn, .experience-mode-btn, .profile-chip),
+html[data-palette]:not([data-theme="dark"]) body .yk-header :where(.btn, button, .header-icon-btn, .theme-picker-btn, .theme-mode-btn, .experience-mode-btn, .profile-chip) {
+  background: rgba(255, 255, 255, 0.93) !important;
+  border-color: rgba(255, 255, 255, 0.42) !important;
+  color: #10243a !important;
+  -webkit-text-fill-color: #10243a !important;
+  box-shadow: 0 8px 20px rgba(3, 12, 22, 0.16) !important;
+}
+
+html.yk-win-chrome[data-palette]:not([data-theme="dark"]) body .top-header :where(input:not([type="checkbox"]):not([type="radio"]), .form-control, .form-select, select),
+html[data-palette]:not([data-theme="dark"]) body .top-header :where(input:not([type="checkbox"]):not([type="radio"]), .form-control, .form-select, select),
+html.yk-win-chrome[data-palette]:not([data-theme="dark"]) body .yk-header :where(input:not([type="checkbox"]):not([type="radio"]), .form-control, .form-select, select),
+html[data-palette]:not([data-theme="dark"]) body .yk-header :where(input:not([type="checkbox"]):not([type="radio"]), .form-control, .form-select, select) {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(255, 255, 255, 0.42) !important;
+  color: #10243a !important;
+  -webkit-text-fill-color: #10243a !important;
+}
+
+html.yk-win-chrome[data-palette]:not([data-theme="dark"]) body .sidebar,
+html.yk-win-chrome[data-palette]:not([data-theme="dark"]) body #sidebar,
+html.yk-win-chrome[data-palette]:not([data-theme="dark"]) body .yk-sidebar,
+html[data-palette]:not([data-theme="dark"]) body .sidebar,
+html[data-palette]:not([data-theme="dark"]) body #sidebar,
+html[data-palette]:not([data-theme="dark"]) body .yk-sidebar {
+  background: linear-gradient(180deg, #0d253d 0%, #102f48 56%, #0b403f 100%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.13) !important;
+  box-shadow: 16px 0 40px rgba(7, 25, 45, 0.22) !important;
+  color: #e8f2f8 !important;
+}
+
+html.yk-win-chrome[data-palette]:not([data-theme="dark"]) body :where(.card, .yk-card, .panel, .yk-panel, .section-card, .stat-card, .kpi-card, .metric-card, .patient-card, .agent-card, .tool-card, .dashboard-card, .summary-card, .info-card, .yk-widget, .yk-section),
+html[data-palette]:not([data-theme="dark"]) body :where(.card, .yk-card, .panel, .yk-panel, .section-card, .stat-card, .kpi-card, .metric-card, .patient-card, .agent-card, .tool-card, .dashboard-card, .summary-card, .info-card, .yk-widget, .yk-section) {
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbfd 100%) !important;
+  border-color: var(--d700-border) !important;
+  box-shadow: var(--d700-shadow) !important;
+  color: var(--d700-text) !important;
+}
+
+html.yk-win-chrome[data-palette]:not([data-theme="dark"]) body .yk-patient-board,
+html[data-palette]:not([data-theme="dark"]) body .yk-patient-board {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbfd 100%) !important;
+  border-color: var(--d700-border-strong) !important;
+  box-shadow: var(--d700-shadow-strong) !important;
+}
+
+/* D700 active patient: remove the old bottom bar, keep a compact context chip. */
+.active-patient-banner {
+  display: none !important;
+}
+
+.top-header .yk-active-patient-chip,
+html[data-palette] body .top-header .yk-active-patient-chip,
+html.yk-win-chrome[data-palette] body .top-header .yk-active-patient-chip {
+  display: inline-flex !important;
+  align-items: center;
+  flex: 0 1 210px;
+  gap: 6px;
+  max-width: min(210px, 24vw);
+  min-width: 0;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(110, 231, 183, 0.42) !important;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(13, 148, 136, 0.95), rgba(14, 116, 144, 0.95)) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-decoration: none !important;
+  box-shadow: 0 8px 18px rgba(2, 44, 64, 0.22);
+  overflow: hidden;
+}
+
+.top-header:has(.yk-active-patient-chip) .search-box {
+  flex: 1 1 340px !important;
+  max-width: 380px !important;
+  min-width: 230px !important;
+}
+
+.top-header .yk-active-patient-chip i {
+  flex: 0 0 auto;
+  font-size: 13px;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.top-header .yk-active-patient-chip .yk-apc-label {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: rgba(236, 253, 245, 0.86) !important;
+  -webkit-text-fill-color: rgba(236, 253, 245, 0.86) !important;
+}
+
+.top-header .yk-active-patient-chip .yk-apc-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.top-header .yk-active-patient-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(2, 44, 64, 0.28);
+}
+
+@media (max-width: 980px) {
+  .top-header .yk-active-patient-chip,
+  html[data-palette] body .top-header .yk-active-patient-chip,
+  html.yk-win-chrome[data-palette] body .top-header .yk-active-patient-chip {
+    flex-basis: 150px;
+    max-width: 150px;
+  }
+  .top-header:has(.yk-active-patient-chip) .search-box {
+    max-width: 300px !important;
+    min-width: 180px !important;
+  }
+  .top-header .yk-active-patient-chip .yk-apc-label {
+    display: none;
+  }
+}
+
+/* D700 command palette: reuse the preferred top-band colors without forcing
+   the top shortcuts into a global command strip. */
+:root:not([data-theme="dark"]) {
+  --d700-command-bg: linear-gradient(135deg, #10243f 0%, #123b56 54%, #0b6d68 125%);
+  --d700-command-bg-soft: linear-gradient(135deg, rgba(16, 36, 63, 0.96) 0%, rgba(18, 59, 86, 0.93) 56%, rgba(11, 109, 104, 0.90) 125%);
+  --d700-command-line: rgba(255, 255, 255, 0.20);
+  --d700-command-ink: #f8fbff;
+  --d700-command-muted: #cfe2ef;
+  --d700-command-shadow: 0 18px 44px rgba(7, 25, 45, 0.22);
+}
+
+html:not([data-theme="dark"]) body :where(
+  .yk-patient-command,
+  .yk-command-top-actions,
+  .yk-hd-quick-actions,
+  .yk-quick-actions,
+  .quick-actions,
+  .pdf-topbar,
+  .yk-consent-toolbar
+),
+html[data-palette]:not([data-theme="dark"]) body :where(
+  .yk-patient-command,
+  .yk-command-top-actions,
+  .yk-hd-quick-actions,
+  .yk-quick-actions,
+  .quick-actions,
+  .pdf-topbar,
+  .yk-consent-toolbar
+),
+html.yk-win-chrome:not([data-theme="dark"]) body :where(
+  .yk-patient-command,
+  .yk-command-top-actions,
+  .yk-hd-quick-actions,
+  .yk-quick-actions,
+  .quick-actions,
+  .pdf-topbar,
+  .yk-consent-toolbar
+) {
+  background: var(--d700-command-bg-soft) !important;
+  border: 1px solid var(--d700-command-line) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--d700-command-shadow) !important;
+  color: var(--d700-command-ink) !important;
+  -webkit-text-fill-color: var(--d700-command-ink) !important;
+}
+
+html:not([data-theme="dark"]) body :where(
+  .yk-patient-command,
+  .yk-command-top-actions,
+  .yk-hd-quick-actions,
+  .yk-quick-actions,
+  .quick-actions,
+  .pdf-topbar,
+  .yk-consent-toolbar
+) :where(h1, h2, h3, h4, h5, h6, b, strong, span, p, small, label) {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+html:not([data-theme="dark"]) body :where(
+  .yk-patient-command,
+  .yk-command-top-actions,
+  .yk-hd-quick-actions,
+  .yk-quick-actions,
+  .quick-actions,
+  .pdf-topbar,
+  .yk-consent-toolbar
+) :where(.text-muted, .muted, small, .small, .form-text) {
+  color: var(--d700-command-muted) !important;
+  -webkit-text-fill-color: var(--d700-command-muted) !important;
+}
+
+html:not([data-theme="dark"]) body :where(
+  .yk-patient-command,
+  .yk-command-top-actions,
+  .yk-hd-quick-actions,
+  .yk-quick-actions,
+  .quick-actions,
+  .pdf-topbar,
+  .yk-consent-toolbar
+) :where(.btn, button, a.btn, .header-icon-btn) {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(255, 255, 255, 0.40) !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  box-shadow: 0 8px 20px rgba(3, 12, 22, 0.14) !important;
+}
+
+html:not([data-theme="dark"]) body :where(
+  .yk-patient-command,
+  .yk-command-top-actions,
+  .yk-hd-quick-actions,
+  .yk-quick-actions,
+  .quick-actions,
+  .pdf-topbar,
+  .yk-consent-toolbar
+) :where(.btn-primary, .btn-success, .new-patient-btn, button[type="submit"]) {
+  background: linear-gradient(135deg, #0b86b6 0%, #0b9f8c 100%) !important;
+  border-color: rgba(255, 255, 255, 0.32) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) body .yk-patient-command .yk-patient-searchbar {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(255, 255, 255, 0.36) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.94), 0 12px 26px rgba(3, 12, 22, 0.12) !important;
+}
+
+html:not([data-theme="dark"]) body .yk-patient-command .yk-patient-searchbar :where(input, .form-control) {
+  background: #ffffff !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+}
+
+html:not([data-theme="dark"]) body :where(
+  .main-container .card:not(.patient-card):not(.hero-card) > .card-header,
+  .main-container .yk-card > .yk-card-header,
+  .main-container .patient-header,
+  .main-container .tools-collapse > summary,
+  .main-container .form-section .card-header
+) {
+  background: var(--d700-command-bg) !important;
+  border-color: var(--d700-command-line) !important;
+  color: var(--d700-command-ink) !important;
+  -webkit-text-fill-color: var(--d700-command-ink) !important;
+  box-shadow: 0 12px 28px rgba(7, 25, 45, 0.14) !important;
+}
+
+html:not([data-theme="dark"]) body :where(
+  .main-container .card:not(.patient-card):not(.hero-card) > .card-header,
+  .main-container .yk-card > .yk-card-header,
+  .main-container .patient-header,
+  .main-container .tools-collapse > summary,
+  .main-container .form-section .card-header
+) :where(h1, h2, h3, h4, h5, h6, b, strong, span, p, small, a) {
+  color: var(--d700-command-ink) !important;
+  -webkit-text-fill-color: var(--d700-command-ink) !important;
+}
+
+html:not([data-theme="dark"]) body :where(.agent-card, .yk-agent-card, .tool-card, .yk-service-agent-card) {
+  border-top: 4px solid #0b9f8c !important;
+}
+
+/* Higher-specificity layer for pages that already ship strong panel rules. */
+html:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command,
+html[data-palette]:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command,
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command {
+  background: var(--d700-command-bg-soft) !important;
+  border: 1px solid var(--d700-command-line) !important;
+  border-top-color: rgba(110, 231, 183, 0.52) !important;
+  box-shadow: var(--d700-command-shadow) !important;
+  color: var(--d700-command-ink) !important;
+  -webkit-text-fill-color: var(--d700-command-ink) !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command .yk-patient-title-line h1,
+html:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command .eyebrow,
+html:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command .yk-patient-count,
+html:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command .yk-patient-search-status {
+  color: var(--d700-command-ink) !important;
+  -webkit-text-fill-color: var(--d700-command-ink) !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command .yk-patient-title-line h1::after {
+  background: linear-gradient(90deg, rgba(248, 251, 255, 0.94), rgba(110, 231, 183, 0.86), rgba(56, 189, 248, 0.76)) !important;
+}
+
+/* D700 readability lock: the dark patient command panel uses light badges, so
+   their text must stay dark instead of inheriting the panel's white ink. */
+html:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command .yk-patient-title .eyebrow {
+  display: inline-flex !important;
+  align-items: center !important;
+  min-height: 20px !important;
+  padding: 3px 12px !important;
+  border-radius: 999px !important;
+  background: rgba(232, 244, 252, 0.98) !important;
+  border: 1px solid rgba(255, 255, 255, 0.54) !important;
+  color: #244761 !important;
+  -webkit-text-fill-color: #244761 !important;
+  text-shadow: none !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 6px 16px rgba(2, 12, 27, 0.12) !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command .yk-patient-title-line .yk-patient-count {
+  min-width: 72px !important;
+  min-height: 40px !important;
+  padding: 6px 18px !important;
+  border-radius: 999px !important;
+  background: rgba(248, 252, 255, 0.98) !important;
+  border: 1px solid rgba(255, 255, 255, 0.62) !important;
+  color: #12324f !important;
+  -webkit-text-fill-color: #12324f !important;
+  font-weight: 900 !important;
+  text-shadow: none !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 10px 24px rgba(2, 12, 27, 0.16) !important;
+}
+
+/* D700 patient folder: keep light cards readable inside the midnight command
+   theme and surface the patient file menu near the top of the page. */
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .yk-patient-folder-hero {
+  background: var(--d700-command-bg-soft) !important;
+  border: 1px solid var(--d700-command-line) !important;
+  border-left: 5px solid #6ee7b7 !important;
+  border-radius: 20px !important;
+  box-shadow: var(--d700-command-shadow) !important;
+  color: var(--d700-command-ink) !important;
+  -webkit-text-fill-color: var(--d700-command-ink) !important;
+  padding: 20px !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .yk-patient-folder-hero > .text-muted.mt-2 {
+  display: none !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .yk-patient-folder-hero :where(h1, .yk-patient-folder-kicker, .yk-patient-folder-id) {
+  color: var(--d700-command-ink) !important;
+  -webkit-text-fill-color: var(--d700-command-ink) !important;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.18) !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .yk-patient-folder-kicker {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  margin-bottom: 8px !important;
+  color: #dff7f1 !important;
+  -webkit-text-fill-color: #dff7f1 !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  letter-spacing: .13em !important;
+  text-transform: uppercase !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .yk-patient-folder-id {
+  color: var(--d700-command-muted) !important;
+  -webkit-text-fill-color: var(--d700-command-muted) !important;
+  font-family: "Segoe UI", Arial, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .yk-patient-direct-info {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)) !important;
+  gap: 10px !important;
+  margin-top: 16px !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .yk-patient-top-stat {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  min-height: 68px !important;
+  padding: 10px 12px !important;
+  border-radius: 16px !important;
+  background: rgba(248, 252, 255, 0.96) !important;
+  border: 1px solid rgba(255, 255, 255, 0.52) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 10px 24px rgba(2, 12, 27, 0.14) !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .yk-pts-icon {
+  display: inline-grid !important;
+  place-items: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 13px !important;
+  background: linear-gradient(135deg, #0b86b6 0%, #0b9f8c 100%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 10px 22px rgba(11, 134, 182, 0.22) !important;
+  flex: 0 0 auto !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .yk-pts-copy {
+  display: grid !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .yk-pts-copy small {
+  color: #60758a !important;
+  -webkit-text-fill-color: #60758a !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  letter-spacing: .09em !important;
+  text-transform: uppercase !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .yk-pts-copy b {
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .yk-patient-file-menu {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  align-items: center !important;
+  margin: 12px 0 18px !important;
+  padding: 10px !important;
+  border-radius: 18px !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  border: 1px solid var(--d700-border) !important;
+  box-shadow: 0 12px 30px rgba(18, 45, 72, 0.10) !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .yk-patient-file-menu a {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  min-height: 40px !important;
+  padding: 8px 12px !important;
+  border-radius: 12px !important;
+  background: #f8fcff !important;
+  border: 1px solid #d5e1ea !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  font-weight: 850 !important;
+  text-decoration: none !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .yk-patient-file-menu a.is-primary,
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .yk-patient-file-menu a:hover {
+  background-color: #0b86b6 !important;
+  background-image: linear-gradient(135deg, #0b86b6 0%, #0b9f8c 100%) !important;
+  border-color: rgba(255, 255, 255, 0.32) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 10px 22px rgba(11, 134, 182, 0.18) !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .quick-actions {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  padding: 0 !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .quick-actions :where(.quick-primary, .quick-secondary) {
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbfd 100%) !important;
+  border: 1px solid var(--d700-border) !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  box-shadow: 0 14px 34px rgba(18, 45, 72, 0.12) !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .quick-actions :where(.qp-title, .qs-text, .qp-arrow, .qp-content, .qp-content *, .quick-secondary *, .quick-primary *) {
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .quick-actions .qp-desc {
+  color: #60758a !important;
+  -webkit-text-fill-color: #60758a !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .tools-collapse {
+  background: #ffffff !important;
+  border: 1px solid var(--d700-border) !important;
+  box-shadow: 0 14px 34px rgba(18, 45, 72, 0.10) !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .tools-collapse > summary {
+  background-color: #10243f !important;
+  background-image: linear-gradient(135deg, #10243f 0%, #0f5564 100%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .tools-collapse > summary :where(.tools-label, .tools-chevron, .tools-icon) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .tools-collapse > summary .tools-count {
+  background: rgba(248, 252, 255, 0.96) !important;
+  color: #12324f !important;
+  -webkit-text-fill-color: #12324f !important;
+  font-weight: 900 !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .tool-card .tool-name {
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-detail-page .tool-card .tool-hint {
+  color: #60758a !important;
+  -webkit-text-fill-color: #60758a !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command .yk-patient-toolbar .btn,
+html:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command .yk-patient-searchbar .btn {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(255, 255, 255, 0.40) !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  box-shadow: 0 8px 20px rgba(3, 12, 22, 0.14) !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command .yk-patient-toolbar .btn-success,
+html:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command .yk-patient-searchbar .btn-primary,
+html:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command .new-patient-btn {
+  background: linear-gradient(135deg, #0b86b6 0%, #0b9f8c 100%) !important;
+  border-color: rgba(255, 255, 255, 0.32) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command .yk-patient-metric,
+html:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command .yk-patient-metric :where(span, b, strong, i) {
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-patient-board .yk-patient-command .yk-patient-metric :where(.label, small, .text-muted) {
+  color: #60758a !important;
+  -webkit-text-fill-color: #60758a !important;
+}
+
+html:not([data-theme="dark"]) body .main-container :where(.agent-card, .yk-agent-card, .tool-card, .yk-service-agent-card),
+html[data-palette]:not([data-theme="dark"]) body .main-container :where(.agent-card, .yk-agent-card, .tool-card, .yk-service-agent-card),
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container :where(.agent-card, .yk-agent-card, .tool-card, .yk-service-agent-card) {
+  border-top: 4px solid #0b9f8c !important;
+  box-shadow: 0 14px 32px rgba(7, 25, 45, 0.12) !important;
+}
+
+html:not([data-theme="dark"]) body .main-container :where(.agent-card, .yk-agent-card, .tool-card, .yk-service-agent-card):nth-child(4n + 1) {
+  border-top-color: #0b86b6 !important;
+}
+
+html:not([data-theme="dark"]) body .main-container :where(.agent-card, .yk-agent-card, .tool-card, .yk-service-agent-card):nth-child(4n + 2) {
+  border-top-color: #0b9f8c !important;
+}
+
+html:not([data-theme="dark"]) body .main-container :where(.agent-card, .yk-agent-card, .tool-card, .yk-service-agent-card):nth-child(4n + 3) {
+  border-top-color: #38bdf8 !important;
+}
+
+html:not([data-theme="dark"]) body .main-container :where(.agent-card, .yk-agent-card, .tool-card, .yk-service-agent-card):nth-child(4n) {
+  border-top-color: #6ee7b7 !important;
+}
+
+html:not([data-theme="dark"]) body .agent-card.agent-card,
+html:not([data-theme="dark"]) body .yk-agent-card.yk-agent-card,
+html:not([data-theme="dark"]) body .tool-card.tool-card,
+html:not([data-theme="dark"]) body .yk-service-agent-card.yk-service-agent-card,
+html[data-palette]:not([data-theme="dark"]) body .agent-card.agent-card,
+html[data-palette]:not([data-theme="dark"]) body .yk-agent-card.yk-agent-card,
+html[data-palette]:not([data-theme="dark"]) body .tool-card.tool-card,
+html[data-palette]:not([data-theme="dark"]) body .yk-service-agent-card.yk-service-agent-card {
+  border-top: 4px solid #0b9f8c !important;
+  box-shadow: 0 14px 32px rgba(7, 25, 45, 0.12) !important;
+}
+
+/* D700 v14: spread the preferred midnight clinic concept to page-level
+   command areas, without turning every content card into a dark block. */
+html:not([data-theme="dark"]) body :is(
+  .main-container > .page-header,
+  .main-container > .dashboard-hero,
+  .main-container > .summary-hero,
+  .main-container > .hero-card,
+  .main-container > .yk-diet-hero,
+  .main-container > .yk-agent-hero,
+  .main-container > .yk-dicom-hero,
+  .main-container > .yk-ex-hero,
+  .main-container > .yk-pdf-editor-hero,
+  .main-container .yk-action-hub,
+  .main-container .yk-diet-toolbar,
+  .main-container .preg-toolbar,
+  .main-container .growth-toolbar,
+  .main-container .vp-toolbar,
+  .main-container .yk-dicom-actionbar,
+  .main-container .yk-dicom-ai-toolbar,
+  .main-container .yk-b403-toolbar,
+  .main-container .yk-wl-toolbar,
+  .main-container .pdf-stage-toolbar,
+  .main-container .pdf-edit-toolbar,
+  .main-container .yk-mv-toolbar,
+  .main-container .yk-pdf-toolbar,
+  .main-container .onam-toolbar,
+  .main-container .consent-toolbar,
+  .main-container .form-toolbar,
+  .main-container .filter-toolbar
+),
+html[data-palette]:not([data-theme="dark"]) body :is(
+  .main-container > .page-header,
+  .main-container > .dashboard-hero,
+  .main-container > .summary-hero,
+  .main-container > .hero-card,
+  .main-container > .yk-diet-hero,
+  .main-container > .yk-agent-hero,
+  .main-container > .yk-dicom-hero,
+  .main-container > .yk-ex-hero,
+  .main-container > .yk-pdf-editor-hero,
+  .main-container .yk-action-hub,
+  .main-container .yk-diet-toolbar,
+  .main-container .preg-toolbar,
+  .main-container .growth-toolbar,
+  .main-container .vp-toolbar,
+  .main-container .yk-dicom-actionbar,
+  .main-container .yk-dicom-ai-toolbar,
+  .main-container .yk-b403-toolbar,
+  .main-container .yk-wl-toolbar,
+  .main-container .pdf-stage-toolbar,
+  .main-container .pdf-edit-toolbar,
+  .main-container .yk-mv-toolbar,
+  .main-container .yk-pdf-toolbar,
+  .main-container .onam-toolbar,
+  .main-container .consent-toolbar,
+  .main-container .form-toolbar,
+  .main-container .filter-toolbar
+),
+html.yk-win-chrome:not([data-theme="dark"]) body :is(
+  .main-container > .page-header,
+  .main-container > .dashboard-hero,
+  .main-container > .summary-hero,
+  .main-container > .hero-card,
+  .main-container > .yk-diet-hero,
+  .main-container > .yk-agent-hero,
+  .main-container > .yk-dicom-hero,
+  .main-container > .yk-ex-hero,
+  .main-container > .yk-pdf-editor-hero,
+  .main-container .yk-action-hub,
+  .main-container .yk-diet-toolbar,
+  .main-container .preg-toolbar,
+  .main-container .growth-toolbar,
+  .main-container .vp-toolbar,
+  .main-container .yk-dicom-actionbar,
+  .main-container .yk-dicom-ai-toolbar,
+  .main-container .yk-b403-toolbar,
+  .main-container .yk-wl-toolbar,
+  .main-container .pdf-stage-toolbar,
+  .main-container .pdf-edit-toolbar,
+  .main-container .yk-mv-toolbar,
+  .main-container .yk-pdf-toolbar,
+  .main-container .onam-toolbar,
+  .main-container .consent-toolbar,
+  .main-container .form-toolbar,
+  .main-container .filter-toolbar
+) {
+  background: var(--d700-command-bg-soft) !important;
+  border: 1px solid var(--d700-command-line) !important;
+  border-top-color: rgba(110, 231, 183, 0.52) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--d700-command-shadow) !important;
+  color: var(--d700-command-ink) !important;
+  -webkit-text-fill-color: var(--d700-command-ink) !important;
+}
+
+html:not([data-theme="dark"]) body :is(
+  .main-container > .page-header,
+  .main-container > .dashboard-hero,
+  .main-container > .summary-hero,
+  .main-container > .hero-card,
+  .main-container > .yk-diet-hero,
+  .main-container > .yk-agent-hero,
+  .main-container > .yk-dicom-hero,
+  .main-container > .yk-ex-hero,
+  .main-container > .yk-pdf-editor-hero,
+  .main-container .yk-action-hub,
+  .main-container .yk-diet-toolbar,
+  .main-container .preg-toolbar,
+  .main-container .growth-toolbar,
+  .main-container .vp-toolbar,
+  .main-container .yk-dicom-actionbar,
+  .main-container .yk-dicom-ai-toolbar,
+  .main-container .yk-b403-toolbar,
+  .main-container .yk-wl-toolbar,
+  .main-container .pdf-stage-toolbar,
+  .main-container .pdf-edit-toolbar,
+  .main-container .yk-mv-toolbar,
+  .main-container .yk-pdf-toolbar,
+  .main-container .onam-toolbar,
+  .main-container .consent-toolbar,
+  .main-container .form-toolbar,
+  .main-container .filter-toolbar
+) :where(h1, h2, h3, h4, h5, h6, b, strong, span, p, small, label, a) {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+html:not([data-theme="dark"]) body :is(
+  .main-container > .page-header,
+  .main-container > .dashboard-hero,
+  .main-container > .summary-hero,
+  .main-container > .hero-card,
+  .main-container > .yk-diet-hero,
+  .main-container > .yk-agent-hero,
+  .main-container > .yk-dicom-hero,
+  .main-container > .yk-ex-hero,
+  .main-container > .yk-pdf-editor-hero,
+  .main-container .yk-action-hub,
+  .main-container .yk-diet-toolbar,
+  .main-container .preg-toolbar,
+  .main-container .growth-toolbar,
+  .main-container .vp-toolbar,
+  .main-container .yk-dicom-actionbar,
+  .main-container .yk-dicom-ai-toolbar,
+  .main-container .yk-b403-toolbar,
+  .main-container .yk-wl-toolbar,
+  .main-container .pdf-stage-toolbar,
+  .main-container .pdf-edit-toolbar,
+  .main-container .yk-mv-toolbar,
+  .main-container .yk-pdf-toolbar,
+  .main-container .onam-toolbar,
+  .main-container .consent-toolbar,
+  .main-container .form-toolbar,
+  .main-container .filter-toolbar
+) :where(.text-muted, .muted, .small, .form-text) {
+  color: var(--d700-command-muted) !important;
+  -webkit-text-fill-color: var(--d700-command-muted) !important;
+}
+
+html:not([data-theme="dark"]) body :is(
+  .main-container > .page-header,
+  .main-container > .dashboard-hero,
+  .main-container > .summary-hero,
+  .main-container > .hero-card,
+  .main-container > .yk-diet-hero,
+  .main-container > .yk-agent-hero,
+  .main-container > .yk-dicom-hero,
+  .main-container > .yk-ex-hero,
+  .main-container > .yk-pdf-editor-hero,
+  .main-container .yk-action-hub,
+  .main-container .yk-diet-toolbar,
+  .main-container .preg-toolbar,
+  .main-container .growth-toolbar,
+  .main-container .vp-toolbar,
+  .main-container .yk-dicom-actionbar,
+  .main-container .yk-dicom-ai-toolbar,
+  .main-container .yk-b403-toolbar,
+  .main-container .yk-wl-toolbar,
+  .main-container .pdf-stage-toolbar,
+  .main-container .pdf-edit-toolbar,
+  .main-container .yk-mv-toolbar,
+  .main-container .yk-pdf-toolbar,
+  .main-container .onam-toolbar,
+  .main-container .consent-toolbar,
+  .main-container .form-toolbar,
+  .main-container .filter-toolbar
+) :where(.btn, button, a.btn, .header-icon-btn) {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(255, 255, 255, 0.42) !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  box-shadow: 0 8px 20px rgba(3, 12, 22, 0.14) !important;
+}
+
+html:not([data-theme="dark"]) body :is(
+  .main-container > .page-header,
+  .main-container > .dashboard-hero,
+  .main-container > .summary-hero,
+  .main-container > .hero-card,
+  .main-container > .yk-diet-hero,
+  .main-container > .yk-agent-hero,
+  .main-container > .yk-dicom-hero,
+  .main-container > .yk-ex-hero,
+  .main-container > .yk-pdf-editor-hero,
+  .main-container .yk-action-hub,
+  .main-container .yk-diet-toolbar,
+  .main-container .preg-toolbar,
+  .main-container .growth-toolbar,
+  .main-container .vp-toolbar,
+  .main-container .yk-dicom-actionbar,
+  .main-container .yk-dicom-ai-toolbar,
+  .main-container .yk-b403-toolbar,
+  .main-container .yk-wl-toolbar,
+  .main-container .pdf-stage-toolbar,
+  .main-container .pdf-edit-toolbar,
+  .main-container .yk-mv-toolbar,
+  .main-container .yk-pdf-toolbar,
+  .main-container .onam-toolbar,
+  .main-container .consent-toolbar,
+  .main-container .form-toolbar,
+  .main-container .filter-toolbar
+) :where(.btn-primary, .btn-success, button[type="submit"], .yk-primary-action, .new-patient-btn) {
+  background: linear-gradient(135deg, #0b86b6 0%, #0b9f8c 100%) !important;
+  border-color: rgba(255, 255, 255, 0.32) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+/* D700 v18: hasta islemleri alt menu kontrasti.
+   Komut alanlari koyu zemine cekildiginde details/summary eski koyu metni
+   tasiyordu; bu blok sadece hasta aksiyon hub'inda okunabilirligi kilitler. */
+html:not([data-theme="dark"]) body .main-container .yk-action-hub .yk-action-section,
+html[data-palette]:not([data-theme="dark"]) body .main-container .yk-action-hub .yk-action-section,
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container .yk-action-hub .yk-action-section {
+  background: rgba(255, 255, 255, 0.055) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 14px !important;
+  padding: 8px 10px !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-action-hub .yk-action-section > summary,
+html[data-palette]:not([data-theme="dark"]) body .main-container .yk-action-hub .yk-action-section > summary,
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container .yk-action-hub .yk-action-section > summary {
+  color: #f8fbff !important;
+  -webkit-text-fill-color: #f8fbff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.22) !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-action-hub .yk-action-section > summary :where(span, i),
+html[data-palette]:not([data-theme="dark"]) body .main-container .yk-action-hub .yk-action-section > summary :where(span, i),
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container .yk-action-hub .yk-action-section > summary :where(span, i) {
+  color: #f8fbff !important;
+  -webkit-text-fill-color: #f8fbff !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .yk-action-hub .yk-action-section > summary b,
+html[data-palette]:not([data-theme="dark"]) body .main-container .yk-action-hub .yk-action-section > summary b,
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container .yk-action-hub .yk-action-section > summary b {
+  background: rgba(14, 165, 233, 0.30) !important;
+  border: 1px solid rgba(125, 211, 252, 0.45) !important;
+  color: #e0f7ff !important;
+  -webkit-text-fill-color: #e0f7ff !important;
+}
+
+/* D700 v19: hasta listesi sonuc satirlari beyaz panel icinde okunabilir kalsin.
+   Ust komut paneli koyu olabilir; ancak #patientList icindeki kart/satir metinleri
+   beyaz zeminde koyu renge sabitlenmeli. */
+html:not([data-theme="dark"]) body .main-container #patientList,
+html[data-palette]:not([data-theme="dark"]) body .main-container #patientList,
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container #patientList {
+  background: #ffffff !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+}
+
+html:not([data-theme="dark"]) body .main-container #patientList :where(.patient-card, .yk-patient-card, .list-group-item, tr, td, th, a, span, p, small, b, strong, h1, h2, h3, h4, h5, h6, div),
+html[data-palette]:not([data-theme="dark"]) body .main-container #patientList :where(.patient-card, .yk-patient-card, .list-group-item, tr, td, th, a, span, p, small, b, strong, h1, h2, h3, h4, h5, h6, div),
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container #patientList :where(.patient-card, .yk-patient-card, .list-group-item, tr, td, th, a, span, p, small, b, strong, h1, h2, h3, h4, h5, h6, div) {
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+}
+
+html:not([data-theme="dark"]) body .main-container #patientList :where(.text-muted, .muted, small, .small, [class*="-meta"], [class*="-hint"]),
+html[data-palette]:not([data-theme="dark"]) body .main-container #patientList :where(.text-muted, .muted, small, .small, [class*="-meta"], [class*="-hint"]),
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container #patientList :where(.text-muted, .muted, small, .small, [class*="-meta"], [class*="-hint"]) {
+  color: #5f7288 !important;
+  -webkit-text-fill-color: #5f7288 !important;
+}
+
+html:not([data-theme="dark"]) body .main-container #patientList :where(.patient-card, .yk-patient-card, .list-group-item):hover,
+html[data-palette]:not([data-theme="dark"]) body .main-container #patientList :where(.patient-card, .yk-patient-card, .list-group-item):hover,
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container #patientList :where(.patient-card, .yk-patient-card, .list-group-item):hover {
+  background: #eef6ff !important;
+}
+
+html:not([data-theme="dark"]) body .main-container :is(
+  .form-section > h2,
+  .form-section > h3,
+  .form-section > h4,
+  .form-section > h5,
+  .section-title,
+  .section-heading,
+  .yk-section-title
+) {
+  border-left: 4px solid #0b9f8c !important;
+  color: #10243f !important;
+  padding-left: 10px !important;
+}
+
+/* D700 v15: higher-specificity passes for legacy/bootstrap pages that do not
+   expose shared hero classes yet. */
+html:not([data-theme="dark"]) body .main-container > .d-flex.justify-content-between.align-items-center.mb-4,
+html:not([data-theme="dark"]) body .main-container > .d-flex.align-items-center.mb-3,
+html:not([data-theme="dark"]) body .main-container > div.mb-4[class="mb-4"],
+html:not([data-theme="dark"]) body .main-container > .yk-patient-media-quickbar,
+html:not([data-theme="dark"]) body .main-container .container.py-3 > .d-flex.align-items-center.mb-3,
+html[data-palette]:not([data-theme="dark"]) body .main-container > .d-flex.justify-content-between.align-items-center.mb-4,
+html[data-palette]:not([data-theme="dark"]) body .main-container > .d-flex.align-items-center.mb-3,
+html[data-palette]:not([data-theme="dark"]) body .main-container > div.mb-4[class="mb-4"],
+html[data-palette]:not([data-theme="dark"]) body .main-container > .yk-patient-media-quickbar,
+html[data-palette]:not([data-theme="dark"]) body .main-container .container.py-3 > .d-flex.align-items-center.mb-3,
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container > .d-flex.justify-content-between.align-items-center.mb-4,
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container > .d-flex.align-items-center.mb-3,
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container > div.mb-4[class="mb-4"],
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container > .yk-patient-media-quickbar,
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container .container.py-3 > .d-flex.align-items-center.mb-3 {
+  background: var(--d700-command-bg-soft) !important;
+  border: 1px solid var(--d700-command-line) !important;
+  border-top-color: rgba(110, 231, 183, 0.52) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--d700-command-shadow) !important;
+  color: var(--d700-command-ink) !important;
+  -webkit-text-fill-color: var(--d700-command-ink) !important;
+  padding: 16px 18px !important;
+}
+
+html:not([data-theme="dark"]) body .main-container > .d-flex.justify-content-between.align-items-center.mb-4 :where(h1, h2, h3, h4, h5, h6, span, p, b, strong, small, label, a),
+html:not([data-theme="dark"]) body .main-container > .d-flex.align-items-center.mb-3 :where(h1, h2, h3, h4, h5, h6, span, p, b, strong, small, label, a),
+html:not([data-theme="dark"]) body .main-container > div.mb-4[class="mb-4"] :where(h1, h2, h3, h4, h5, h6, span, p, b, strong, small, label, a),
+html:not([data-theme="dark"]) body .main-container > .yk-patient-media-quickbar :where(h1, h2, h3, h4, h5, h6, span, p, b, strong, small, label, a),
+html:not([data-theme="dark"]) body .main-container .container.py-3 > .d-flex.align-items-center.mb-3 :where(h1, h2, h3, h4, h5, h6, span, p, b, strong, small, label, a) {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+html:not([data-theme="dark"]) body .main-container > .d-flex.justify-content-between.align-items-center.mb-4 :where(.btn, button, a.btn),
+html:not([data-theme="dark"]) body .main-container > .d-flex.align-items-center.mb-3 :where(.btn, button, a.btn),
+html:not([data-theme="dark"]) body .main-container > div.mb-4[class="mb-4"] :where(.btn, button, a.btn),
+html:not([data-theme="dark"]) body .main-container > .yk-patient-media-quickbar :where(.btn, button, a.btn),
+html:not([data-theme="dark"]) body .main-container .container.py-3 > .d-flex.align-items-center.mb-3 :where(.btn, button, a.btn) {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(255, 255, 255, 0.42) !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  box-shadow: 0 8px 20px rgba(3, 12, 22, 0.14) !important;
+}
+
+html:not([data-theme="dark"]) body .main-container > .d-flex.justify-content-between.align-items-center.mb-4 :where(.btn-primary, .btn-success, button[type="submit"], .yk-primary-action),
+html:not([data-theme="dark"]) body .main-container > .d-flex.align-items-center.mb-3 :where(.btn-primary, .btn-success, button[type="submit"], .yk-primary-action),
+html:not([data-theme="dark"]) body .main-container > div.mb-4[class="mb-4"] :where(.btn-primary, .btn-success, button[type="submit"], .yk-primary-action),
+html:not([data-theme="dark"]) body .main-container > .yk-patient-media-quickbar :where(.btn-primary, .btn-success, button[type="submit"], .yk-primary-action),
+html:not([data-theme="dark"]) body .main-container .container.py-3 > .d-flex.align-items-center.mb-3 :where(.btn-primary, .btn-success, button[type="submit"], .yk-primary-action) {
+  background: linear-gradient(135deg, #0b86b6 0%, #0b9f8c 100%) !important;
+  border-color: rgba(255, 255, 255, 0.32) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) body .main-container > .patient-header.patient-header,
+html[data-palette]:not([data-theme="dark"]) body .main-container > .patient-header.patient-header,
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container > .patient-header.patient-header {
+  background: var(--d700-command-bg-soft) !important;
+  border: 1px solid var(--d700-command-line) !important;
+  border-top-color: rgba(110, 231, 183, 0.52) !important;
+  box-shadow: var(--d700-command-shadow) !important;
+  color: var(--d700-command-ink) !important;
+  -webkit-text-fill-color: var(--d700-command-ink) !important;
+}
+
+html:not([data-theme="dark"]) body .main-container > .patient-header.patient-header :where(h1, h2, h3, h4, h5, h6, span, p, b, strong, small, label, div) {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .card:not(.patient-card):not(.hero-card) > .card-header.card-header,
+html[data-palette]:not([data-theme="dark"]) body .main-container .card:not(.patient-card):not(.hero-card) > .card-header.card-header,
+html.yk-win-chrome:not([data-theme="dark"]) body .main-container .card:not(.patient-card):not(.hero-card) > .card-header.card-header {
+  background: var(--d700-command-bg) !important;
+  border-color: var(--d700-command-line) !important;
+  color: var(--d700-command-ink) !important;
+  -webkit-text-fill-color: var(--d700-command-ink) !important;
+  box-shadow: 0 12px 28px rgba(7, 25, 45, 0.14) !important;
+}
+
+html:not([data-theme="dark"]) body .main-container .card:not(.patient-card):not(.hero-card) > .card-header.card-header :where(h1, h2, h3, h4, h5, h6, span, p, b, strong, small, label, a) {
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+html:not([data-theme="dark"]) body > h1:first-of-type {
+  background: var(--d700-command-bg-soft) !important;
+  border: 1px solid var(--d700-command-line) !important;
+  border-top-color: rgba(110, 231, 183, 0.52) !important;
+  border-radius: 18px !important;
+  box-shadow: var(--d700-command-shadow) !important;
+  color: var(--d700-command-ink) !important;
+  -webkit-text-fill-color: var(--d700-command-ink) !important;
+  padding: 18px 20px !important;
+}
+
+/* D700 v16: premium sidebar finishing rules. Most color values are applied by
+   yk-d700-sidebar-premium.js because the theme system uses inline !important. */
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav {
+  background-attachment: local !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav::-webkit-scrollbar {
+  width: 7px;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.68), rgba(110, 231, 183, 0.62));
+  border-radius: 999px;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-section,
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-menu-finder,
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-brand {
+  backdrop-filter: blur(14px) saturate(1.14);
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-link,
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-quick-action,
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-menu-shortcuts a {
+  text-decoration: none !important;
+  transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-link:hover,
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-quick-action:hover,
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-menu-shortcuts a:hover {
+  transform: translateY(-1px);
+}
+
+/* D700 v20: left command center. Keep it compact, but make the sidebar feel
+   like the same premium software family as the main patient panels. */
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav {
+  isolation: isolate !important;
+  overflow-x: hidden !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav :where(a, button, input, summary) {
+  letter-spacing: 0 !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-brand {
+  display: grid !important;
+  grid-template-columns: 52px minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin: 0 0 10px !important;
+  padding: 14px !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-brand::before,
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-brand::after {
+  display: none !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-brand-logo-img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  border-radius: 12px !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-brand-name {
+  font-size: 20px !important;
+  line-height: 1.05 !important;
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-brand-doctor,
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .yk-mode-badge,
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .yk-version-badge {
+  width: fit-content !important;
+  max-width: 100% !important;
+  min-height: 22px !important;
+  padding: 4px 9px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .yk-sidebar-mode-tabs {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  margin: 8px 0 10px !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .yk-sidebar-mode-tab {
+  min-width: 0 !important;
+  min-height: 38px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  padding: 0 6px !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .yk-midnight-pro-btn strong,
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .yk-midnight-pro-btn small {
+  display: block !important;
+  line-height: 1.16 !important;
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .yk-midnight-pro-btn strong {
+  font-size: 13px !important;
+  font-weight: 900 !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .yk-midnight-pro-btn small {
+  margin-top: 2px !important;
+  opacity: .78 !important;
+  font-size: 11px !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-orbit-main {
+  display: grid !important;
+  grid-template-columns: 42px minmax(0, 1fr) !important;
+  gap: 10px !important;
+  align-items: center !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-orbit-icon {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: linear-gradient(135deg, #e0f2fe 0%, #ccfbf1 100%) !important;
+  color: #075985 !important;
+  -webkit-text-fill-color: #075985 !important;
+  box-shadow: 0 12px 22px rgba(3, 12, 22, .16) !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-orbit-row {
+  gap: 8px !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-menu-finder {
+  margin: 10px 0 12px !important;
+  padding: 12px !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-menu-finder-title {
+  font-size: 13px !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-menu-finder-input {
+  min-height: 38px !important;
+  padding: 8px 10px !important;
+  font-weight: 750 !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-menu-shortcuts {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 7px !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-menu-shortcuts a {
+  min-height: 36px !important;
+  display: inline-flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+  font-size: 11px !important;
+  line-height: 1.1 !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-quick-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin: 10px 0 12px !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-quick-action {
+  display: grid !important;
+  grid-template-columns: 38px minmax(0, 1fr) !important;
+  grid-template-rows: auto auto !important;
+  column-gap: 8px !important;
+  row-gap: 1px !important;
+  align-items: center !important;
+  min-height: 62px !important;
+  padding: 10px !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-quick-action i {
+  grid-row: 1 / 3 !important;
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 13px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(255, 255, 255, .12) !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-quick-action strong,
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-quick-action span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-quick-action strong {
+  align-self: end !important;
+  font-size: 13px !important;
+  line-height: 1.05 !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-quick-action span {
+  align-self: start !important;
+  font-size: 11px !important;
+  line-height: 1.05 !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-section {
+  margin: 10px 0 !important;
+  padding: 8px !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-section-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  min-height: 34px !important;
+  margin: 0 0 7px !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-link {
+  display: grid !important;
+  grid-template-columns: 38px minmax(0, 1fr) !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin: 6px 0 !important;
+  padding: 7px 9px !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-link > span:not(.sidebar-link-icon):not(.sidebar-badge-mini) {
+  min-width: 0 !important;
+  color: inherit !important;
+  -webkit-text-fill-color: inherit !important;
+  font-size: 13px !important;
+  font-weight: 850 !important;
+  line-height: 1.1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-link-icon {
+  width: 34px !important;
+  height: 34px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 34px !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-link-icon i {
+  font-size: 16px !important;
+  line-height: 1 !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-link.active,
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-link.yk-d700-current {
+  transform: translateX(1px) !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-fold {
+  margin: 7px 0 !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-fold summary {
+  min-height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  padding: 8px 10px !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+}
+
+html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-fold-body {
+  padding: 5px 0 1px !important;
+}
+
+/* D700 v21: sidebar bottom fold caret/readability lock.
+   Fixes the mojibake caret inherited from older core CSS. */
+body .sidebar.use-modern-nav .sidebar-fold:not(.sidebar-subgroup) > summary {
+  justify-content: flex-start !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+body .sidebar.use-modern-nav .sidebar-fold:not(.sidebar-subgroup) > summary::after {
+  content: "\203A" !important;
+  width: 18px !important;
+  height: 18px !important;
+  flex: 0 0 18px !important;
+  margin-left: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: currentColor !important;
+  -webkit-text-fill-color: currentColor !important;
+  font-family: Arial, sans-serif !important;
+  font-size: 18px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  opacity: .72 !important;
+  transform: none !important;
+}
+
+body .sidebar.use-modern-nav .sidebar-fold:not(.sidebar-subgroup)[open] > summary::after {
+  transform: rotate(90deg) !important;
+}
+
+body .sidebar.use-modern-nav .sidebar-fold:not(.sidebar-subgroup) > summary .badge {
+  flex: 0 0 auto !important;
+  min-width: 34px !important;
+  margin-left: 4px !important;
+  padding: 3px 8px !important;
+  text-align: center !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+}
+
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"])
+  body .sidebar.use-modern-nav .sidebar-link,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"])
+  body .sidebar.use-modern-nav .sidebar-link > span:not(.sidebar-link-icon):not(.sidebar-badge-mini),
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"])
+  body .sidebar.use-modern-nav .sidebar-fold > summary {
+  color: var(--yk-sb-ink, #EAF2F8) !important;
+  -webkit-text-fill-color: var(--yk-sb-ink, #EAF2F8) !important;
+  opacity: 1 !important;
+}
+
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"])
+  body .sidebar.use-modern-nav .sidebar-section-title,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"])
+  body .sidebar.use-modern-nav .yk-sidebar-section-label,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"])
+  body .sidebar.use-modern-nav .sidebar-manifest-group-title {
+  color: var(--yk-sb-muted, #B8C4D2) !important;
+  -webkit-text-fill-color: var(--yk-sb-muted, #B8C4D2) !important;
+  opacity: 1 !important;
+}
+
+@media (max-width: 760px) {
+  html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav {
+    padding: 12px 9px 16px !important;
+  }
+
+  html[data-d700-premium-sidebar="1"] body .sidebar.use-modern-nav .sidebar-quick-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* D700 v23: Gece Pro hasta karti kontrast kilidi.
+   /hastalar icindeki inline premium kart stili acik govde basiyordu. */
+:root[data-theme="dark"] body .yk-patient-board #patientList {
+  padding-bottom: 132px !important;
+}
+
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card {
+  background:
+    linear-gradient(180deg, rgba(34, 48, 68, .98) 0%, rgba(20, 31, 48, .98) 100%) !important;
+  border-color: rgba(142, 197, 255, .32) !important;
+  color: #F7FBFF !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .08) inset,
+    0 18px 44px rgba(0, 0, 0, .42) !important;
+  overflow: hidden !important;
+}
+
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card:hover {
+  background:
+    linear-gradient(180deg, rgba(41, 57, 80, .99) 0%, rgba(24, 37, 57, .99) 100%) !important;
+  border-color: rgba(125, 211, 252, .54) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, .10) inset,
+    0 24px 58px rgba(0, 0, 0, .50),
+    0 0 0 1px rgba(125, 211, 252, .18) !important;
+}
+
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card::after {
+  background:
+    radial-gradient(circle at 16% 0%, rgba(125, 211, 252, .12), transparent 38%),
+    linear-gradient(135deg, rgba(255, 255, 255, .045), transparent 44%) !important;
+}
+
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card::before {
+  opacity: 1 !important;
+  box-shadow: 0 0 18px rgba(125, 211, 252, .26) !important;
+}
+
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card > .yk-patient-open-hint {
+  background: rgba(15, 27, 44, .92) !important;
+  border-color: rgba(178, 212, 241, .22) !important;
+  color: #EAF7FF !important;
+  -webkit-text-fill-color: #EAF7FF !important;
+}
+
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card .yk-patient-name,
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card .yk-patient-name:hover {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .34) !important;
+}
+
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card .yk-patient-meta,
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card .yk-patient-mini-stats,
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card .yk-patient-last-visit-summary,
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card :where(.text-muted, .muted, small) {
+  color: #D9EAFB !important;
+  -webkit-text-fill-color: #D9EAFB !important;
+  opacity: 1 !important;
+}
+
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card .yk-patient-mini-stats {
+  border-top-color: rgba(198, 220, 245, .20) !important;
+}
+
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card .yk-patient-mini-stat.recent {
+  color: #A7F3D0 !important;
+  -webkit-text-fill-color: #A7F3D0 !important;
+}
+
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card .yk-patient-mini-stat.long {
+  color: #FDE68A !important;
+  -webkit-text-fill-color: #FDE68A !important;
+}
+
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card .yk-patient-chip {
+  background: rgba(9, 18, 31, .62) !important;
+  border-color: rgba(178, 212, 241, .20) !important;
+  color: #E8F4FF !important;
+  -webkit-text-fill-color: #E8F4FF !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06) !important;
+}
+
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card .yk-patient-chip i {
+  color: #9BDBFF !important;
+  -webkit-text-fill-color: #9BDBFF !important;
+}
+
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card .yk-patient-badges .badge {
+  background: rgba(231, 247, 255, .94) !important;
+  border-color: rgba(231, 247, 255, .70) !important;
+  color: #164B6D !important;
+  -webkit-text-fill-color: #164B6D !important;
+}
+
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card .yk-patient-actions {
+  border-top-color: rgba(198, 220, 245, .18) !important;
+}
+
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card .yk-patient-actions .btn,
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card .btn {
+  background: rgba(15, 27, 44, .92) !important;
+  border-color: rgba(178, 212, 241, .22) !important;
+  color: #EAF7FF !important;
+  -webkit-text-fill-color: #EAF7FF !important;
+}
+
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card .yk-patient-actions .btn-primary,
+:root[data-theme="dark"] body .yk-patient-board #patientList .patient-card.yk-patient-card .btn-primary {
+  background: linear-gradient(135deg, #2563EB, #14B8A6) !important;
+  border-color: transparent !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+:root[data-theme="dark"] body .yk-voice-agent-quickbar {
+  background: rgba(8, 15, 31, .96) !important;
+  border-color: rgba(125, 211, 252, .46) !important;
+  box-shadow:
+    0 18px 46px rgba(0, 0, 0, .48),
+    0 0 0 1px rgba(125, 211, 252, .14) inset !important;
+}
+
+:root[data-theme="dark"] body .yk-voice-agent-quickbar input {
+  background: rgba(15, 23, 42, .94) !important;
+  border-color: rgba(178, 212, 241, .24) !important;
+  color: #F8FBFF !important;
+}
+
+:root[data-theme="dark"] body .yk-voice-agent-quickbar button {
+  background: rgba(18, 32, 50, .94) !important;
+  border-color: rgba(178, 212, 241, .26) !important;
+  color: #EAF7FF !important;
+  -webkit-text-fill-color: #EAF7FF !important;
+}
+
+/* D700 v24: Gece Pro dashboard/readability lock.
+   Some inline dashboard widgets use light surfaces while dark theme injects
+   white text-fill, which made the text disappear. */
+:root[data-theme="dark"] body .main-container :where(
+  .yk-ai-watch,
+  .yk-service-agent-card,
+  .yk-service-top-metric,
+  .yk-service-metric,
+  .yk-premium-kokpit,
+  .yk-premium-card,
+  .yk-premium-action
+) {
+  color: #14304A !important;
+  -webkit-text-fill-color: #14304A !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-ai-watch {
+  background: rgba(244, 250, 252, .98) !important;
+  border-color: rgba(137, 181, 206, .58) !important;
+  box-shadow: 0 18px 46px rgba(3, 12, 22, .36) !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-ai-watch :where(
+  h1, h2, h3, h4, h5, h6, p, span, small, b, strong, label,
+  .text-muted, .muted, .small
+),
+:root[data-theme="dark"] body .main-container :where(
+  .yk-service-agent-card,
+  .yk-service-top-metric,
+  .yk-service-metric,
+  .yk-premium-kokpit,
+  .yk-premium-card,
+  .yk-premium-action
+) :where(h1, h2, h3, h4, h5, h6, p, span, small, b, strong, label, li, a:not(.btn), .text-muted, .muted, .small) {
+  color: #14304A !important;
+  -webkit-text-fill-color: #14304A !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-ai-watch :where(.yk-ai-watch-head small, .yk-ai-watch-card small, .yk-ai-watch-metric span),
+:root[data-theme="dark"] body .main-container :where(.yk-service-agent-title span, .yk-service-agent-body p, .yk-service-metric span, .yk-service-metric small, .yk-service-items small, .yk-premium-main small, .yk-premium-action small, .yk-premium-title small) {
+  color: #35536E !important;
+  -webkit-text-fill-color: #35536E !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-ai-watch .yk-ai-watch-metric,
+:root[data-theme="dark"] body .main-container .yk-service-metric,
+:root[data-theme="dark"] body .main-container .yk-service-top-metric {
+  background: #FFFFFF !important;
+  border-color: #C9DCE9 !important;
+  box-shadow: 0 10px 24px rgba(15, 35, 52, .10) !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-ai-watch .yk-ai-watch-metric b,
+:root[data-theme="dark"] body .main-container :where(.yk-service-metric b, .yk-service-top-metric b) {
+  color: #075E9C !important;
+  -webkit-text-fill-color: #075E9C !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-ai-watch .yk-ai-watch-card {
+  background: #FFFFFF !important;
+  border-color: #D3E2EC !important;
+  color: #14304A !important;
+  -webkit-text-fill-color: #14304A !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-ai-watch .yk-ai-watch-note,
+:root[data-theme="dark"] body .main-container .yk-ai-watch .yk-ai-watch-note :where(h1, h2, h3, h4, h5, h6, p, span, small, b, strong, li, div) {
+  background: #FFF3C4 !important;
+  border-color: #D97706 !important;
+  color: #3B2A05 !important;
+  -webkit-text-fill-color: #3B2A05 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-ai-watch .yk-ai-watch-note :where(b, strong) {
+  color: #8A4B00 !important;
+  -webkit-text-fill-color: #8A4B00 !important;
+}
+
+:root[data-theme="dark"] body .main-container :where(.yk-premium-card, .yk-premium-action, .yk-service-agent-card) {
+  background: rgba(255, 255, 255, .98) !important;
+  border-color: rgba(161, 190, 208, .68) !important;
+}
+
+:root[data-theme="dark"] body .main-container :where(.yk-premium-score, .yk-premium-score *) {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+:root[data-theme="dark"] body .main-container :where(.yk-premium-state, .yk-premium-state *) {
+  color: #0F2F4A !important;
+  -webkit-text-fill-color: #0F2F4A !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-premium-card .yk-premium-main :where(b, span) {
+  color: #F8FBFF !important;
+  -webkit-text-fill-color: #F8FBFF !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .34) !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-premium-card .yk-premium-main small {
+  color: #D7E8F8 !important;
+  -webkit-text-fill-color: #D7E8F8 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .28) !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-premium-card .yk-premium-icon {
+  color: #F8FBFF !important;
+  -webkit-text-fill-color: #F8FBFF !important;
+}
+
+:root[data-theme="dark"] body .main-container :where(.yk-ai-watch .btn, .yk-service-actions .btn) {
+  -webkit-text-fill-color: currentColor !important;
+}
+
+/* D700 v26: /ses-ve-alex phone dialog page readability lock. */
+:root[data-theme="dark"] body .main-container .yk-ai-phone-page :where(
+  .card,
+  .card-body,
+  .yk-chat-panel,
+  .yk-phone-bridge,
+  .yk-chat-log,
+  .yk-chat-input,
+  .yk-voice-controls
+) {
+  background-color: #F8FBFD !important;
+  color: #122236 !important;
+  -webkit-text-fill-color: #122236 !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-ai-phone-page :where(
+  .yk-phone-bridge h1,
+  .yk-phone-bridge h2,
+  .yk-phone-bridge h3,
+  .yk-phone-bridge h4,
+  .yk-phone-bridge h5,
+  .yk-phone-bridge h6,
+  .yk-phone-bridge div,
+  .yk-phone-bridge span,
+  .yk-phone-bridge p,
+  .yk-phone-bridge label,
+  .yk-chat-panel div,
+  .yk-chat-panel span,
+  .yk-chat-panel label,
+  .yk-chat-panel small,
+  .yk-live-status,
+  .form-label,
+  .text-muted,
+  .muted,
+  small
+) {
+  color: #122236 !important;
+  -webkit-text-fill-color: #122236 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-ai-phone-page :where(
+  .yk-phone-bridge .text-muted,
+  .yk-phone-bridge small,
+  .yk-chat-panel .text-muted,
+  .yk-chat-panel small,
+  .form-check-label,
+  .yk-live-status
+) {
+  color: #3E5872 !important;
+  -webkit-text-fill-color: #3E5872 !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-ai-phone-page .yk-chat-head,
+:root[data-theme="dark"] body .main-container .yk-ai-phone-page .yk-chat-head :where(div, b, i, small, span) {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-ai-phone-page .yk-msg.ai,
+:root[data-theme="dark"] body .main-container .yk-ai-phone-page .yk-msg.ai * {
+  background-color: #F7FFFD !important;
+  color: #082033 !important;
+  -webkit-text-fill-color: #082033 !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-ai-phone-page .yk-msg.user,
+:root[data-theme="dark"] body .main-container .yk-ai-phone-page .yk-msg.user * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-ai-phone-page .yk-bridge-step b,
+:root[data-theme="dark"] body .main-container .yk-ai-phone-page .yk-bridge-step b * {
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-ai-phone-page .yk-codebox,
+:root[data-theme="dark"] body .main-container .yk-ai-phone-page .yk-codebox * {
+  background-color: #08111F !important;
+  color: #F8FAFC !important;
+  -webkit-text-fill-color: #F8FAFC !important;
+}
+
+:root[data-theme="dark"] body .main-container .yk-ai-phone-page :where(.btn, button, .badge, .form-check-input) {
+  -webkit-text-fill-color: currentColor !important;
+}
+
+/* D700 v27: Night Pro mixed-surface readability lock.
+   Some pages still render light panels with washed-out text in dark mode. */
+:root[data-theme="dark"] body .main-container :where(
+  .card.bg-light,
+  .bg-light,
+  .alert-light,
+  .alert-warning,
+  .alert-info,
+  .yk-light-surface,
+  .yk-phone-bridge,
+  .yk-chat-panel,
+  .yk-chat-log,
+  .yk-chat-input,
+  .yk-voice-controls,
+  .yk-bridge-step,
+  .yk-ai-phone-page .card
+) {
+  background-color: #F7FBFE !important;
+  color: #10253A !important;
+  -webkit-text-fill-color: #10253A !important;
+  border-color: rgba(133, 170, 198, .55) !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme="dark"] body .main-container :where(
+  .card.bg-light,
+  .bg-light,
+  .alert-light,
+  .alert-warning,
+  .alert-info,
+  .yk-light-surface,
+  .yk-phone-bridge,
+  .yk-chat-panel,
+  .yk-chat-log,
+  .yk-chat-input,
+  .yk-voice-controls,
+  .yk-bridge-step,
+  .yk-ai-phone-page .card
+) :where(
+  h1, h2, h3, h4, h5, h6, p, span, small, b, strong, label, li, td, th,
+  .text-muted, .muted, .small, .form-text
+) {
+  color: #10253A !important;
+  -webkit-text-fill-color: #10253A !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme="dark"] body .main-container :where(
+  .card.bg-light,
+  .bg-light,
+  .alert-light,
+  .alert-warning,
+  .alert-info,
+  .yk-light-surface,
+  .yk-phone-bridge,
+  .yk-chat-panel,
+  .yk-chat-log,
+  .yk-chat-input,
+  .yk-voice-controls,
+  .yk-bridge-step,
+  .yk-ai-phone-page .card
+) :where(.text-muted, .muted, .small, small, .form-check-label, .yk-live-status) {
+  color: #3A5672 !important;
+  -webkit-text-fill-color: #3A5672 !important;
+}
+
+:root[data-theme="dark"] body .main-container :where(
+  .yk-phone-bridge,
+  .yk-chat-panel,
+  .yk-voice-controls,
+  .yk-ai-phone-page .card
+) :where(.btn:not(.btn-primary):not(.btn-success):not(.btn-danger):not(.btn-warning)) {
+  background: #FFFFFF !important;
+  border-color: rgba(133, 170, 198, .55) !important;
+  color: #12324B !important;
+  -webkit-text-fill-color: #12324B !important;
+}
+
+:root[data-theme="dark"] body .main-container :where(
+  .yk-phone-bridge,
+  .yk-chat-panel,
+  .yk-voice-controls,
+  .yk-ai-phone-page .card
+) :where(.form-control, .form-select, input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  background: #FFFFFF !important;
+  border-color: rgba(133, 170, 198, .58) !important;
+  color: #10253A !important;
+  -webkit-text-fill-color: #10253A !important;
+}
+
+/* D700 v28: Night Pro list/card readability lock.
+   Bootstrap list-group links were turning into dark slabs while their text
+   stayed navy, especially in BulutKlinik "Son Hastalar" quick transfer. */
+:root[data-theme="dark"] body .main-container :where(
+  .list-group,
+  .yk-bk-merkez,
+  .yk-bk-tile,
+  .yk-card,
+  .yk-panel
+) :where(
+  .list-group-item,
+  a.list-group-item,
+  button.list-group-item,
+  .list-group-item-action
+) {
+  background: linear-gradient(180deg, #2B3D56 0%, #223149 100%) !important;
+  border-color: rgba(148, 177, 210, .48) !important;
+  color: #F8FBFF !important;
+  -webkit-text-fill-color: #F8FBFF !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08) !important;
+}
+
+:root[data-theme="dark"] body .main-container :where(
+  .list-group,
+  .yk-bk-merkez,
+  .yk-bk-tile,
+  .yk-card,
+  .yk-panel
+) :where(
+  .list-group-item,
+  a.list-group-item,
+  button.list-group-item,
+  .list-group-item-action
+) :where(i, b, strong, span, small, p, div) {
+  color: #F8FBFF !important;
+  -webkit-text-fill-color: #F8FBFF !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme="dark"] body .main-container :where(
+  .list-group,
+  .yk-bk-merkez,
+  .yk-bk-tile,
+  .yk-card,
+  .yk-panel
+) :where(
+  .list-group-item .text-muted,
+  .list-group-item .muted,
+  .list-group-item small,
+  .list-group-item .small
+) {
+  color: #D7E5F7 !important;
+  -webkit-text-fill-color: #D7E5F7 !important;
+}
+
+:root[data-theme="dark"] body .main-container :where(
+  .list-group,
+  .yk-bk-merkez,
+  .yk-bk-tile,
+  .yk-card,
+  .yk-panel
+) :where(
+  a.list-group-item:hover,
+  button.list-group-item:hover,
+  .list-group-item-action:hover,
+  a.list-group-item:focus,
+  button.list-group-item:focus,
+  .list-group-item-action:focus
+) {
+  background: linear-gradient(180deg, #365074 0%, #29405E 100%) !important;
+  border-color: rgba(96, 186, 255, .78) !important;
+  color: #FFFFFF !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* D700 v28b: BulutKlinik quick-patient rows stay light and readable in every preset.
+   This page is a data transfer workspace; names must never inherit dark navy on
+   dark/palette cards. */
+body .main-container .yk-bk-merkez .yk-bk-tile .list-group :where(
+  .list-group-item,
+  a.list-group-item,
+  button.list-group-item,
+  .list-group-item-action
+) {
+  background: #F8FBFF !important;
+  border-color: #C9D8E8 !important;
+  color: #13263A !important;
+  -webkit-text-fill-color: #13263A !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.9), 0 4px 12px rgba(15, 42, 70, .06) !important;
+}
+
+body .main-container .yk-bk-merkez .yk-bk-tile .list-group :where(
+  .list-group-item,
+  a.list-group-item,
+  button.list-group-item,
+  .list-group-item-action
+) :where(i, b, strong, span, small, p, div) {
+  color: #13263A !important;
+  -webkit-text-fill-color: #13263A !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+body .main-container .yk-bk-merkez .yk-bk-tile .list-group :where(
+  a.list-group-item:hover,
+  button.list-group-item:hover,
+  .list-group-item-action:hover,
+  a.list-group-item:focus,
+  button.list-group-item:focus,
+  .list-group-item-action:focus
+) {
+  background: #EAF4FF !important;
+  border-color: #73A7D8 !important;
+  color: #08233E !important;
+  -webkit-text-fill-color: #08233E !important;
+}
+
+/* ============================================================
+   D700 Stabil UI + Responsive Hardening - 2026-05-19
+   Additive final layer: tema kontrasti, mobil kirilma onleme, touch kalite.
+   ============================================================ */
+
+:root {
+  --yk-mobile-gutter: clamp(10px, 3vw, 18px);
+  --yk-touch-target: 44px;
+  --yk-page-max: 1680px;
+  --yk-focus-ring: 0 0 0 3px rgba(12, 131, 115, 0.24);
+}
+
+* { box-sizing: border-box; }
+
+html {
+  scrollbar-gutter: stable;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html:not([data-theme="dark"]) :where(.main-container, .page-content, .content, main, .yk-main, .container-fluid) {
+  max-width: var(--yk-page-max);
+}
+
+html:not([data-theme="dark"]) :where(.alert, .toast, .toastify, .swal2-popup) {
+  letter-spacing: 0 !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn, button, a.btn, .nav-link, .dropdown-item, .sidebar a, .sidebar-link, input, select, textarea) {
+  min-height: var(--yk-touch-target);
+}
+
+html:not([data-theme="dark"]) :where(.btn-sm, .btn-group-sm > .btn) {
+  min-height: 36px;
+}
+
+html:not([data-theme="dark"]) :where(.btn:focus-visible, button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .nav-link:focus-visible, .dropdown-item:focus-visible) {
+  outline: none !important;
+  box-shadow: var(--yk-focus-ring) !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-group, .btn-toolbar, .yk-actions, .action-row, .header-actions, .card-actions, .page-actions, .toolbar, .toolbar-actions) {
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+html:not([data-theme="dark"]) :where(.table-responsive, .yk-table-scroll, .table-wrap, .table-wrapper) {
+  border-radius: var(--d700-radius) !important;
+  border: 1px solid var(--d700-border) !important;
+  background: #ffffff !important;
+  box-shadow: var(--d700-shadow) !important;
+}
+
+html:not([data-theme="dark"]) :where(.table, .yk-table) {
+  margin-bottom: 0 !important;
+}
+
+html:not([data-theme="dark"]) :where(.table td, .table th, .yk-table td, .yk-table th) {
+  vertical-align: middle !important;
+}
+
+html:not([data-theme="dark"]) :where(.dropdown-menu) {
+  max-width: min(92vw, 420px) !important;
+  overflow-wrap: anywhere !important;
+}
+
+html:not([data-theme="dark"]) :where(.modal-dialog) {
+  max-width: min(980px, calc(100vw - 24px));
+}
+
+html:not([data-theme="dark"]) :where(.modal-content, .offcanvas) {
+  max-height: calc(100dvh - 24px);
+}
+
+html[data-theme="dark"] {
+  --d700-bg: #07131f;
+  --d700-bg-2: #0b1d2c;
+  --d700-surface: #0f2233;
+  --d700-surface-soft: #122b3f;
+  --d700-text: #eef7ff;
+  --d700-muted: #b4c6d8;
+  --d700-border: rgba(178, 208, 228, 0.22);
+  --d700-border-strong: rgba(178, 208, 228, 0.34);
+  --d700-blue: #4bb0ea;
+  --d700-teal: #3ed0bd;
+  --d700-green: #53d68d;
+  --d700-shadow: 0 8px 24px rgba(0, 0, 0, 0.34);
+  --d700-shadow-strong: 0 16px 42px rgba(0, 0, 0, 0.46);
+}
+
+html[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(75, 176, 234, 0.14), transparent 32%),
+    radial-gradient(circle at 88% 12%, rgba(62, 208, 189, 0.13), transparent 30%),
+    linear-gradient(180deg, var(--d700-bg) 0%, var(--d700-bg-2) 100%) !important;
+  color: var(--d700-text) !important;
+}
+
+html[data-theme="dark"] :where(.card, .yk-card, .panel, .yk-panel, .section-card, .stat-card, .kpi-card, .metric-card, .patient-card, .agent-card, .tool-card, .dashboard-card, .summary-card, .info-card, .yk-widget, .yk-section, .accordion-item, .theme-panel, .dropdown-menu, .modal-content, .offcanvas, .list-group-item) {
+  background: linear-gradient(180deg, rgba(20, 43, 63, 0.98), rgba(13, 31, 48, 0.98)) !important;
+  border-color: var(--d700-border) !important;
+  color: var(--d700-text) !important;
+  box-shadow: var(--d700-shadow) !important;
+}
+
+html[data-theme="dark"] :where(.top-header, .yk-header, .navbar, .app-header, header.header, .sidebar, #leftSidebar, .yk-sidebar, .app-sidebar) {
+  background: rgba(10, 24, 38, 0.96) !important;
+  border-color: var(--d700-border) !important;
+  color: var(--d700-text) !important;
+}
+
+html[data-theme="dark"] :where(h1, h2, h3, h4, h5, h6, .page-title, .yk-title, .card-title, label, .form-label, .sidebar a, .sidebar-link, .nav-link) {
+  color: var(--d700-text) !important;
+  -webkit-text-fill-color: var(--d700-text) !important;
+}
+
+html[data-theme="dark"] :where(p, small, .small, .text-muted, .muted, .form-text, .help-text, .yk-hint) {
+  color: var(--d700-muted) !important;
+  -webkit-text-fill-color: var(--d700-muted) !important;
+}
+
+html[data-theme="dark"] :where(.form-control, .form-select, input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  background: rgba(7, 19, 31, 0.92) !important;
+  border-color: var(--d700-border-strong) !important;
+  color: var(--d700-text) !important;
+  -webkit-text-fill-color: var(--d700-text) !important;
+}
+
+html[data-theme="dark"] :where(.table, .yk-table) {
+  background: rgba(13, 31, 48, 0.96) !important;
+  color: var(--d700-text) !important;
+  border-color: var(--d700-border) !important;
+}
+
+html[data-theme="dark"] :where(.table thead, .yk-table thead, .card-header, .yk-card-header, .section-header, .modal-header, .offcanvas-header, .accordion-header) {
+  background: rgba(26, 54, 76, 0.95) !important;
+  color: var(--d700-text) !important;
+  border-color: var(--d700-border) !important;
+}
+
+html[data-theme="dark"] :where(.table td, .table th, .yk-table td, .yk-table th) {
+  color: var(--d700-text) !important;
+  border-color: rgba(178, 208, 228, 0.16) !important;
+}
+
+html[data-theme="dark"] :where(.btn-outline-primary, .btn-outline-secondary, .btn-light, .btn-secondary, .header-icon-btn, .theme-picker-btn, .theme-mode-btn, .experience-mode-btn, .profile-chip) {
+  background: rgba(15, 34, 51, 0.95) !important;
+  border-color: var(--d700-border-strong) !important;
+  color: var(--d700-text) !important;
+  -webkit-text-fill-color: var(--d700-text) !important;
+}
+
+html[data-theme="dark"] :where(.btn-primary, .yk-primary, .primary-btn, .btn-success, .new-patient-btn, .search-btn, button[type="submit"]) {
+  background: linear-gradient(135deg, #278ed2, #18a999) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+@media (max-width: 1180px) {
+  html:not([data-theme="dark"]) :where(.main-container, .page-content, .content, main, .yk-main, .container, .container-fluid),
+  html[data-theme="dark"] :where(.main-container, .page-content, .content, main, .yk-main, .container, .container-fluid) {
+    padding-left: var(--yk-mobile-gutter) !important;
+    padding-right: var(--yk-mobile-gutter) !important;
+  }
+
+  :where(.row) {
+    --bs-gutter-x: 1rem;
+    --bs-gutter-y: 1rem;
+  }
+}
+
+@media (max-width: 900px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  :where(.container, .container-fluid, main, .main, .main-container, .page-content, .content, .yk-main) {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: var(--yk-mobile-gutter) !important;
+    padding-right: var(--yk-mobile-gutter) !important;
+  }
+
+  :where(.card, .yk-card, .panel, .yk-panel, .section-card, .stat-card, .kpi-card, .metric-card, .patient-card, .agent-card, .tool-card, .dashboard-card, .summary-card, .info-card, .yk-widget, .yk-section) {
+    border-radius: 12px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  :where(.card-body, .yk-card-body, .panel-body, .modal-body, .offcanvas-body) {
+    padding: 14px !important;
+  }
+
+  :where(.card-header, .yk-card-header, .section-header, .modal-header, .offcanvas-header) {
+    padding: 12px 14px !important;
+  }
+
+  :where(.top-header, .yk-header, .navbar, .app-header, header.header, .header, .topbar) {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1030 !important;
+    min-height: 56px !important;
+    padding-left: var(--yk-mobile-gutter) !important;
+    padding-right: var(--yk-mobile-gutter) !important;
+  }
+
+  :where(.top-header .d-flex, .yk-header .d-flex, .navbar .container-fluid, .header-actions, .page-actions, .toolbar, .toolbar-actions) {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  :where(.yk-patient-searchbar) {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  :where(.yk-patient-searchbar .btn, .search-btn, .new-patient-btn) {
+    width: 100% !important;
+  }
+
+  :where(.btn-group, .btn-toolbar) {
+    display: flex !important;
+    width: 100% !important;
+  }
+
+  :where(.btn-group > .btn, .btn-toolbar .btn) {
+    flex: 1 1 auto !important;
+    white-space: normal !important;
+  }
+
+  :where(.table-responsive, .yk-table-scroll, .table-wrap, .table-wrapper) {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  :where(table, .table, .yk-table) {
+    min-width: 720px;
+    width: 100% !important;
+  }
+
+  :where(.modal-dialog) {
+    width: calc(100% - 16px) !important;
+    max-width: calc(100% - 16px) !important;
+    margin: 8px auto !important;
+  }
+
+  :where(.modal-content, .offcanvas) {
+    max-height: calc(100dvh - 16px) !important;
+    overflow: auto !important;
+  }
+
+  :where(.dropdown-menu) {
+    max-height: min(70dvh, 520px) !important;
+    overflow: auto !important;
+  }
+
+  :where(.badge, .chip, .yk-chip, .tag, .pill) {
+    max-width: 100% !important;
+    white-space: normal !important;
+    text-align: center !important;
+  }
+}
+
+@media (max-width: 640px) {
+  :where(h1, .h1, .page-title) { font-size: clamp(22px, 7vw, 30px) !important; }
+  :where(h2, .h2) { font-size: clamp(19px, 5.8vw, 25px) !important; }
+  :where(h3, .h3) { font-size: clamp(17px, 5vw, 22px) !important; }
+
+  :where(.btn, button.btn, .yk-btn, input, select, textarea) {
+    font-size: 16px !important;
+  }
+
+  :where(.btn, button.btn, .yk-btn) {
+    padding: 10px 12px !important;
+  }
+
+  :where(.row > [class*="col-"], .row > .col) {
+    min-width: 100% !important;
+  }
+
+  :where(.stats, .stat-grid, .kpi-grid, .metric-grid, .dashboard-grid, .agent-grid, .tool-grid, .yk-grid, .yk-cards, .grid, .grid-2, .grid-3, .grid-4) {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  :where(.sidebar, #leftSidebar, .yk-sidebar, .app-sidebar) {
+    max-width: min(88vw, 340px) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(.card, .yk-card, .patient-card, .agent-card, .tool-card, .dashboard-card, .summary-card, .metric-card, .stat-card, .btn, button.btn) {
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* D700 mobile control-bar comfort pass */
+@media (max-width: 640px) {
+  body {
+    padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  :where(.top-header, .yk-header, .navbar, .app-header, header.header, .header, .topbar) {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+
+  :where(.top-header::-webkit-scrollbar, .yk-header::-webkit-scrollbar, .navbar::-webkit-scrollbar, .app-header::-webkit-scrollbar, header.header::-webkit-scrollbar) {
+    display: none !important;
+  }
+
+  :where(.top-header .d-flex, .yk-header .d-flex, .navbar .container-fluid, .app-header .d-flex, .header .d-flex, .topbar .d-flex) {
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    min-width: max-content !important;
+  }
+
+  :where(.top-header .form-control, .yk-header .form-control, .navbar .form-control, .app-header .form-control, .topbar .form-control) {
+    min-width: 190px !important;
+    max-width: 58vw !important;
+  }
+
+  :where(.top-header .btn, .yk-header .btn, .navbar .btn, .app-header .btn, .topbar .btn, .header-icon-btn, .theme-picker-btn, .theme-mode-btn, .experience-mode-btn) {
+    flex: 0 0 auto !important;
+    min-width: 44px !important;
+    width: auto !important;
+    white-space: nowrap !important;
+  }
+
+  :where(.yk-alex-bar, #yk-alex-bar, .alex-bar) {
+    width: calc(100% - 16px) !important;
+    max-width: none !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 8px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+
+  :where(.yk-alex-bar::-webkit-scrollbar, #yk-alex-bar::-webkit-scrollbar, .alex-bar::-webkit-scrollbar) {
+    display: none !important;
+  }
+
+  :where(.yk-alex-bar input, #yk-alex-bar input, .alex-bar input, .yk-alex-bar textarea, #yk-alex-bar textarea, .alex-bar textarea) {
+    flex: 1 1 160px !important;
+    min-width: 150px !important;
+  }
+
+  :where(.yk-alex-bar .btn, #yk-alex-bar .btn, .alex-bar .btn, .yk-alex-bar button, #yk-alex-bar button, .alex-bar button) {
+    flex: 0 0 auto !important;
+    min-width: 44px !important;
+    width: auto !important;
+    white-space: nowrap !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}
+
+/* D700 PDF atelier contrast pass: keep the editor header and image rail readable
+   after palette/theme layers and media-fx overrides are applied. */
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-topbar {
+  background: linear-gradient(135deg, #10243f 0%, #123f59 54%, #0b716c 125%) !important;
+  border: 1px solid rgba(219, 234, 254, 0.34) !important;
+  color: #f8fbff !important;
+  -webkit-text-fill-color: #f8fbff !important;
+  box-shadow: 0 20px 48px rgba(7, 25, 45, 0.26) !important;
+}
+
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-title h1,
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-title h2,
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-title b,
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-title strong {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.30) !important;
+}
+
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-title small,
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-title .text-muted {
+  color: #e6f4ff !important;
+  -webkit-text-fill-color: #e6f4ff !important;
+  font-weight: 800 !important;
+  opacity: 1 !important;
+}
+
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-topbar .pdf-chip,
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-topbar .pdf-muted-badge {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid rgba(255, 255, 255, 0.70) !important;
+  color: #0f2b48 !important;
+  -webkit-text-fill-color: #0f2b48 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 8px 18px rgba(2, 6, 23, 0.18) !important;
+}
+
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-image-sidebar {
+  background:
+    linear-gradient(90deg, rgba(125, 211, 252, 0.08) 1px, transparent 1px),
+    linear-gradient(rgba(125, 211, 252, 0.07) 1px, transparent 1px),
+    #0b1424 !important;
+  border-left: 1px solid rgba(147, 197, 253, 0.38) !important;
+  color: #edf6ff !important;
+  -webkit-text-fill-color: #edf6ff !important;
+}
+
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-sidebar-head h4,
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-inspector b {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-inspector .text-muted,
+html body .pdf-workbench.pdf-pro-studio-v2 #selectedImageName,
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-image-meta small {
+  color: #cfe4fa !important;
+  -webkit-text-fill-color: #cfe4fa !important;
+  font-weight: 750 !important;
+  opacity: 1 !important;
+}
+
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-image-meta b {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-weight: 850 !important;
+}
+
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-image-search {
+  background: #f8fbff !important;
+  border-color: rgba(147, 197, 253, 0.60) !important;
+  color: #0b2545 !important;
+  -webkit-text-fill-color: #0b2545 !important;
+}
+
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-image-search::placeholder {
+  color: #55708d !important;
+  -webkit-text-fill-color: #55708d !important;
+  opacity: 1 !important;
+}
+
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-inspector,
+html body .pdf-workbench.pdf-pro-studio-v2 .pdf-inspector-grid span {
+  background: rgba(15, 31, 52, 0.92) !important;
+  border-color: rgba(125, 211, 252, 0.32) !important;
+  color: #edf6ff !important;
+  -webkit-text-fill-color: #edf6ff !important;
+}
+
+/* D700 WebShell layout repair: sidebar is an overlay shell component, not page
+   content. Keep it fixed so it cannot push the top bar and patient pages down. */
+html[data-yazklinik-webshell="1"] body.yk-webshell-embedded .sidebar,
+html[data-yazklinik-webshell="1"] body.yk-webshell-embedded .sidebar.use-modern-nav {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  width: var(--yk-ws-sidebar-w, var(--yk-shell-sidebar-w, var(--sidebar-w, 286px))) !important;
+  height: auto !important;
+  max-height: 100vh !important;
+  overflow-y: auto !important;
+  z-index: 1800 !important;
+}
+
+/* D700 v32 emergency patient-list contrast: must stay at file end */
+html:not([data-theme="dark"]) body :where(#patientList, .yk-patient-board, .patient-list, .patient-results, .yk-patient-results, .list-group, .list-group-flush, .patients-list, .patients-results)
+  :where(a, div, span, small, b, strong, p, h1, h2, h3, h4, h5, h6, li, td, th) {
+  color: #0f243d !important;
+  -webkit-text-fill-color: #0f243d !important;
+  text-shadow: none !important;
+  opacity: 1 !important;
+}
+html:not([data-theme="dark"]) body :where(#patientList, .yk-patient-board, .patient-list, .patient-results, .yk-patient-results, .list-group, .list-group-flush, .patients-list, .patients-results)
+  :where(.text-muted, .muted, small, .small, [class*="meta"], [class*="hint"], [class*="sub"], [class*="folder"], [class*="key"]) {
+  color: #5b6e84 !important;
+  -webkit-text-fill-color: #5b6e84 !important;
+  opacity: 1 !important;
+}
+html:not([data-theme="dark"]) body :where(#patientList, .patient-list, .patient-results, .yk-patient-results, .list-group, .list-group-flush, .patients-list, .patients-results)
+  :where(a, .list-group-item, .patient-row, .patient-card, .yk-patient-card, tr, li) {
+  background-color: #ffffff !important;
+}
+html:not([data-theme="dark"]) body .main-container a[href^="/hasta/"],
+html:not([data-theme="dark"]) body .content-area a[href^="/hasta/"],
+html:not([data-theme="dark"]) body .main-content a[href^="/hasta/"] {
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+html:not([data-theme="dark"]) body .main-container a[href^="/hasta/"] *,
+html:not([data-theme="dark"]) body .content-area a[href^="/hasta/"] *,
+html:not([data-theme="dark"]) body .main-content a[href^="/hasta/"] * {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+/* D700 v33 e-Nabiz/BulutKlinik helper readability */
+html body .yk-enabiz-helper-page {
+  color: #eaf6ff !important;
+  -webkit-text-fill-color: #eaf6ff !important;
+}
+
+html body .yk-enabiz-helper-page h1,
+html body .yk-enabiz-helper-page h2,
+html body .yk-enabiz-helper-page h3,
+html body .yk-enabiz-helper-page h4,
+html body .yk-enabiz-helper-page h5,
+html body .yk-enabiz-helper-page p,
+html body .yk-enabiz-helper-page li,
+html body .yk-enabiz-helper-page b,
+html body .yk-enabiz-helper-page strong {
+  color: #f2f8ff !important;
+  -webkit-text-fill-color: #f2f8ff !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+html body .yk-enabiz-helper-page .text-muted,
+html body .yk-enabiz-helper-page .small,
+html body .yk-enabiz-helper-page small {
+  color: #cfe3f7 !important;
+  -webkit-text-fill-color: #cfe3f7 !important;
+  opacity: 1 !important;
+}
+
+html body .yk-enabiz-helper-page .alert {
+  background: #eef9ff !important;
+  border: 1px solid rgba(125, 211, 252, 0.72) !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  box-shadow: 0 14px 34px rgba(2, 20, 37, 0.24) !important;
+}
+
+html body .yk-enabiz-helper-page .alert b,
+html body .yk-enabiz-helper-page .alert strong {
+  color: #0f2a45 !important;
+  -webkit-text-fill-color: #0f2a45 !important;
+}
+
+html body .yk-enabiz-helper-page .alert .text-muted,
+html body .yk-enabiz-helper-page .alert .small,
+html body .yk-enabiz-helper-page .alert small {
+  color: #4e657d !important;
+  -webkit-text-fill-color: #4e657d !important;
+}
+
+html body .yk-enabiz-helper-page .card {
+  background: rgba(239, 248, 255, 0.98) !important;
+  border: 1px solid rgba(125, 211, 252, 0.72) !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  box-shadow: 0 20px 44px rgba(2, 20, 37, 0.30) !important;
+}
+
+html body .yk-enabiz-helper-page .card-header {
+  background: linear-gradient(135deg, #163a59 0%, #0f766e 100%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22) !important;
+}
+
+html body .yk-enabiz-helper-page .card-header *,
+html body .yk-enabiz-helper-page .card-header b {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html body .yk-enabiz-helper-page .card-body,
+html body .yk-enabiz-helper-page .card-body p,
+html body .yk-enabiz-helper-page .card-body li,
+html body .yk-enabiz-helper-page .card-body b,
+html body .yk-enabiz-helper-page .card-body strong {
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  opacity: 1 !important;
+}
+
+html body .yk-enabiz-helper-page .btn-outline-info,
+html body .yk-enabiz-helper-page .btn-outline-primary,
+html body .yk-enabiz-helper-page .btn-outline-secondary {
+  background: #f8fbff !important;
+  border-color: rgba(125, 151, 176, 0.42) !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  font-weight: 850 !important;
+}
+
+/* D700 v34 patient card readability: pale helper text and metric chips */
+html body :where(.patient-dashboard, .patient-detail, .patient-profile, .hasta-karti, .yk-patient-home, .main-content, .content-area)
+  :where(.yk-action-card, .feature-card, .tool-card, .quick-card, .clinic-tool-card, .action-card, .module-card) {
+  background: #ffffff !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  border-color: rgba(96, 129, 160, 0.36) !important;
+}
+
+html body :where(.patient-dashboard, .patient-detail, .patient-profile, .hasta-karti, .yk-patient-home, .main-content, .content-area)
+  :where(.yk-action-card, .feature-card, .tool-card, .quick-card, .clinic-tool-card, .action-card, .module-card)
+  :where(h1, h2, h3, h4, h5, h6, b, strong, span, div, p) {
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+html body :where(.patient-dashboard, .patient-detail, .patient-profile, .hasta-karti, .yk-patient-home, .main-content, .content-area)
+  :where(.yk-action-card, .feature-card, .tool-card, .quick-card, .clinic-tool-card, .action-card, .module-card)
+  :where(.text-muted, .muted, small, .small, [class*="desc"], [class*="sub"], [class*="hint"], [class*="meta"]) {
+  color: #415a75 !important;
+  -webkit-text-fill-color: #415a75 !important;
+  opacity: 1 !important;
+  font-weight: 750 !important;
+}
+
+html body :where(.patient-dashboard, .patient-detail, .patient-profile, .hasta-karti, .yk-patient-home, .main-content, .content-area)
+  :where(.metric-chip, .stat-chip, .patient-chip, .info-chip, .yk-chip, .pill, .badge-soft, [class*="metric"], [class*="stat"]) {
+  background: #f4f8fc !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  opacity: 1 !important;
+  border-color: rgba(96, 129, 160, 0.42) !important;
+}
+
+html body :where(.patient-dashboard, .patient-detail, .patient-profile, .hasta-karti, .yk-patient-home, .main-content, .content-area)
+  :where(.metric-chip, .stat-chip, .patient-chip, .info-chip, .yk-chip, .pill, .badge-soft, [class*="metric"], [class*="stat"])
+  :where(.label, .text-muted, .muted, small, .small, span, div) {
+  color: #39536e !important;
+  -webkit-text-fill-color: #39536e !important;
+  opacity: 1 !important;
+  font-weight: 800 !important;
+}
+
+html body :where(.patient-dashboard, .patient-detail, .patient-profile, .hasta-karti, .yk-patient-home, .main-content, .content-area)
+  :where(.metric-chip, .stat-chip, .patient-chip, .info-chip, .yk-chip, .pill, .badge-soft, [class*="metric"], [class*="stat"])
+  :where(b, strong, .value, [class*="value"]) {
+  color: #0b233d !important;
+  -webkit-text-fill-color: #0b233d !important;
+  opacity: 1 !important;
+  font-weight: 900 !important;
+}
+
+html body :where(.patient-dashboard, .patient-detail, .patient-profile, .hasta-karti, .yk-patient-home, .main-content, .content-area)
+  :where(.section-title, .card-title, .panel-title, .yk-section-title, .action-section-title) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1 !important;
+  font-weight: 900 !important;
+}
+
+/* D700 v35 final readability guard: button/link overrides must beat broad
+   patient link rules without changing clinical data or route behavior. */
+html body :where(.main-content, .content-area, .main-container, .patient-dashboard, .patient-detail, .hasta-karti)
+  :where(.btn, button, .yk-webshell-back-btn, .yk-mode-single, .yk-mode-pill) {
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+html body :where(.main-content, .content-area, .main-container, .patient-dashboard, .patient-detail, .hasta-karti)
+  :where(.btn, button, .yk-webshell-back-btn, .yk-mode-single, .yk-mode-pill)
+  :where(span, b, strong, small, i) {
+  opacity: 1 !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html body :where(.btn-primary, .btn-success, .btn-info, .btn-danger, .btn-warning),
+html body :where(.btn-primary, .btn-success, .btn-info, .btn-danger, .btn-warning) * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow: 0 1px 1px rgba(5, 23, 39, 0.28) !important;
+}
+
+html body :where(.btn-light, .btn-secondary, .btn-outline-light, .btn-outline-primary, .btn-outline-secondary, .yk-webshell-back-btn, .yk-mode-single) {
+  background: #f8fbff !important;
+  border-color: rgba(96, 129, 160, 0.46) !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  box-shadow: 0 10px 24px rgba(8, 32, 54, 0.12) !important;
+}
+
+html body :where(.btn-light, .btn-secondary, .btn-outline-light, .btn-outline-primary, .btn-outline-secondary, .yk-webshell-back-btn, .yk-mode-single) * {
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+}
+
+html:not([data-theme="dark"]) body :where(#patientList, .yk-patient-board, .patient-list, .patient-results, .yk-patient-results, .patients-list, .patients-results)
+  :where(.btn-primary, .btn-success, .btn-info, .btn-danger, .btn-warning),
+html:not([data-theme="dark"]) body :where(#patientList, .yk-patient-board, .patient-list, .patient-results, .yk-patient-results, .patients-list, .patients-results)
+  :where(.btn-primary, .btn-success, .btn-info, .btn-danger, .btn-warning) * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) body :where(#patientList, .yk-patient-board, .patient-list, .patient-results, .yk-patient-results, .patients-list, .patients-results)
+  :where(.yk-patient-avatar, .patient-avatar, .avatar, .yk-patient-monogram) {
+  background: linear-gradient(135deg, #155e96 0%, #0f766e 100%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.42) !important;
+}
+
+html:not([data-theme="dark"]) body :where(#patientList, .yk-patient-board, .patient-list, .patient-results, .yk-patient-results, .patients-list, .patients-results)
+  :where(.yk-patient-avatar, .patient-avatar, .avatar, .yk-patient-monogram)
+  :where(span, b, strong, small, .yk-patient-monogram-text) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1 !important;
+  font-weight: 900 !important;
+}
+
+html body :where(.yk-pts-copy, .patient-summary-chip, .patient-info-chip, .patient-meta-chip, .yk-patient-summary, .yk-patient-summary *)
+  :where(span, small, b, strong, div) {
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  opacity: 1 !important;
+}
+
+html body :where(.yk-pts-copy, .patient-summary-chip, .patient-info-chip, .patient-meta-chip) {
+  background: #f8fbff !important;
+  border-color: rgba(96, 129, 160, 0.42) !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+}
+
+html body :where(.yk-patient-search-status, .patient-search-status, .search-status) {
+  color: #334c68 !important;
+  -webkit-text-fill-color: #334c68 !important;
+  opacity: 1 !important;
+  font-weight: 800 !important;
+}
+
+/* D700 v36 direct chip/avatar lock: some pages use the readable class on the
+   text element itself, not only on a parent wrapper. */
+html body :where(.yk-pts-copy, .patient-summary-chip, .patient-info-chip, .patient-meta-chip),
+html body :where(.yk-pts-copy, .patient-summary-chip, .patient-info-chip, .patient-meta-chip) * {
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) body :where(.yk-patient-avatar, .patient-avatar, .avatar, .yk-patient-monogram),
+html:not([data-theme="dark"]) body :where(.yk-patient-avatar, .patient-avatar, .avatar, .yk-patient-monogram) *,
+html:not([data-theme="dark"]) body :where(.yk-patient-monogram-text) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1 !important;
+  font-weight: 900 !important;
+  text-shadow: 0 1px 1px rgba(3, 20, 34, 0.36) !important;
+}
+
+/* D700 v37 dashboard command menus: readable labels, hints and open cards. */
+html body .main-container .tools-collapse.yk-dashboard-tools {
+  background: linear-gradient(135deg, rgba(247, 252, 255, 0.98), rgba(232, 248, 250, 0.94)) !important;
+  border: 1px solid rgba(23, 122, 158, 0.34) !important;
+  box-shadow: 0 14px 34px rgba(15, 56, 82, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  overflow: hidden !important;
+}
+
+html body .main-container .tools-collapse.yk-dashboard-tools > summary {
+  display: grid !important;
+  grid-template-columns: 46px minmax(0, 1fr) auto 28px !important;
+  align-items: center !important;
+  gap: 12px !important;
+  min-height: 72px !important;
+  padding: 14px 16px !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(224, 246, 250, 0.72)) !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+}
+
+html body .main-container .tools-collapse.yk-dashboard-tools > summary:hover {
+  background: linear-gradient(135deg, #ffffff, #dff7fb) !important;
+}
+
+html body .main-container .tools-collapse.yk-dashboard-tools > summary * {
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+html body .main-container .tools-collapse.yk-dashboard-tools .tools-copy {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+}
+
+html body .main-container .tools-collapse.yk-dashboard-tools .tools-label {
+  color: #0b2743 !important;
+  -webkit-text-fill-color: #0b2743 !important;
+  font-size: 16px !important;
+  font-weight: 950 !important;
+  letter-spacing: 0.01em !important;
+  line-height: 1.1 !important;
+}
+
+html body .main-container .tools-collapse.yk-dashboard-tools .tools-desc {
+  display: block !important;
+  color: #425b76 !important;
+  -webkit-text-fill-color: #425b76 !important;
+  font-size: 12.5px !important;
+  font-weight: 750 !important;
+  line-height: 1.35 !important;
+  white-space: normal !important;
+}
+
+html body .main-container .tools-collapse.yk-dashboard-tools .tools-icon {
+  width: 38px !important;
+  height: 38px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, #0ea5e9, #14b8a6) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 10px 20px rgba(14, 165, 233, 0.22) !important;
+  font-weight: 900 !important;
+}
+
+html body .main-container .tools-collapse.yk-dashboard-tools .tools-count {
+  background: #e4f6ff !important;
+  border: 1px solid rgba(14, 116, 144, 0.22) !important;
+  color: #075985 !important;
+  -webkit-text-fill-color: #075985 !important;
+  font-weight: 900 !important;
+  white-space: nowrap !important;
+}
+
+html body .main-container .tools-collapse.yk-dashboard-tools .tools-chevron {
+  color: #0f5675 !important;
+  -webkit-text-fill-color: #0f5675 !important;
+  font-weight: 900 !important;
+}
+
+html body .main-container .tools-collapse.yk-dashboard-tools .tools-grid {
+  grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)) !important;
+  gap: 12px !important;
+  padding: 0 16px 16px !important;
+}
+
+html body .main-container .tools-collapse.yk-dashboard-tools .tool-card {
+  display: grid !important;
+  grid-template-columns: 42px minmax(0, 1fr) !important;
+  grid-template-rows: auto auto !important;
+  align-items: center !important;
+  column-gap: 12px !important;
+  row-gap: 3px !important;
+  min-height: 78px !important;
+  padding: 14px !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  border: 1px solid rgba(108, 132, 158, 0.28) !important;
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+}
+
+html body .main-container .tools-collapse.yk-dashboard-tools .tool-card:hover {
+  border-color: rgba(14, 165, 233, 0.48) !important;
+  box-shadow: 0 12px 26px rgba(14, 116, 144, 0.15) !important;
+  transform: translateY(-1px) !important;
+}
+
+html body .main-container .tools-collapse.yk-dashboard-tools .tool-card .tool-icon {
+  grid-row: 1 / span 2 !important;
+  width: 40px !important;
+  height: 40px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, #dff7ff, #eafdf5) !important;
+  color: #0369a1 !important;
+  -webkit-text-fill-color: #0369a1 !important;
+  font-size: 20px !important;
+  font-weight: 900 !important;
+}
+
+html body .main-container .tools-collapse.yk-dashboard-tools .tool-card .tool-name {
+  color: #10243f !important;
+  -webkit-text-fill-color: #10243f !important;
+  font-size: 14px !important;
+  font-weight: 950 !important;
+  line-height: 1.15 !important;
+}
+
+html body .main-container .tools-collapse.yk-dashboard-tools .tool-card .tool-hint {
+  color: #52667d !important;
+  -webkit-text-fill-color: #52667d !important;
+  font-size: 12px !important;
+  font-weight: 750 !important;
+  line-height: 1.3 !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+@media (max-width: 720px) {
+  html body .main-container .tools-collapse.yk-dashboard-tools > summary {
+    grid-template-columns: 42px minmax(0, 1fr) auto !important;
+    gap: 10px !important;
+  }
+
+  html body .main-container .tools-collapse.yk-dashboard-tools .tools-chevron {
+    display: none !important;
+  }
+
+  html body .main-container .tools-collapse.yk-dashboard-tools .tools-grid {
+    grid-template-columns: 1fr !important;
+    padding: 0 12px 12px !important;
+  }
+}
+
+/* D700 v38 - doctor patient follow-up hub */
+html body .main-container .yk-patient-detail-page .yk-follow-hub {
+  position: relative;
+  overflow: hidden;
+  margin: 14px 0 18px;
+  padding: 18px;
+  border: 1px solid rgba(20, 184, 166, .30);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 3% 0%, rgba(14, 165, 233, .18), transparent 32%),
+    radial-gradient(circle at 97% 10%, rgba(20, 184, 166, .20), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, .98), rgba(234, 249, 249, .96));
+  box-shadow: 0 22px 55px rgba(9, 45, 75, .16);
+  color: #12304a;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-hub::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(90deg, rgba(15, 118, 110, .05) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(15, 118, 110, .04) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(90deg, rgba(0,0,0,.62), transparent 72%);
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-head,
+html body .main-container .yk-patient-detail-page .yk-follow-metrics,
+html body .main-container .yk-patient-detail-page .yk-follow-grid {
+  position: relative;
+  z-index: 1;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, .10);
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-head h2 {
+  margin: 0;
+  color: #102b46;
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 950;
+  letter-spacing: -.045em;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-head p {
+  margin: 7px 0 0;
+  max-width: 820px;
+  color: #46627c;
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.55;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-start {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 190px;
+  padding: 15px 20px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #0891b2, #0f766e);
+  color: #fff !important;
+  text-decoration: none !important;
+  font-weight: 950;
+  box-shadow: 0 16px 30px rgba(15, 118, 110, .28);
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-metric {
+  padding: 13px 14px;
+  border: 1px solid rgba(148, 183, 203, .48);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .88);
+  box-shadow: 0 12px 26px rgba(13, 48, 72, .08);
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-metric span {
+  display: block;
+  color: #6b829a;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-metric strong {
+  display: block;
+  margin-top: 5px;
+  color: #102b46;
+  font-size: 18px;
+  font-weight: 950;
+  line-height: 1.2;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
+  gap: 12px;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-column {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid rgba(148, 183, 203, .44);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .82);
+  box-shadow: 0 10px 24px rgba(13, 48, 72, .08);
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-column-primary {
+  border-color: rgba(20, 184, 166, .54);
+  background: linear-gradient(180deg, rgba(236, 253, 245, .96), rgba(255, 255, 255, .88));
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-column h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 11px;
+  color: #12304a;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-actions {
+  display: grid;
+  gap: 8px;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-action {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid rgba(162, 190, 207, .48);
+  border-radius: 16px;
+  background: rgba(248, 252, 255, .94);
+  color: #102b46 !important;
+  text-decoration: none !important;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-action:hover {
+  transform: translateY(-2px);
+  border-color: rgba(14, 165, 233, .55);
+  background: #fff;
+  box-shadow: 0 14px 26px rgba(14, 67, 99, .14);
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #e0f2fe, #ccfbf1);
+  color: #075985;
+  font-size: 19px;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-action-copy b,
+html body .main-container .yk-patient-detail-page .yk-follow-action-copy small {
+  display: block;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-action-copy b {
+  overflow: hidden;
+  color: #102b46;
+  font-size: 13px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-action-copy small {
+  margin-top: 2px;
+  color: #61778d;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-action.is-main {
+  border-color: rgba(8, 145, 178, .56);
+  background: linear-gradient(135deg, rgba(224, 242, 254, .96), rgba(204, 251, 241, .92));
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-action.is-green .yk-follow-action-icon {
+  background: linear-gradient(135deg, #dcfce7, #ccfbf1);
+  color: #166534;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-action.is-warn .yk-follow-action-icon {
+  background: linear-gradient(135deg, #fef3c7, #ffedd5);
+  color: #92400e;
+}
+
+html body .main-container .yk-patient-detail-page .yk-follow-action.is-danger .yk-follow-action-icon {
+  background: linear-gradient(135deg, #fee2e2, #fff1f2);
+  color: #991b1b;
+}
+
+@media (max-width: 760px) {
+  html body .main-container .yk-patient-detail-page .yk-follow-hub {
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  html body .main-container .yk-patient-detail-page .yk-follow-head {
+    grid-template-columns: 1fr;
+  }
+
+  html body .main-container .yk-patient-detail-page .yk-follow-start {
+    width: 100%;
+  }
+
+  html body .main-container .yk-patient-detail-page .yk-follow-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* D700 v38 - global Safari/iOS/macOS visual and mobile polish */
+:root {
+  --yk-mobile-pad: clamp(10px, 3vw, 18px);
+  --yk-mobile-radius: 22px;
+  --yk-touch-size: 44px;
+  --yk-webkit-focus: rgba(14, 165, 233, .20);
+}
+
+html.yk-safari,
+html.yk-ios,
+html.yk-mac-safari {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html.yk-mobile-web body,
+html.yk-touch-web body {
+  overflow-x: hidden !important;
+}
+
+html.yk-mobile-web .main-container,
+html.yk-touch-web .main-container {
+  isolation: isolate;
+}
+
+html.yk-mobile-web .main-container > section,
+html.yk-mobile-web .main-container > .card,
+html.yk-mobile-web .main-container > .panel,
+html.yk-touch-web .main-container > section,
+html.yk-touch-web .main-container > .card,
+html.yk-touch-web .main-container > .panel {
+  max-width: 100%;
+}
+
+html.yk-mobile-web .card,
+html.yk-mobile-web .yk-card,
+html.yk-mobile-web .patient-card,
+html.yk-mobile-web .yk-dashboard-card,
+html.yk-mobile-web .yk-follow-column,
+html.yk-touch-web .card,
+html.yk-touch-web .yk-card,
+html.yk-touch-web .patient-card,
+html.yk-touch-web .yk-dashboard-card,
+html.yk-touch-web .yk-follow-column {
+  border: 1px solid rgba(115, 162, 190, .34) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.97), rgba(246,252,255,.93)) !important;
+  box-shadow: 0 14px 34px rgba(13, 48, 72, .11) !important;
+}
+
+html.yk-mobile-web .btn,
+html.yk-mobile-web button,
+html.yk-mobile-web a.btn,
+html.yk-touch-web .btn,
+html.yk-touch-web button,
+html.yk-touch-web a.btn {
+  min-height: var(--yk-touch-size) !important;
+  border-radius: 14px !important;
+  font-weight: 850 !important;
+  touch-action: manipulation;
+}
+
+html.yk-mobile-web .btn:active,
+html.yk-mobile-web button:active,
+html.yk-touch-web .btn:active,
+html.yk-touch-web button:active {
+  transform: translateY(1px) scale(.99);
+}
+
+html.yk-mobile-web :focus-visible,
+html.yk-touch-web :focus-visible {
+  outline: 3px solid var(--yk-webkit-focus) !important;
+  outline-offset: 2px !important;
+}
+
+html.yk-mobile-web input,
+html.yk-mobile-web select,
+html.yk-mobile-web textarea,
+html.yk-touch-web input,
+html.yk-touch-web select,
+html.yk-touch-web textarea {
+  min-height: var(--yk-touch-size) !important;
+  font-size: max(16px, 1rem) !important;
+  border-radius: 14px !important;
+}
+
+html.yk-mobile-web textarea,
+html.yk-touch-web textarea {
+  line-height: 1.45 !important;
+}
+
+html.yk-mobile-web img,
+html.yk-mobile-web video,
+html.yk-mobile-web canvas,
+html.yk-touch-web img,
+html.yk-touch-web video,
+html.yk-touch-web canvas {
+  height: auto;
+  max-width: 100%;
+}
+
+html.yk-mobile-web .yk-patient-detail-page,
+html.yk-touch-web .yk-patient-detail-page {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}
+
+html.yk-mobile-web .yk-patient-folder-hero,
+html.yk-touch-web .yk-patient-folder-hero {
+  padding: clamp(16px, 5vw, 24px) !important;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(14, 165, 233, .16), transparent 32%),
+    linear-gradient(135deg, rgba(255,255,255,.98), rgba(236,253,245,.92)) !important;
+}
+
+html.yk-mobile-web .yk-patient-folder-hero h1,
+html.yk-touch-web .yk-patient-folder-hero h1,
+html.yk-mobile-web .yk-follow-head h2,
+html.yk-touch-web .yk-follow-head h2 {
+  line-height: 1.04 !important;
+  overflow-wrap: anywhere;
+}
+
+html.yk-mobile-web .yk-patient-top-stats,
+html.yk-touch-web .yk-patient-top-stats,
+html.yk-mobile-web .yk-follow-metrics,
+html.yk-touch-web .yk-follow-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+html.yk-mobile-web .yk-follow-action,
+html.yk-touch-web .yk-follow-action {
+  min-height: 68px;
+  border-radius: 18px !important;
+}
+
+html.yk-phone-web .yk-patient-top-stats,
+html.yk-phone-web .yk-follow-metrics,
+html.yk-phone-web .yk-follow-grid,
+html.yk-phone-web .yk-overview-grid,
+html.yk-phone-web .yk-dashboard-grid,
+html.yk-phone-web .row {
+  grid-template-columns: 1fr !important;
+}
+
+html.yk-phone-web .row {
+  display: block !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+html.yk-phone-web .row > [class*="col-"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-bottom: 10px !important;
+}
+
+html.yk-mobile-web .yk-mobile-table-wrap,
+html.yk-touch-web .yk-mobile-table-wrap {
+  position: relative;
+  margin: 8px 0;
+  padding-bottom: 4px;
+}
+
+html.yk-mobile-web .yk-mobile-table-wrap table,
+html.yk-touch-web .yk-mobile-table-wrap table,
+html.yk-mobile-web .table-responsive table,
+html.yk-touch-web .table-responsive table {
+  min-width: 680px;
+}
+
+html.yk-phone-web .yk-mobile-table-wrap::before,
+html.yk-phone-web .table-responsive::before {
+  content: "Tabloyu yana kaydir";
+  display: inline-flex;
+  margin: 0 0 6px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(14, 165, 233, .10);
+  color: #075985;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+html.yk-mobile-web .yk-dashboard-tools .tools-collapse,
+html.yk-touch-web .yk-dashboard-tools .tools-collapse,
+html.yk-mobile-web .tools-collapse,
+html.yk-touch-web .tools-collapse {
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.90) !important;
+  box-shadow: 0 10px 24px rgba(13, 48, 72, .09) !important;
+}
+
+html.yk-mobile-web .yk-media-card,
+html.yk-touch-web .yk-media-card {
+  border-radius: 18px !important;
+  overflow: hidden;
+}
+
+html.yk-mobile-web .yk-media-thumb img,
+html.yk-mobile-web .yk-media-thumb video,
+html.yk-touch-web .yk-media-thumb img,
+html.yk-touch-web .yk-media-thumb video {
+  object-fit: cover;
+}
+
+html.yk-mobile-web .modal,
+html.yk-touch-web .modal {
+  padding-left: max(6px, env(safe-area-inset-left, 0px)) !important;
+  padding-right: max(6px, env(safe-area-inset-right, 0px)) !important;
+}
+
+html.yk-mobile-web .modal-content,
+html.yk-touch-web .modal-content {
+  border-radius: 22px !important;
+  border: 1px solid rgba(120, 162, 188, .35) !important;
+  box-shadow: 0 22px 64px rgba(15, 45, 70, .22) !important;
+}
+
+html.yk-ios.yk-keyboard-open .yk-voice-agent,
+html.yk-ios.yk-keyboard-open .yk-voice-dock {
+  opacity: .98;
+  transform: translateY(calc(-1 * min(var(--yk-keyboard-offset, 0px), 280px))) translateZ(0) !important;
+}
+
+@supports (-webkit-touch-callout: none) {
+  html.yk-ios .yk-patient-file-menu,
+  html.yk-ios .header-actions,
+  html.yk-ios .table-responsive,
+  html.yk-ios .yk-mobile-table-wrap {
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 18px), transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 18px), transparent 100%);
+  }
+}
+
+@media (max-width: 760px) {
+  html.yk-mobile-web .main-container,
+  html.yk-touch-web .main-container {
+    padding-left: var(--yk-mobile-pad) !important;
+    padding-right: var(--yk-mobile-pad) !important;
+  }
+
+  html.yk-mobile-web .yk-follow-head,
+  html.yk-touch-web .yk-follow-head {
+    gap: 10px !important;
+  }
+
+  html.yk-mobile-web .yk-follow-start,
+  html.yk-touch-web .yk-follow-start {
+    min-height: 52px !important;
+    font-size: 15px !important;
+  }
+
+  html.yk-mobile-web .yk-voice-agent,
+  html.yk-mobile-web .yk-voice-dock,
+  html.yk-touch-web .yk-voice-agent,
+  html.yk-touch-web .yk-voice-dock {
+    font-size: 14px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.yk-mobile-web *,
+  html.yk-touch-web * {
+    scroll-behavior: auto !important;
+  }
+}
+
+
+

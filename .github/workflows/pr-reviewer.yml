@@ -1,0 +1,75 @@
+name: PR Reviewer (yazklinik_pr_reviewer_agent)
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Compute diff vs base
+        id: diff
+        run: |
+          git diff "${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}" > pr.diff
+          wc -l pr.diff
+
+      - name: Run pr_reviewer agent
+        id: review
+        run: |
+          python - <<'PY' > review.json
+          import sys, json
+          sys.path.insert(0, '.')
+          from yazklinik_pr_reviewer_agent import review_diff
+          with open('pr.diff','r',encoding='utf-8',errors='replace') as f:
+              diff = f.read()
+          r = review_diff(diff)
+          out = {
+              'summary': r.summary,
+              'has_blockers': r.has_blockers,
+              'findings': [
+                  {'severity': f.severity, 'file': f.file, 'line': f.line_hint,
+                   'rule': f.rule, 'message': f.message, 'snippet': f.snippet}
+                  for f in r.findings
+              ]
+          }
+          print(json.dumps(out, ensure_ascii=False, indent=2))
+          PY
+          cat review.json
+
+      - name: Comment on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let data;
+            try { data = JSON.parse(fs.readFileSync('review.json','utf8')); }
+            catch(e) { data = { summary: 'parse failed', findings: [] }; }
+            let body = '## YazKlinik PR Reviewer Agent\n\n**' + data.summary + '**\n\n';
+            if (data.has_blockers) body += ':red_circle: **BLOCKER var - merge etmeden once incele**\n\n';
+            for (const f of (data.findings || [])) {
+              const emoji = f.severity === 'block' ? ':no_entry:' :
+                            f.severity === 'warn' ? ':warning:' : ':information_source:';
+              body += `${emoji} **${f.rule}** \`${f.file}\`:${f.line || '?'}\n${f.message}\n`;
+              if (f.snippet) body += '```\n' + f.snippet + '\n```\n';
+              body += '\n';
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: context.issue.number, body
+            });
+            if (data.has_blockers) {
+              core.setFailed('Blockers var');
+            }

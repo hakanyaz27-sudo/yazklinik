@@ -1,0 +1,5 @@
+# Satir formati:
+# Tani / endikasyon metni
+#
+# Bu dosyaya tum tani listesini satir satir ekleyebilirsiniz.
+# Uygulama bu dosyayi otomatik okuyup "Tum tanilar" listesine ekler.

@@ -1,0 +1,28 @@
+{
+  auto_https off
+  admin off
+}
+
+:5080 {
+  encode zstd gzip
+
+  reverse_proxy 127.0.0.1:5052
+
+  header {
+    -Server
+    X-YazKlinik-Accel "caddy-zstd-gzip"
+  }
+}
+
+:5443 {
+  tls {$YAZKLINIK_CADDY_CERT} {$YAZKLINIK_CADDY_KEY}
+
+  encode zstd gzip
+
+  reverse_proxy 127.0.0.1:5052
+
+  header {
+    -Server
+    X-YazKlinik-Accel "caddy-zstd-gzip"
+  }
+}

@@ -1,0 +1,340 @@
+﻿/* ============================================================
+   YazKlinik Apple Health Style - Tum Hastalar Sayfasi
+   Sadece .yk-patient-board (Tum Hastalar ana sayfa) icin uygulanir.
+   Medical theme'i bozmaz - sadece bu sayfaya Apple-Health his.
+   D700 v17 2026-05-17
+   ============================================================ */
+
+/* === BODY BACKGROUND - .yk-patient-board parent body'ye gradient === */
+/* body:has() yerine selector-safe yaklasim: html.yk-page-home VE body.yk-page-home */
+html.yk-page-home, html.yk-page-home body,
+body.yk-page-home {
+  background:
+    radial-gradient(at 0% 0%, rgba(255, 220, 220, 0.4) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(220, 240, 255, 0.5) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(220, 255, 230, 0.3) 0px, transparent 50%),
+    linear-gradient(180deg, #fbfcfe 0%, #f4f7fb 100%) !important;
+  background-attachment: fixed !important;
+}
+
+/* === BOARD WRAPPER - extra spacing === */
+.yk-patient-board {
+  padding: 24px 8px !important;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* === COMMAND PANEL - White card, big radius, soft shadow === */
+.yk-patient-board .yk-patient-command {
+  background: rgba(255, 255, 255, 0.85) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-radius: 24px !important;
+  padding: 28px 32px !important;
+  margin-bottom: 20px !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 8px 32px rgba(15, 60, 100, 0.06),
+    0 2px 8px rgba(15, 60, 100, 0.04) !important;
+  animation: ykHomeCardFade 0.5s ease-out;
+}
+@keyframes ykHomeCardFade {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* === TITLE - bigger, modern weight === */
+.yk-patient-board .yk-patient-title .eyebrow {
+  text-transform: uppercase !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #8e9cb0 !important;
+  letter-spacing: 0.15em !important;
+  margin-bottom: 4px !important;
+  display: block;
+}
+.yk-patient-board .yk-patient-title h1 {
+  font-size: 38px !important;
+  font-weight: 800 !important;
+  color: #1d2939 !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.1 !important;
+  margin: 0 !important;
+}
+.yk-patient-board .yk-patient-count {
+  background: linear-gradient(135deg, #fc6076, #ff9a44) !important;
+  color: #fff !important;
+  padding: 6px 14px !important;
+  border-radius: 20px !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  margin-left: 12px !important;
+  box-shadow: 0 4px 12px rgba(252, 96, 118, 0.3);
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* === TOOLBAR BUTTONS - pill style, soft === */
+.yk-patient-board .yk-patient-toolbar .btn {
+  border-radius: 14px !important;
+  padding: 10px 18px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  border: 1px solid transparent !important;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.yk-patient-board .yk-patient-toolbar .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.yk-patient-board .yk-patient-toolbar .btn-outline-secondary {
+  background: rgba(255, 255, 255, 0.7) !important;
+  color: #4a5568 !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+/* === METRIC CARDS - Apple Health activity rings inspired === */
+.yk-patient-board .yk-patient-metrics,
+.yk-patient-board [class*="metric"] {
+  gap: 12px !important;
+}
+.yk-patient-board .yk-patient-metric,
+.yk-patient-board .yk-stat,
+.yk-patient-board .stat-card {
+  background: linear-gradient(155deg, #ffffff 0%, #fafcfe 100%) !important;
+  border: 1px solid rgba(0, 0, 0, 0.04) !important;
+  border-radius: 18px !important;
+  padding: 18px 20px !important;
+  box-shadow:
+    0 1px 2px rgba(15, 60, 100, 0.04),
+    0 4px 16px rgba(15, 60, 100, 0.04) !important;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  position: relative;
+  overflow: hidden !important;
+}
+.yk-patient-board .yk-patient-metric:hover,
+.yk-patient-board .yk-stat:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow:
+    0 1px 2px rgba(15, 60, 100, 0.04),
+    0 12px 32px rgba(15, 60, 100, 0.12) !important;
+}
+/* Sol tarafta renkli vurgu cizgisi (Apple Health ring rengi) */
+.yk-patient-board .yk-patient-metric:nth-of-type(1)::before,
+.yk-patient-board .yk-stat:nth-of-type(1)::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, #fc6076, #ff9a44);
+}
+.yk-patient-board .yk-patient-metric:nth-of-type(2)::before,
+.yk-patient-board .yk-stat:nth-of-type(2)::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, #56ccf2, #2f80ed);
+}
+.yk-patient-board .yk-patient-metric:nth-of-type(3)::before,
+.yk-patient-board .yk-stat:nth-of-type(3)::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, #d4fc79, #96e6a1);
+}
+.yk-patient-board .yk-patient-metric:nth-of-type(4)::before,
+.yk-patient-board .yk-stat:nth-of-type(4)::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, #fcb69f, #ffecd2);
+}
+.yk-patient-board .yk-patient-metric:nth-of-type(5)::before,
+.yk-patient-board .yk-stat:nth-of-type(5)::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, #ff5858, #f857a6);
+}
+
+/* Metric icon */
+.yk-patient-board .yk-patient-metric .value,
+.yk-patient-board .yk-patient-metric > div:last-child {
+  font-size: 32px !important;
+  font-weight: 800 !important;
+  color: #1d2939 !important;
+  letter-spacing: -0.02em !important;
+  margin-top: 4px !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* === SEARCH BAR - rounded full-width with subtle bg === */
+.yk-patient-board .yk-patient-search-form {
+  margin-top: 16px;
+}
+.yk-patient-board .yk-patient-searchbar {
+  background: rgba(244, 247, 251, 0.85) !important;
+  border-radius: 20px !important;
+  padding: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  border: 1px solid rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.2s ease;
+}
+.yk-patient-board .yk-patient-searchbar:focus-within {
+  background: #fff !important;
+  border-color: rgba(45, 128, 237, 0.3) !important;
+  box-shadow: 0 0 0 4px rgba(45, 128, 237, 0.08) !important;
+}
+.yk-patient-board #searchBox {
+  border: none !important;
+  background: transparent !important;
+  padding: 14px 16px !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  flex: 1 !important;
+  outline: none !important;
+}
+.yk-patient-board #searchBox:focus { box-shadow: none !important; }
+.yk-patient-board .yk-patient-searchbar .btn {
+  border-radius: 16px !important;
+  padding: 12px 22px !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+}
+.yk-patient-board .yk-patient-searchbar .btn-primary {
+  background: linear-gradient(135deg, #2f80ed, #1769aa) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3) !important;
+}
+
+/* === PATIENT CARDS - cleaner, more breathing room === */
+.yk-patient-board #patientList {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+  gap: 14px !important;
+}
+.yk-patient-board #patientList .patient-card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(0, 0, 0, 0.04) !important;
+  border-radius: 20px !important;
+  padding: 18px !important;
+  box-shadow:
+    0 1px 2px rgba(15, 60, 100, 0.03),
+    0 4px 12px rgba(15, 60, 100, 0.04) !important;
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+.yk-patient-board #patientList .patient-card::before {
+  display: none !important;  /* eski mavi cizgi yok */
+}
+.yk-patient-board #patientList .patient-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow:
+    0 1px 2px rgba(15, 60, 100, 0.03),
+    0 16px 40px rgba(15, 60, 100, 0.12) !important;
+  border-color: rgba(45, 128, 237, 0.2) !important;
+}
+
+/* Avatar - bigger, gradient */
+.yk-patient-board #patientList .yk-patient-avatar {
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 50% !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  background: linear-gradient(135deg, #56ccf2, #2f80ed) !important;
+  border: 3px solid #fff !important;
+  box-shadow: 0 4px 12px rgba(45, 128, 237, 0.25) !important;
+  color: #fff !important;
+}
+/* DoÄŸuma yakin - pembe */
+.yk-patient-board #patientList .patient-card.yk-patient-status-pregnant .yk-patient-avatar {
+  background: linear-gradient(135deg, #fc6076, #ff9a44) !important;
+  box-shadow: 0 4px 12px rgba(252, 96, 118, 0.3) !important;
+}
+/* Yeni - sari */
+.yk-patient-board #patientList .patient-card.yk-patient-status-new .yk-patient-avatar {
+  background: linear-gradient(135deg, #d4fc79, #96e6a1) !important;
+  box-shadow: 0 4px 12px rgba(150, 230, 161, 0.4) !important;
+}
+/* Riskli - kirmizi */
+.yk-patient-board #patientList .patient-card.yk-patient-status-risk .yk-patient-avatar {
+  background: linear-gradient(135deg, #ff5858, #f857a6) !important;
+  box-shadow: 0 4px 12px rgba(255, 88, 88, 0.4) !important;
+}
+
+/* Patient name */
+.yk-patient-board #patientList .yk-patient-name {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  color: #1d2939 !important;
+  letter-spacing: -0.01em !important;
+  margin: 0 !important;
+}
+
+/* Patient meta */
+.yk-patient-board #patientList .yk-patient-meta {
+  font-size: 12.5px !important;
+  color: #6b7888 !important;
+  margin-top: 4px !important;
+}
+
+/* === STAGGER FADE-IN === */
+.yk-patient-board #patientList .patient-card {
+  animation: ykHomeStagger 0.4s ease-out backwards;
+}
+.yk-patient-board #patientList .patient-card:nth-child(1) { animation-delay: 0.05s; }
+.yk-patient-board #patientList .patient-card:nth-child(2) { animation-delay: 0.08s; }
+.yk-patient-board #patientList .patient-card:nth-child(3) { animation-delay: 0.11s; }
+.yk-patient-board #patientList .patient-card:nth-child(4) { animation-delay: 0.14s; }
+.yk-patient-board #patientList .patient-card:nth-child(5) { animation-delay: 0.17s; }
+.yk-patient-board #patientList .patient-card:nth-child(6) { animation-delay: 0.20s; }
+.yk-patient-board #patientList .patient-card:nth-child(7) { animation-delay: 0.23s; }
+.yk-patient-board #patientList .patient-card:nth-child(8) { animation-delay: 0.26s; }
+.yk-patient-board #patientList .patient-card:nth-child(9) { animation-delay: 0.29s; }
+.yk-patient-board #patientList .patient-card:nth-child(10) { animation-delay: 0.32s; }
+
+@keyframes ykHomeStagger {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* === GRID/LISTE TOGGLE - pill style === */
+.yk-patient-board .yk-patient-view-toggle {
+  background: rgba(244, 247, 251, 0.85) !important;
+  border-radius: 14px !important;
+  padding: 4px !important;
+  border: 1px solid rgba(0, 0, 0, 0.04) !important;
+}
+.yk-patient-board .yk-patient-view-toggle button {
+  border-radius: 10px !important;
+  padding: 8px 16px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+.yk-patient-board .yk-patient-view-toggle button.active {
+  background: linear-gradient(135deg, #2f80ed, #1769aa) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3) !important;
+}
+
+/* === PAGER - pill style === */
+.yk-patient-board .yk-patient-pager,
+.yk-patient-board [class*="pager"] {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-radius: 16px !important;
+  padding: 12px 16px !important;
+  margin-bottom: 14px !important;
+}
+.yk-patient-board .yk-patient-pager .btn,
+.yk-patient-board [class*="pager"] .btn {
+  border-radius: 12px !important;
+  padding: 8px 16px !important;
+  font-weight: 600 !important;
+}
+
+/* === MOBILE - kart genis tutalim === */
+@media (max-width: 720px) {
+  .yk-patient-board .yk-patient-title h1 { font-size: 28px !important; }
+  .yk-patient-board .yk-patient-command { padding: 18px 16px !important; }
+  .yk-patient-board #patientList {
+    grid-template-columns: 1fr !important;
+  }
+  .yk-patient-board .yk-patient-metrics .yk-patient-metric .value,
+  .yk-patient-board .yk-stat .value { font-size: 24px !important; }
+}
+

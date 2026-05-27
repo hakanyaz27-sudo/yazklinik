@@ -1,0 +1,3 @@
+﻿Ilac katalogu: TITCK SKRS-3 E-Recete Ilac ve Diger Farmasotik Urunler Listesi, 05.05.2026, aktif urunler.
+Tani katalogu: Fizyolojik Turkce ICD-10 tani listesi + eksik kodlarda WHO ICD-10 2019 fallback.
+Ek yerel kataloglar: static/tr_ilac_katalogu.txt ve static/tr_tani_katalogu.txt okunmaya devam eder.

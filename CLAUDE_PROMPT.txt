@@ -1,0 +1,20 @@
+Bu projede calis: D:\YazKlinik_Final_D700
+
+Once su dosyalari oku:
+CLAUDE_BASLA_BURADAN.md, CLAUDE.md, CLAUDE_HANDOFF.md, AGENTS.md.
+
+Kullanici Turkce ve kisa cevap ister. Buyuk teori yazma.
+
+Kurallar:
+- yazklinik_v68.py dosyasina zorunlu olmadikca dokunma
+- hasta/NAS verisi silme yapma
+- mojibake bolumlerde toplu formatlama yapma
+- kucuk hedefli degisiklik yap
+- sonunda quick check calistir
+
+Baslatma:
+D:\YazKlinik_Final_D700\D700_BASLAT.bat
+
+Hizli test:
+Set-Location "D:\YazKlinik_Final_D700"
+& "D:\YazKlinik_Final_D700\.venv\Scripts\python.exe" CODEX_QUICK_CHECK.py

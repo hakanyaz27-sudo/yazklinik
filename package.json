@@ -1,0 +1,16 @@
+﻿{
+  "name": "yazklinik-final-d700-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "D700 proje kokunden web UI test araclarini calistirma kisa yollari.",
+  "scripts": {
+    "test": "npm --prefix webui_tools run test",
+    "pw": "npm --prefix webui_tools run pw",
+    "axe": "npm --prefix webui_tools run axe",
+    "lighthouse_login": "npm --prefix webui_tools run lighthouse_login",
+    "lighthouse_dashboard": "npm --prefix webui_tools run lighthouse_dashboard",
+    "lighthouse_all": "npm --prefix webui_tools run lighthouse_all"
+  }
+}
+
+

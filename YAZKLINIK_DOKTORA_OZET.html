@@ -1,0 +1,523 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>YazKlinik - Op. Dr. Hakan YAZ Klinik Yonetim Sistemi</title>
+<style>
+  @page {
+    size: A4;
+    margin: 14mm 12mm 14mm 12mm;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #1a2233;
+    line-height: 1.5;
+    font-size: 10.5pt;
+    background: #fff;
+  }
+
+  /* HERO */
+  .hero {
+    background: linear-gradient(135deg, #0d4f8b 0%, #1976d2 60%, #0a8a76 100%);
+    color: #fff;
+    padding: 24px 22px 20px;
+    border-radius: 14px;
+    margin-bottom: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: ""; position: absolute; right: -30px; top: -30px;
+    width: 180px; height: 180px; background: rgba(255,255,255,0.07);
+    border-radius: 50%;
+  }
+  .hero h1 { font-size: 26pt; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5pt; }
+  .hero .sub { font-size: 12pt; opacity: 0.92; font-weight: 500; }
+  .hero .tagline {
+    margin-top: 14px; background: rgba(255,255,255,0.16);
+    border-left: 4px solid #ffd166; padding: 10px 14px;
+    border-radius: 6px; font-size: 11pt; line-height: 1.55;
+  }
+  .hero .meta {
+    margin-top: 10px; font-size: 9pt; opacity: 0.85;
+    display: flex; gap: 18px; flex-wrap: wrap;
+  }
+
+  /* SECTION */
+  .section {
+    margin-bottom: 16px; page-break-inside: avoid;
+  }
+  .section h2 {
+    color: #0d4f8b; font-size: 14pt; font-weight: 700;
+    padding-bottom: 5px; margin-bottom: 9px;
+    border-bottom: 2.5px solid #1976d2;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section h2 .num {
+    background: #1976d2; color: #fff; width: 26px; height: 26px;
+    border-radius: 50%; display: inline-flex; align-items: center;
+    justify-content: center; font-size: 11pt; font-weight: 800;
+  }
+  .section h3 {
+    color: #0a8a76; font-size: 11pt; font-weight: 700;
+    margin-top: 8px; margin-bottom: 4px;
+  }
+
+  /* TWO COL */
+  .twocol { columns: 2; column-gap: 20px; }
+  .twocol > * { break-inside: avoid; }
+
+  /* BULLETS */
+  ul.feat { list-style: none; padding: 0; margin: 0; }
+  ul.feat li {
+    padding: 4px 0 4px 18px; position: relative;
+    font-size: 10pt; line-height: 1.45;
+  }
+  ul.feat li::before {
+    content: ""; position: absolute; left: 0; top: 9px;
+    width: 8px; height: 8px; background: #1976d2;
+    border-radius: 2px; transform: rotate(45deg);
+  }
+  ul.feat li b { color: #0d4f8b; }
+
+  /* HIGHLIGHT BOX */
+  .highlight {
+    background: linear-gradient(135deg, #fff8e1 0%, #fff3c4 100%);
+    border-left: 5px solid #f0b400;
+    padding: 12px 16px; margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+    font-size: 10.5pt;
+  }
+  .highlight b { color: #b87300; }
+
+  /* STAT BOX */
+  .stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px; margin: 14px 0;
+  }
+  .stat {
+    background: #f0f6fc; border: 1px solid #cdd9e3;
+    border-radius: 8px; padding: 10px 8px;
+    text-align: center;
+  }
+  .stat .n { font-size: 18pt; font-weight: 900; color: #0d4f8b; line-height: 1; }
+  .stat .l { font-size: 8.5pt; color: #5e7185; margin-top: 4px; font-weight: 600; }
+
+  /* TABLE */
+  table.feat {
+    width: 100%; border-collapse: collapse; margin: 8px 0;
+    font-size: 9.5pt;
+  }
+  table.feat th {
+    background: #1976d2; color: #fff; padding: 6px 10px;
+    text-align: left; font-weight: 700;
+  }
+  table.feat td {
+    padding: 5px 10px; border-bottom: 1px solid #eef3f8;
+  }
+  table.feat tr:nth-child(even) td { background: #f7fafc; }
+
+  /* SUMMARY BOX */
+  .super-summary {
+    background: linear-gradient(135deg, #0d4f8b 0%, #0a8a76 100%);
+    color: #fff; padding: 18px 22px; border-radius: 12px;
+    margin: 16px 0; page-break-inside: avoid;
+  }
+  .super-summary h2 {
+    color: #ffd166; font-size: 15pt; margin-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding-bottom: 6px;
+  }
+  .super-summary ol { padding-left: 22px; }
+  .super-summary li {
+    margin: 6px 0; font-size: 10.5pt; line-height: 1.5;
+  }
+  .super-summary li b { color: #ffd166; }
+
+  /* FOOTER */
+  .footer {
+    margin-top: 22px; border-top: 1px solid #cdd9e3;
+    padding-top: 10px; font-size: 8.5pt; color: #5e7185;
+    text-align: center; line-height: 1.6;
+  }
+  .footer .v { color: #0d4f8b; font-weight: 700; }
+
+  /* TECH SPEC */
+  .tech {
+    background: #1a2233; color: #d6e3ef;
+    padding: 14px 18px; border-radius: 8px;
+    margin: 12px 0; font-size: 9.5pt;
+    font-family: "Consolas", "Courier New", monospace;
+    line-height: 1.6;
+  }
+  .tech b { color: #ffd166; }
+  .tech span.k { color: #5fc9ff; }
+
+  /* PAGE BREAK */
+  .pb { page-break-before: always; }
+
+  /* TAG */
+  .tag {
+    display: inline-block; background: #e2eef7; color: #0d4f8b;
+    padding: 1px 7px; border-radius: 10px; font-size: 8pt;
+    font-weight: 700; margin-right: 4px;
+  }
+  .tag.new { background: #d9f4ec; color: #0a8a76; }
+  .tag.ai { background: #fde7f5; color: #a01e7e; }
+  .tag.kvkk { background: #fff3c4; color: #b87300; }
+
+  h2 .label {
+    margin-left: auto; font-size: 9pt; font-weight: 600;
+    color: #5e7185; background: #f0f6fc; padding: 2px 8px;
+    border-radius: 10px;
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>YazKlinik D700</h1>
+  <div class="sub">Op. Dr. Hakan YAZ - Yapay Zeka Destekli Lokal Klinik Yonetim Sistemi</div>
+  <div class="tagline">
+    Kendi bilgisayarinda calisan, hicbir veriyi disariya gondermeyen,
+    hasta dosyasindan klinik karar destegine, otomatik yedekten KVKK uyumluluguna
+    kadar klinik isin yuzde seksenini otomatiklestiren tum-in-bir sistem.
+  </div>
+  <div class="meta">
+    <span>* Surum: D700 (4. nesil)</span>
+    <span>* Tarih: Mayis 2026</span>
+    <span>* Donanim: RTX 5090 lokal PC</span>
+    <span>* Adres: https://127.0.0.1:5443</span>
+  </div>
+</div>
+
+<!-- SAYISAL OZET -->
+<div class="stats">
+  <div class="stat"><div class="n">60+</div><div class="l">Klinik / Sistem Ajani</div></div>
+  <div class="stat"><div class="n">91</div><div class="l">REST API Endpoint</div></div>
+  <div class="stat"><div class="n">9</div><div class="l">Docker Servis</div></div>
+  <div class="stat"><div class="n">15.936</div><div class="l">Aranabilir Kayit</div></div>
+</div>
+<div class="stats">
+  <div class="stat"><div class="n">5</div><div class="l">Lokal AI Modeli</div></div>
+  <div class="stat"><div class="n">11</div><div class="l">DB Migration</div></div>
+  <div class="stat"><div class="n">100%</div><div class="l">Lokal Calisma</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">Disariya Veri Akisi</div></div>
+</div>
+
+<!-- 1 HASTA YONETIMI -->
+<div class="section">
+  <h2><span class="num">1</span> Hasta Dosyasi ve Randevu Yonetimi</h2>
+  <ul class="feat twocol">
+    <li><b>Hasta kaydi</b>: kimlik + iletisim + sigorta + bilgi formu</li>
+    <li><b>Anamnez modulu</b>: jinekolojik + obstetrik + cerrahi + ozgecmis</li>
+    <li><b>Alerji + kullandigi ilac</b> yapilandirilmis liste (DDI ile baglantili)</li>
+    <li><b>Randevu takvimi</b>: gun, hafta, ay; renk + tip + sure</li>
+    <li><b>Tekrarli randevu</b>: kontrol araliklarini otomatik onerir</li>
+    <li><b>Bekleyen / iptal / no-show</b> ayri renk + uyari</li>
+    <li><b>Recete yazma</b>: TR ilac katalogu (TITCK) + doz + sure + form</li>
+    <li><b>e-Recete PDF</b>: imzali, indirilebilir, opsiyonel e-Nabiz gonderim</li>
+    <li><b>Voluson USG PDF</b> otomatik import: kilo, boy, tansiyon, LMP, GA -> dosyaya</li>
+    <li><b>BulutKlinik senkron</b>: bekci ajan ariza tespiti + alarm</li>
+    <li><b>Hasta arama</b>: ad, TC, telefon, dosya no + tanida full-text (MeiliSearch)</li>
+    <li><b>Hasta gecmisi</b>: tum ziyaret + recete + USG + lab tek timeline</li>
+  </ul>
+</div>
+
+<!-- 2 YAPAY ZEKA -->
+<div class="section">
+  <h2><span class="num">2</span> Yapay Zeka Destegi <span class="label">tamamen lokal</span></h2>
+  <h3>Klinik Karar AI</h3>
+  <ul class="feat twocol">
+    <li><span class="tag ai">AI</span> <b>YZ Konsultasyon</b>: 5 adim - anamnez ozeti, ayirici tani, tetkik, tedavi, takip <span class="tag">meditron:70b</span></li>
+    <li><span class="tag ai">AI</span> <b>USG Goruntu Analizi</b>: modality, view, biyometri, IG potansiyeli <span class="tag">llama3.2-vision</span></li>
+    <li><span class="tag ai">AI</span> <b>SOAP Genisletici</b>: 2 satir not -> tam SOAP + needs_more_info uyarisi</li>
+    <li><span class="tag ai">AI</span> <b>ICD-10 Oneren</b>: tani metnine en uygun 5 kod sirali</li>
+    <li><span class="tag ai">AI</span> <b>SGK kod onerme</b> (ICD-10 + tarama uyumlu)</li>
+    <li><span class="tag ai">AI</span> <b>Konsey vaka sunumu</b>: tumor board / yuksek risk gebelik icin markdown slayt</li>
+  </ul>
+  <h3>Yardimci AI</h3>
+  <ul class="feat twocol">
+    <li><span class="tag ai">AI</span> <b>PubMed Cevirisi</b>: Ingilizce makaleyi otomatik Turkce ozet <span class="tag">qwen2.5:32b</span></li>
+    <li><span class="tag ai">AI</span> <b>Alex sesli asistan</b>: VAD + STT + TTS, sesle konus</li>
+    <li><span class="tag ai">AI</span> <b>Voice Command</b>: "BPD 85", "tansiyon 158/102", "yeni hasta Ayse"</li>
+    <li><span class="tag ai">AI</span> <b>RAG semantic arama</b>: tum belgelerden anlam bazli sorgu <span class="tag">BGE-M3 + reranker</span></li>
+    <li><span class="tag ai">AI</span> <b>Multi-agent orchestrator</b>: tek komutla 4-5 ajani sirayla calistirir</li>
+    <li><span class="tag ai">AI</span> <b>Instagram hazirligi</b>: USG'den KVKK-anonim post draft</li>
+  </ul>
+</div>
+
+<!-- 3 KARAR DESTEK -->
+<div class="section">
+  <h2><span class="num">3</span> Klinik Karar Destek (Kanit Bazli)</h2>
+  <h3>Risk Skorlari + Uyarilar</h3>
+  <table class="feat">
+    <thead><tr><th>Modul</th><th>Ne yapar</th><th>Output</th></tr></thead>
+    <tbody>
+      <tr><td><b>DDI Ilac Etkilesim</b></td><td>Recete yazinca cift cift kontrol (warfarin+ASA, methotrexate+amoxisilin, ...)</td><td>major/moderate/minor + onerilen aksiyon</td></tr>
+      <tr><td><b>Gebelik FDA Kategori</b></td><td>X/D ilaclari gebede kullaninca kirmizi alarm</td><td>Kontrendike / risk var</td></tr>
+      <tr><td><b>Preeklampsi Risk</b></td><td>SBP/DBP/proteinuri/sintomi -> sinirlandirma</td><td>Hafif / Siddetli / Eklampsi</td></tr>
+      <tr><td><b>HELLP Mississippi</b></td><td>Hemoliz + AST + trombosit</td><td>Sinif I / II / III</td></tr>
+      <tr><td><b>Bishop Skoru</b></td><td>5 servikal parametre</td><td>Dogum indikasyonu uygunluk</td></tr>
+      <tr><td><b>VTE Padua Skoru</b></td><td>Yatan hasta + 11 risk faktoru</td><td>Tromboz riski (LMWH gerek?)</td></tr>
+      <tr><td><b>Gebelik Takvimi</b></td><td>LMP gir -> tum kontrol tarihleri</td><td>NT, morfo, GDM, GBS, dogum cantasi</td></tr>
+      <tr><td><b>Smear/HPV (ASCCP 2019)</b></td><td>Sonuc + HPV durumu</td><td>Kolposkopi / 1y takip / 3y rutin</td></tr>
+      <tr><td><b>PHQ-9 Postpartum</b></td><td>9 soruluk depresyon skoru</td><td>Minimal -> burnout + intihar uyarisi</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="pb"></div>
+
+<!-- 4 OTOMASYON -->
+<div class="section">
+  <h2><span class="num">4</span> Otomatik Gunluk Islemler (Siz Uyurken)</h2>
+  <ul class="feat twocol">
+    <li><b>Gunluk hasta ozeti</b>: aksam saat 19'da WhatsApp/inbox - kac hasta, hangi tani</li>
+    <li><b>Anti-burnout dashboard</b>: hasta sayisi, en uzun mola, "ACIL hasta sayini azalt"</li>
+    <li><b>Stok takip</b>: ilac biterken / miat dolarken WhatsApp uyari</li>
+    <li><b>Memnuniyet anketi</b>: her sabah 09:00 dun gelen hastalara 5-yildiz</li>
+    <li><b>Dogum gunu tebrikleri</b>: bugun dogan hastalara otomatik mesaj</li>
+    <li><b>PubMed otomatik tarama</b>: 8 sorgu (preeklampsi, PCOS, FGR, GDM, ...) Turkce ozet</li>
+    <li><b>NAS yedek bekci</b>: yedek 24s eski ise alarm</li>
+    <li><b>Mojibake bekci</b>: Turkce karakter bozulmasi tarar (TESPIT only)</li>
+    <li><b>Backup verify</b>: restic + SQLite integrity + NAS uzayi her gece</li>
+    <li><b>PR Reviewer</b>: kod degisikliklerini ASCII + AGENT_VERSION + smoke kontrol</li>
+    <li><b>Geri cagirma</b>: lab sonucu cikan veya kontrolu gelmeyenler otomatik</li>
+    <li><b>Cron schedule</b>: 4 task Windows Task Scheduler ile</li>
+  </ul>
+</div>
+
+<!-- 5 HASTA ILETISIM -->
+<div class="section">
+  <h2><span class="num">5</span> Hasta Iletisim Kanallari</h2>
+  <ul class="feat twocol">
+    <li><b>Hatira USG</b>: guzel kareyi anonimize + watermark + tatli sablon -> anneye WhatsApp <span class="tag kvkk">consent ZORUNLU</span></li>
+    <li><b>Instagram hazirlik</b>: header bilgileri silinir, square crop, hashtag onerisi</li>
+    <li><b>Hasta self-service portal</b>: magic link (24s) -> ziyaret + recete + lab</li>
+    <li><b>WhatsApp bot (n8n)</b>: "randevu" mesaji parse -> sistemine baglar</li>
+    <li><b>WhatsApp tek mesaj</b>: lab sonucu / recete hazir / kontrol hatirlatma</li>
+    <li><b>WhatsApp resim + metin</b>: USG hatira, hasta egitim broÅŸur</li>
+    <li><b>SMS gonderim</b> (Twilio stub - production hazir)</li>
+    <li><b>Sesli not</b>: XTTS voice cloning (Hakan sesi) - stub, onay gerek</li>
+    <li><b>PWA push notif</b>: doktor saatine acil hasta cagrisi</li>
+    <li><b>Otomatik onam (consent)</b>: KVKK uyumlu form + dijital imza alani</li>
+  </ul>
+</div>
+
+<!-- 6 MULTIMEDIA -->
+<div class="section">
+  <h2><span class="num">6</span> Goruntu, Belge, Multimedya</h2>
+  <ul class="feat twocol">
+    <li><b>USG PDF import</b>: Voluson cikti -> patient_demographics + visits tablo</li>
+    <li><b>USG goruntu analizi (AI)</b>: modality + view + GA + biyometri</li>
+    <li><b>USG rapor taslagi</b>: Hadlock EFW + LLM yorum eklemesi</li>
+    <li><b>DICOM goruntuleyici</b>: OHIF Viewer (browser'da USG/MR/CT)</li>
+    <li><b>3D Slicer</b>: medikal segmentasyon + olcum (anatomik calisma)</li>
+    <li><b>Tesseract OCR</b>: PDF/foto'dan otomatik metin cikarma</li>
+    <li><b>Stirling-PDF</b>: PDF birlestir / bol / sifrele / imzala</li>
+    <li><b>Instagram square draft</b>: 1080x1080 + watermark + filtre</li>
+    <li><b>Hatira USG draft</b>: yumusatma + parlaklik + alt yazi</li>
+    <li><b>RAG indeksi</b>: tum PDF + Word + makale arama</li>
+  </ul>
+</div>
+
+<!-- 7 GUVENLIK / KVKK -->
+<div class="section">
+  <h2><span class="num">7</span> Guvenlik, KVKK ve ISO 27001</h2>
+  <ul class="feat twocol">
+    <li><span class="tag kvkk">KVKK</span> <b>Hasta riza</b>: tablo + UI - rizasi olmadan WhatsApp/Insta gonderim BLOK</li>
+    <li><span class="tag kvkk">KVKK</span> <b>Audit log</b>: kim ne zaman ne yapti - eksiksiz kayit</li>
+    <li><b>2FA TOTP</b>: Google Authenticator ile 6 hane (backup kod uretir)</li>
+    <li><b>Magic link</b>: hastaya 24s sureli tek-kullanim portal linki</li>
+    <li><b>Vaultwarden</b>: kendi serverde Bitwarden uyumlu sifre yoneticisi</li>
+    <li><b>HTTPS / TLS</b>: lokal sertifika + opsiyonel Caddy auto-renew</li>
+    <li><b>Tailscale Funnel</b>: ev disindan sifreli erisim, zero-trust</li>
+    <li><b>Uyumluluk panosu</b>: A+ ile F arasi anlik skor + eksikler listesi</li>
+    <li><b>11 kritik kontrol</b>: ISO27001 A.9 + A.10 + A.12 + KVKK m.6 m.7 m.12</li>
+    <li><b>PII Redact</b>: T.C., telefon, e-mail otomatik maskeleme</li>
+    <li><b>Sentry hata izleme</b>: gizli veri gondermeden (opsiyonel)</li>
+    <li><b>Restic sifreli yedek</b>: parola ile sifrelenmis NAS + harici disk</li>
+  </ul>
+</div>
+
+<!-- 8 YAN PROGRAMLAR -->
+<div class="section">
+  <h2><span class="num">8</span> Yardimci Kurulu Programlar (Akillilik Paketi)</h2>
+  <table class="feat">
+    <thead><tr><th>Program</th><th>Ne ise yarar</th></tr></thead>
+    <tbody>
+      <tr><td><b>Vaultwarden</b></td><td>Sifre yoneticisi (lokal Bitwarden), tum sifrelerinizi tek yerden yonet</td></tr>
+      <tr><td><b>Uptime Kuma</b></td><td>Server canli mi takip dashboard, 60 saniyede bir kontrol</td></tr>
+      <tr><td><b>n8n</b></td><td>WhatsApp + e-posta + takvim + RSS otomatik akislari (no-code)</td></tr>
+      <tr><td><b>Open WebUI</b></td><td>ChatGPT benzeri arayuz, lokal Ollama'ya baglanir</td></tr>
+      <tr><td><b>OHIF Viewer</b></td><td>DICOM goruntuleyici - USG, MR, CT browser'da</td></tr>
+      <tr><td><b>Stirling-PDF</b></td><td>PDF birlestir/bol/sifrele/imzala/OCR - 30+ islem</td></tr>
+      <tr><td><b>3D Slicer</b></td><td>Medikal goruntu segmentasyon + volumetrik analiz</td></tr>
+      <tr><td><b>Tesseract OCR</b></td><td>PDF/foto'dan metin cikarma (Turkce + Ingilizce)</td></tr>
+      <tr><td><b>Poppler</b></td><td>PDF islemleri arac seti (Voluson PDF parse temeli)</td></tr>
+      <tr><td><b>Restic</b></td><td>Sifreli artimsal yedek (deduplication + parola)</td></tr>
+      <tr><td><b>Obsidian</b></td><td>Tibbi not + bilgi havuzu (markdown, link, graph)</td></tr>
+      <tr><td><b>Zotero</b></td><td>Makale referans yoneticisi (PubMed entegre)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 9 VERI TABANI -->
+<div class="section">
+  <h2><span class="num">9</span> Veri Tabani, Arama, Yedek</h2>
+  <ul class="feat twocol">
+    <li><b>SQLite</b>: ana DB (yazklinik_v68.sqlite3), hizli + tek dosya</li>
+    <li><b>PostgreSQL 16</b>: ileri sorgu (analytics + raporlama)</li>
+    <li><b>Redis 7</b>: hizli cache (LLM yanit cache, session, oran sinirlama)</li>
+    <li><b>MeiliSearch v1.13</b>: 15.936 kayitta saniye altinda typo-tolerant arama</li>
+    <li><b>ChromaDB + BGE-M3</b>: semantic RAG - "preeklampside ne yapilir?" anlam bazli</li>
+    <li><b>BGE-Reranker-v2-m3</b>: RAG sonuclarini relevansa gore yeniden siralar</li>
+    <li><b>BM25 hibrit arama</b>: keyword + semantic karisik (cite hakli)</li>
+    <li><b>11 sema migration</b>: idempotent boot-time tablo olusturma</li>
+    <li><b>Restic gunluk yedek</b>: sifreli, deduplication, 30 gun retention</li>
+    <li><b>NAS Asustor backup</b>: gece otomatik, integrity check sabah</li>
+    <li><b>SQLite PRAGMA integrity</b>: gece her DB bozulma kontrolu</li>
+    <li><b>Schema migrations</b>: hangi versiyonda hangi tablo eklendi takip</li>
+  </ul>
+</div>
+
+<!-- 10 TELEFON / SES -->
+<div class="section">
+  <h2><span class="num">10</span> Telefon, Cagri, Sesli Asistan</h2>
+  <ul class="feat twocol">
+    <li><b>SIP Bridge</b>: gelen cagri sesi STT'den gecip telesekreter triyaja</li>
+    <li><b>Telesekreter Triaj</b>: acil/randevu/diger/sat-sec siniflandirma</li>
+    <li><b>Sesli Onay</b>: hasta "evet" der -> randevu state auto-confirmed</li>
+    <li><b>Alex sesli asistan</b>: VAD + Whisper STT + TTS, sesli sohbet</li>
+    <li><b>Voice Command</b>: 20+ regex - olcum, navigate, kaydet, ara</li>
+    <li><b>Eli-serbest mod</b>: ameliyat/USG sirasinda sesle veri girisi</li>
+    <li><b>Whisper microservice</b>: port 9000, real-time STT</li>
+    <li><b>TTS sesli okuma</b>: lab sonuclari otomatik sesli aciklama</li>
+  </ul>
+</div>
+
+<!-- 11 DOKTOR VERIM -->
+<div class="section">
+  <h2><span class="num">11</span> Doktorun Kendi Verimi ve Refah</h2>
+  <ul class="feat twocol">
+    <li><span class="tag new">YENI</span> <b>Anti-Burnout dashboard</b>: gunluk hasta, en uzun mola, haftalik trend</li>
+    <li><span class="tag new">YENI</span> <b>Pomodoro uyarisi</b>: 2 saat boyunca molasiz calistinda "su ic, ayaga kalk"</li>
+    <li><span class="tag new">YENI</span> <b>Yorgunluk skoru</b>: 0-100, kritik seviyede yarinki randevu sayisi onerisi</li>
+    <li><b>Voice Command</b>: olcumu sesle direkt forma yaz, klavyeden kurtulus</li>
+    <li><b>Multi-Agent Orchestrator</b>: "tam ziyaret" tek tik -> 5 ajan zincirleme</li>
+    <li><b>Kisayollar</b>: Alt+A (Alex), Alt+M (medikal tema), Alt+C (komut paleti)</li>
+    <li><b>WebShell mode</b>: Chrome/Edge app-mode hizli kabuk</li>
+    <li><b>Surukleneblir Alex bar</b>: ekranin istediginiz yerine sabitlenebilir</li>
+    <li><b>9 preset pozisyon</b>: sol-ust, orta, sag-alt vs bir tikta</li>
+    <li><b>3 tema</b>: medikal, premium, executive</li>
+    <li><b>Drag-resize panel</b>: USG raporu yanda, hasta dosyasi onde</li>
+    <li><b>Klavye onceligi</b>: tab + enter ile her form bitirilebilir</li>
+  </ul>
+</div>
+
+<div class="pb"></div>
+
+<!-- 12 ENTEGRASYON -->
+<div class="section">
+  <h2><span class="num">12</span> Resmi Entegrasyon ve Stub'lar</h2>
+  <ul class="feat twocol">
+    <li><b>e-Nabiz / KTS</b>: e-recete bildirim + lab cek (production hazir iskelet)</li>
+    <li><b>MHRS</b>: randevu import / export stub</li>
+    <li><b>Medula SGK</b>: provizyon sorgulama + e-recete bildirim stub</li>
+    <li><b>Duzen Lab API</b>: hastanin lab sonuclarini cek + manuel entry</li>
+    <li><b>BulutKlinik sync</b>: bekci ajan ariza tespit + alarm (aktif)</li>
+    <li><b>Iyzico odeme</b>: kart tahsilat + 3D secure + iade (production hazir)</li>
+    <li><b>Stripe odeme</b>: global kart (production hazir)</li>
+    <li><b>IoT Bluetooth</b>: Omron BP, Xiaomi tarti, Accu-Chek glukoz parser</li>
+    <li><b>Twilio SMS/Voice</b>: bridge skeleton (production hazir)</li>
+    <li><b>Apple Watch / WearOS</b>: PWA push (gelistirme yol haritasi)</li>
+  </ul>
+</div>
+
+<!-- 13 MOBIL / PWA -->
+<div class="section">
+  <h2><span class="num">13</span> Mobil ve PWA (Progressive Web App)</h2>
+  <ul class="feat twocol">
+    <li><b>Telefondan ekrana ekle</b>: native app gibi calisir (offline cache)</li>
+    <li><b>Service Worker</b>: internet kesilse bile temel sayfalar acilir</li>
+    <li><b>Push Notification</b>: doktor saatine bildirim (acil hasta)</li>
+    <li><b>Manifest shortcuts</b>: Yeni Hasta, Randevular, Dashboard dogrudan</li>
+    <li><b>3 ikon boyutu</b>: 192px + 512px + maskeli</li>
+    <li><b>Standalone mode</b>: tarayici cubugu olmadan, tam ekran</li>
+    <li><b>Tema rengi senkron</b>: Android'de status bar mavi</li>
+    <li><b>Offline form cache</b>: internet yokken bile form doldurabilirsiniz</li>
+  </ul>
+</div>
+
+<!-- 14 SISTEM / GENISLEME -->
+<div class="section">
+  <h2><span class="num">14</span> Sistem Mimari ve Genisleme</h2>
+  <ul class="feat twocol">
+    <li><b>Plugin sistemi</b>: 3. taraf .py ajan dosyasini plugins/ klasorune at</li>
+    <li><b>Multi-agent orchestrator</b>: 3 senario - full_visit, pubmed_pack, usg_pipeline</li>
+    <li><b>Celery + Redis</b>: agir isleri arka planda (PubMed RAG, USG batch)</li>
+    <li><b>Celery beat schedule</b>: gece yedek + gunluk ozet otomatik</li>
+    <li><b>RAG hibrit + citation</b>: cevap + kaynak referansi (PubMed PMID)</li>
+    <li><b>Dosya yapisi</b>: hasta_xxx/yas-tani-tarih klasor yapisi (BK + NAS uyumlu)</li>
+    <li><b>Status page</b>: public uptime - hastalara da gosterilebilir</li>
+    <li><b>Manifest version</b>: tum modul versiyonlari merkezi log</li>
+    <li><b>Health check</b>: her ajanda kendi health endpoint</li>
+    <li><b>Audit hooks</b>: tum ajan cagrisi audit_log'a duser</li>
+    <li><b>Boot-time migrate</b>: yeni tablo varsa otomatik olusturur</li>
+    <li><b>Cookie-based session</b>: doktor + asistan + sekreter rol bazli</li>
+  </ul>
+</div>
+
+<!-- HIGHLIGHT -->
+<div class="highlight">
+  <b>Onemli ozellik:</b> Tum yapay zeka <b>tamamen sizin PC'nizde</b> calisiyor.
+  ChatGPT veya benzeri bulut servisine hasta verisi gitmiyor.
+  KVKK acisindan da gerek doktor gerek hasta bilgisi <b>asla disariya cikmiyor</b>.
+  RTX 5090 ekran karti ile meditron:70b modeli yerel calisiyor.
+</div>
+
+<!-- SUPER OZET -->
+<div class="super-summary">
+  <h2>>>> 7 Maddelik Super Ozet <<<</h2>
+  <ol>
+    <li><b>Lokal AI</b> - tum yapay zeka kendi PC'nde, ChatGPT'siz, hicbir veri disariya cikmaz</li>
+    <li><b>Tek pencerede her sey</b> - hasta dosyasi + randevu + USG + recete + lab + ileti</li>
+    <li><b>Klinik karar destek</b> - DDI, gebelik kategori, preeklampsi/HELLP/Bishop/VTE, ASCCP smear</li>
+    <li><b>Otomasyon</b> - memnuniyet anketi, dogum gunu, yedek, stok, PubMed taramasi otomatik</li>
+    <li><b>KVKK + ISO 27001</b> - audit log, riza, 2FA, sifreli yedek, anlik uyumluluk skoru</li>
+    <li><b>Yan programlar</b> - 9 Docker servis (Vaultwarden, n8n, OHIF, 3D Slicer, ...)</li>
+    <li><b>Genisleme</b> - plugin sistemi, orchestrator, e-Nabiz/MHRS/Medula entegrasyon iskeletleri</li>
+  </ol>
+</div>
+
+<!-- TEKNIK -->
+<div class="tech">
+  <b># Teknik Detay (doktor isterse)</b><br>
+  <span class="k">Stack:</span> Python 3.12 + Flask + waitress + SQLite + Docker Compose<br>
+  <span class="k">Server:</span> RTX 5090 PC, Windows, lokal HTTPS port 5443<br>
+  <span class="k">AI Modelleri:</span> meditron:70b (klinik), qwen2.5:32b (genel), llama3.2-vision:11b (USG), bge-m3 (embedding), yaz:latest<br>
+  <span class="k">Veri tabani:</span> SQLite (ana) + PostgreSQL 16 + Redis 7 + MeiliSearch v1.13 + ChromaDB<br>
+  <span class="k">Yedek:</span> Restic sifreli (NAS + harici disk) + gunluk integrity check<br>
+  <span class="k">Uzaktan erisim:</span> Tailscale Funnel (zero-trust VPN)<br>
+  <span class="k">Iletisim:</span> WhatsApp (yerel) + SIP bridge + SMS (Twilio) + e-posta<br>
+  <span class="k">Baslat:</span> D500_BASLAT.bat (tek tik)<br>
+  <span class="k">DB Migrate:</span> RUN_DB_MIGRATE.bat (idempotent tablo olusturma)<br>
+  <span class="k">Master Install:</span> INSTALL_FULL_YAZKLINIK.ps1 -Run (her sey otomatik)<br>
+  <span class="k">Smoke Test:</span> VERIFY_AKILLILIK.ps1 (60+ kontrol noktasi)<br>
+  <span class="k">Toplam kod:</span> ~60 Python ajani + ~91 REST endpoint + 11 SQL migration<br>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="v">Op. Dr. Hakan YAZ Kadin Hastaliklari ve Dogum Klinigi</div>
+  YazKlinik D700 - Mayis 2026 - Yapay Zeka Destekli Lokal Klinik Yonetim Sistemi<br>
+  Hicbir hasta verisi disariya gondermeyen, KVKK uyumlu, kendi sunucunuzda calisan tam paket.<br>
+  <i style="opacity:0.7">Hazirlayan: Claude AI - Anthropic (Mayis 2026)</i>
+</div>
+
+</body>
+</html>
+

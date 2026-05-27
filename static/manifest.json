@@ -1,0 +1,80 @@
+﻿{
+  "name": "YazKlinik - Op. Dr. Hakan Yaz",
+  "short_name": "YazKlinik",
+  "description": "Op. Dr. Hakan Yaz KadÄ±n HastalÄ±klarÄ± ve DoÄŸum Klinik YÃ¶netim Sistemi",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "any",
+  "background_color": "#0d4f8b",
+  "theme_color": "#1769aa",
+  "lang": "tr",
+  "dir": "ltr",
+  "id": "/yazklinik-d700",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/icons/apple-touch-icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["medical", "health", "productivity", "business"],
+  "shortcuts": [
+    {
+      "name": "Yeni Hasta",
+      "short_name": "Yeni",
+      "description": "Yeni hasta kayÄ±t",
+      "url": "/yeni-hasta",
+      "icons": [{"src": "/static/icons/icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Randevular",
+      "short_name": "Takvim",
+      "description": "BugÃ¼nÃ¼n randevularÄ±",
+      "url": "/randevular",
+      "icons": [{"src": "/static/icons/icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Dashboard",
+      "short_name": "Panel",
+      "description": "Klinik dashboard",
+      "url": "/dashboard",
+      "icons": [{"src": "/static/icons/icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Ajanlar",
+      "short_name": "Ajanlar",
+      "description": "Klinik yapay zeka ajanlarÄ±",
+      "url": "/ajanlar",
+      "icons": [{"src": "/static/icons/icon-192.png", "sizes": "192x192"}]
+    }
+  ]
+}
+

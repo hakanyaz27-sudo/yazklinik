@@ -1,0 +1,739 @@
+﻿/* ============================================================
+   YazKlinik D700 Modern Klinik Theme
+   Scope: light theme only. Additive CSS layer loaded last.
+   Goal: calmer clinical UI, better contrast, consistent controls.
+   ============================================================ */
+
+html:not([data-theme="dark"]) {
+  --ykm-bg: #f6faf9;
+  --ykm-surface: #ffffff;
+  --ykm-surface-2: #f9fcfb;
+  --ykm-ink: #152033;
+  --ykm-text: #2d4057;
+  --ykm-muted: #65778b;
+  --ykm-line: #d8e5e8;
+  --ykm-line-strong: #bfd0d7;
+  --ykm-blue: #1769aa;
+  --ykm-teal: #0f766e;
+  --ykm-green: #16815f;
+  --ykm-rose: #a83a62;
+  --ykm-amber: #a26a18;
+  --ykm-red: #b3261e;
+  --ykm-radius: 8px;
+  --ykm-shadow: 0 2px 10px rgba(20, 39, 58, 0.07);
+  --ykm-shadow-hover: 0 8px 22px rgba(20, 39, 58, 0.11);
+  --ykm-focus: 0 0 0 3px rgba(15, 118, 110, 0.16);
+  color-scheme: light;
+}
+
+html:not([data-theme="dark"]) body {
+  background:
+    linear-gradient(180deg, #f8fbfc 0%, var(--ykm-bg) 52%, #f2f8f5 100%) !important;
+  color: var(--ykm-text) !important;
+  letter-spacing: 0 !important;
+}
+
+html:not([data-theme="dark"]) body::before {
+  background: linear-gradient(90deg, var(--ykm-blue), var(--ykm-teal), var(--ykm-rose), var(--ykm-amber)) !important;
+  height: 4px !important;
+}
+
+html:not([data-theme="dark"]) :where(.main-container, .page-content, .content, main) {
+  background: transparent !important;
+}
+
+html:not([data-theme="dark"]) :where(h1, h2, h3, h4, h5, h6, .page-title, .yk-title) {
+  color: var(--ykm-ink) !important;
+  letter-spacing: 0 !important;
+  text-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) :where(p, small, .small, .text-muted, .muted, .form-text, .hint, .yk-hint) {
+  color: var(--ykm-muted) !important;
+}
+
+html:not([data-theme="dark"]) :where(.top-header, .yk-header) {
+  background: rgba(255, 255, 255, 0.97) !important;
+  border: 1px solid var(--ykm-line) !important;
+  border-top: 0 !important;
+  border-radius: 0 0 var(--ykm-radius) var(--ykm-radius) !important;
+  box-shadow: var(--ykm-shadow) !important;
+  min-height: 62px !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar, #leftSidebar, .yk-sidebar, .sidebar.use-modern-nav) {
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbfb 100%) !important;
+  border-right: 1px solid var(--ykm-line) !important;
+  box-shadow: 4px 0 18px rgba(20, 39, 58, 0.05) !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar a, .sidebar-link, .yk-sidebar a, .quick-action, .sidebar-quick a) {
+  min-height: 38px !important;
+  border-radius: var(--ykm-radius) !important;
+  color: var(--ykm-text) !important;
+  font-weight: 650 !important;
+  letter-spacing: 0 !important;
+  border: 1px solid transparent !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar a:hover, .sidebar-link:hover, .yk-sidebar a:hover, .quick-action:hover, .sidebar-quick a:hover) {
+  background: #edf8f7 !important;
+  border-color: #c7e4e0 !important;
+  color: var(--ykm-teal) !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar a.active, .sidebar-link.active, .yk-sidebar a.active) {
+  background: #e8f3fb !important;
+  border-color: #c8dff1 !important;
+  border-left: 4px solid var(--ykm-teal) !important;
+  color: #0d5f9a !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar-section-title, .yk-sidebar-section-label, .sidebar .section-title) {
+  color: #536a81 !important;
+  background: transparent !important;
+  padding: 7px 8px !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-weight: 800 !important;
+}
+
+html:not([data-theme="dark"]) :where(.card, .yk-card, .panel, .yk-panel, .stat-card, .kpi-card, .metric-card, .patient-card, .agent-card, .tool-card, .dashboard-card, .summary-card, .info-card, .yk-widget, .yk-section, .accordion-item) {
+  background: var(--ykm-surface) !important;
+  border: 1px solid var(--ykm-line) !important;
+  border-radius: var(--ykm-radius) !important;
+  box-shadow: var(--ykm-shadow) !important;
+  color: var(--ykm-text) !important;
+}
+
+html:not([data-theme="dark"]) :where(.card, .yk-card, .patient-card, .agent-card, .tool-card, .dashboard-card, .summary-card) {
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease !important;
+}
+
+html:not([data-theme="dark"]) :where(.card:hover, .yk-card:hover, .patient-card:hover, .agent-card:hover, .tool-card:hover, .dashboard-card:hover, .summary-card:hover) {
+  transform: translateY(-1px) !important;
+  border-color: var(--ykm-line-strong) !important;
+  box-shadow: var(--ykm-shadow-hover) !important;
+}
+
+html:not([data-theme="dark"]) :where(.card-header, .yk-card-header, .modal-header, .offcanvas-header, .accordion-header) {
+  background: var(--ykm-surface-2) !important;
+  border-bottom: 1px solid var(--ykm-line) !important;
+  color: var(--ykm-ink) !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn, button, .yk-btn, .theme-picker-btn, .header-icon-btn) {
+  border-radius: var(--ykm-radius) !important;
+  min-height: 38px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  text-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-primary, .yk-primary, .primary-btn) {
+  background: linear-gradient(135deg, var(--ykm-blue), var(--ykm-teal)) !important;
+  border-color: transparent !important;
+  color: #ffffff !important;
+  box-shadow: 0 5px 14px rgba(23, 105, 170, 0.22) !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-success, .yk-success) {
+  background: var(--ykm-green) !important;
+  border-color: var(--ykm-green) !important;
+  color: #ffffff !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-outline-primary, .btn-outline-secondary, .btn-light, .header-icon-btn) {
+  background: #ffffff !important;
+  border-color: var(--ykm-line) !important;
+  color: var(--ykm-text) !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn:hover, button:hover, .yk-btn:hover) {
+  filter: none !important;
+  transform: translateY(-1px) !important;
+}
+
+html:not([data-theme="dark"]) :where(.form-control, .form-select, input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  background-color: #ffffff !important;
+  border: 1px solid var(--ykm-line) !important;
+  border-radius: var(--ykm-radius) !important;
+  color: var(--ykm-ink) !important;
+  min-height: 38px !important;
+  box-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) :where(.form-control:focus, .form-select:focus, input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus) {
+  border-color: var(--ykm-teal) !important;
+  box-shadow: var(--ykm-focus) !important;
+}
+
+html:not([data-theme="dark"]) :where(.table, .yk-table) {
+  color: var(--ykm-text) !important;
+  border-color: var(--ykm-line) !important;
+}
+
+html:not([data-theme="dark"]) :where(.table thead, .yk-table thead) {
+  background: #edf5f7 !important;
+  color: var(--ykm-ink) !important;
+  border-bottom: 1px solid var(--ykm-line-strong) !important;
+}
+
+html:not([data-theme="dark"]) :where(.table tbody tr, .yk-table tbody tr) {
+  border-color: var(--ykm-line) !important;
+}
+
+html:not([data-theme="dark"]) :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: #f2faf8 !important;
+}
+
+html:not([data-theme="dark"]) :where(.badge, .chip, .yk-chip, .tag, .pill) {
+  border-radius: 999px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0 !important;
+  border: 1px solid rgba(21, 32, 51, 0.08) !important;
+}
+
+html:not([data-theme="dark"]) :where(.badge.bg-primary, .pill.bg-primary, .chip-primary) {
+  background: #e8f3fb !important;
+  color: #0d5f9a !important;
+}
+
+html:not([data-theme="dark"]) :where(.badge.bg-success, .pill.bg-success, .chip-success) {
+  background: #e5f4ed !important;
+  color: #12634b !important;
+}
+
+html:not([data-theme="dark"]) :where(.badge.bg-warning, .pill.bg-warning, .chip-warning) {
+  background: #fff4dc !important;
+  color: #7a4d07 !important;
+}
+
+html:not([data-theme="dark"]) :where(.badge.bg-danger, .pill.bg-danger, .chip-danger) {
+  background: #fde9e7 !important;
+  color: #8f211b !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-board {
+  max-width: 1360px !important;
+  margin: 0 auto !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-board .yk-patient-command {
+  background: linear-gradient(180deg, #ffffff 0%, #f9fcfb 100%) !important;
+  border: 1px solid var(--ykm-line) !important;
+  border-radius: var(--ykm-radius) !important;
+  box-shadow: var(--ykm-shadow) !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-title-line h1::after,
+html:not([data-theme="dark"]) :where(h1, .page-title)::after {
+  height: 3px !important;
+  width: 64px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, var(--ykm-teal), var(--ykm-rose), var(--ykm-amber)) !important;
+}
+
+html:not([data-theme="dark"]) :where(.yk-patient-metric, .stat-card, .kpi-card, .metric-card) {
+  border-left: 4px solid var(--ykm-blue) !important;
+}
+
+html:not([data-theme="dark"]) :where(.yk-patient-metric:nth-child(2), .stat-card:nth-child(2), .kpi-card:nth-child(2), .metric-card:nth-child(2)) {
+  border-left-color: var(--ykm-teal) !important;
+}
+
+html:not([data-theme="dark"]) :where(.yk-patient-metric:nth-child(3), .stat-card:nth-child(3), .kpi-card:nth-child(3), .metric-card:nth-child(3)) {
+  border-left-color: var(--ykm-rose) !important;
+}
+
+html:not([data-theme="dark"]) :where(.yk-patient-metric:nth-child(4), .stat-card:nth-child(4), .kpi-card:nth-child(4), .metric-card:nth-child(4)) {
+  border-left-color: var(--ykm-amber) !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-searchbar {
+  background: #ffffff !important;
+  border: 1px solid var(--ykm-line) !important;
+  border-radius: var(--ykm-radius) !important;
+  min-height: 52px !important;
+  box-shadow: var(--ykm-shadow) !important;
+}
+
+html:not([data-theme="dark"]) .patient-card {
+  border-left: 5px solid var(--ykm-teal) !important;
+}
+
+html:not([data-theme="dark"]) .patient-card:nth-child(3n + 2) {
+  border-left-color: var(--ykm-rose) !important;
+}
+
+html:not([data-theme="dark"]) .patient-card:nth-child(3n + 3) {
+  border-left-color: var(--ykm-amber) !important;
+}
+
+html:not([data-theme="dark"]) .agent-card {
+  border-left: 5px solid var(--ykm-blue) !important;
+}
+
+html:not([data-theme="dark"]) .agent-card:nth-child(4n + 2) {
+  border-left-color: var(--ykm-teal) !important;
+}
+
+html:not([data-theme="dark"]) .agent-card:nth-child(4n + 3) {
+  border-left-color: var(--ykm-rose) !important;
+}
+
+html:not([data-theme="dark"]) .agent-card:nth-child(4n + 4) {
+  border-left-color: var(--ykm-amber) !important;
+}
+
+html:not([data-theme="dark"]) #yk-hasta-portal-fab {
+  top: auto !important;
+  right: 18px !important;
+  bottom: 18px !important;
+  border-radius: var(--ykm-radius) !important;
+  background: linear-gradient(135deg, var(--ykm-teal), var(--ykm-green)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.62) !important;
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.26) !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar-link span, .quick-action span, .quick-action small, .menu-text, .btn, .badge, .chip, .pill) {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-wrap: anywhere !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar-link span, .quick-action span, .quick-action small, .menu-text) {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 900px) {
+  html:not([data-theme="dark"]) :where(.main-container, .page-content, main) {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  html:not([data-theme="dark"]) :where(.top-header, .yk-header) {
+    min-height: 56px !important;
+    border-radius: 0 !important;
+  }
+
+  html:not([data-theme="dark"]) :where(.card, .yk-card, .patient-card, .agent-card, .tool-card) {
+    border-radius: var(--ykm-radius) !important;
+  }
+
+  html:not([data-theme="dark"]) .yk-patient-searchbar {
+    min-height: 48px !important;
+  }
+
+  html:not([data-theme="dark"]) #yk-hasta-portal-fab {
+    right: 14px !important;
+    bottom: 84px !important;
+  }
+}
+
+/* === D700 PREMIUM SOFTWARE PASS ======================================== */
+html:not([data-theme="dark"]) {
+  --ykm-premium-blue: #0b65a3;
+  --ykm-premium-cyan: #0aa6a6;
+  --ykm-premium-ink: #102033;
+  --ykm-premium-panel: rgba(255, 255, 255, 0.94);
+  --ykm-premium-line: rgba(37, 93, 125, 0.18);
+  --ykm-premium-glow: 0 18px 44px rgba(16, 93, 126, 0.12);
+}
+
+html:not([data-theme="dark"]) body {
+  background:
+    linear-gradient(90deg, rgba(11, 101, 163, 0.08) 0, rgba(11, 101, 163, 0) 310px),
+    linear-gradient(180deg, #f9fcfd 0%, #eef8f7 48%, #f7fbf8 100%) !important;
+}
+
+html:not([data-theme="dark"]) :where(.main-container, .page-content, main) {
+  position: relative !important;
+}
+
+html:not([data-theme="dark"]) :where(.top-header, .yk-header) {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 253, 253, 0.94)) !important;
+  border-color: var(--ykm-premium-line) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.85) inset,
+    0 16px 34px rgba(17, 47, 72, 0.10) !important;
+  backdrop-filter: blur(18px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(145%) !important;
+}
+
+html:not([data-theme="dark"]) :where(.top-header input:not([type="checkbox"]):not([type="radio"]), .yk-header input:not([type="checkbox"]):not([type="radio"]), .search-box input:not([type="checkbox"]):not([type="radio"])) {
+  background: #ffffff !important;
+  border-color: rgba(27, 87, 123, 0.20) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.92) inset !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar, #leftSidebar, .yk-sidebar, .sidebar.use-modern-nav) {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 250, 250, 0.96)) !important;
+  box-shadow:
+    1px 0 0 rgba(255, 255, 255, 0.80) inset,
+    12px 0 34px rgba(21, 49, 71, 0.08) !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar-brand, .brand-box, .clinic-brand, .sidebar .brand) {
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(234, 247, 248, 0.72)) !important;
+  border: 1px solid rgba(23, 105, 170, 0.13) !important;
+  border-radius: var(--ykm-radius) !important;
+  box-shadow: 0 10px 24px rgba(20, 56, 82, 0.08) !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar a, .sidebar-link, .yk-sidebar a, .quick-action, .sidebar-quick a) {
+  box-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) :where(.sidebar a.active, .sidebar-link.active, .yk-sidebar a.active) {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.78) inset,
+    0 8px 18px rgba(11, 101, 163, 0.10) !important;
+}
+
+html:not([data-theme="dark"]) :where(.yk-patient-board .yk-patient-command, .dashboard-hero, .hero-card, .summary-hero) {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 252, 252, 0.96)) !important;
+  border-color: rgba(23, 105, 170, 0.18) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.88) inset,
+    0 22px 46px rgba(18, 57, 82, 0.11) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+html:not([data-theme="dark"]) :where(.yk-patient-board .yk-patient-command, .dashboard-hero, .hero-card, .summary-hero)::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  height: 4px !important;
+  background: linear-gradient(90deg, var(--ykm-premium-blue), var(--ykm-premium-cyan), var(--ykm-rose), var(--ykm-amber)) !important;
+  pointer-events: none !important;
+}
+
+html:not([data-theme="dark"]) :where(.card, .yk-card, .panel, .yk-panel, .stat-card, .kpi-card, .metric-card, .patient-card, .agent-card, .tool-card, .dashboard-card, .summary-card, .info-card, .yk-widget, .yk-section, .accordion-item) {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 253, 253, 0.95)) !important;
+  border-color: var(--ykm-premium-line) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.88) inset,
+    0 12px 28px rgba(18, 57, 82, 0.08) !important;
+}
+
+html:not([data-theme="dark"]) :where(.card:hover, .yk-card:hover, .patient-card:hover, .agent-card:hover, .tool-card:hover, .dashboard-card:hover, .summary-card:hover) {
+  border-color: rgba(10, 166, 166, 0.30) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.92) inset,
+    var(--ykm-premium-glow) !important;
+}
+
+html:not([data-theme="dark"]) :where(.stat-card, .kpi-card, .metric-card, .yk-patient-metric) {
+  min-height: 64px !important;
+}
+
+html:not([data-theme="dark"]) :where(.stat-value, .yk-patient-metric .value, .kpi-value, .metric-value) {
+  color: var(--ykm-premium-ink) !important;
+  font-variant-numeric: tabular-nums !important;
+  font-weight: 850 !important;
+}
+
+html:not([data-theme="dark"]) :where(.stat-label, .yk-patient-metric .label, .kpi-label, .metric-label) {
+  color: #60758a !important;
+  font-weight: 780 !important;
+  letter-spacing: 0 !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-primary, .yk-primary, .primary-btn, .btn-success) {
+  background:
+    linear-gradient(135deg, var(--ykm-premium-blue), var(--ykm-premium-cyan)) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.32) inset,
+    0 10px 22px rgba(10, 118, 128, 0.24) !important;
+  position: relative !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-primary, .yk-primary, .primary-btn, .btn-success)::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 1px auto 1px 1px !important;
+  width: 42% !important;
+  border-radius: calc(var(--ykm-radius) - 2px) !important;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0)) !important;
+  pointer-events: none !important;
+}
+
+html:not([data-theme="dark"]) :where(.btn-outline-primary, .btn-outline-secondary, .btn-light, .header-icon-btn) {
+  background:
+    linear-gradient(180deg, #ffffff, #f6fafb) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.90) inset,
+    0 5px 14px rgba(18, 57, 82, 0.07) !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-searchbar {
+  background:
+    linear-gradient(180deg, #ffffff, #f8fcfd) !important;
+  border-color: rgba(11, 101, 163, 0.24) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.94) inset,
+    0 14px 30px rgba(15, 90, 126, 0.10) !important;
+}
+
+html:not([data-theme="dark"]) .yk-patient-searchbar:focus-within {
+  border-color: var(--ykm-premium-cyan) !important;
+  box-shadow:
+    var(--ykm-focus),
+    0 18px 34px rgba(15, 90, 126, 0.13) !important;
+}
+
+html:not([data-theme="dark"]) .patient-card {
+  overflow: hidden !important;
+}
+
+html:not([data-theme="dark"]) .patient-card::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0)) !important;
+  pointer-events: none !important;
+}
+
+html:not([data-theme="dark"]) :where(.patient-card .avatar, .patient-card [class*="avatar"], .patient-card .initials, .patient-card [class*="initial"]) {
+  box-shadow:
+    0 0 0 3px #ffffff,
+    0 10px 22px rgba(11, 101, 163, 0.18) !important;
+}
+
+html:not([data-theme="dark"]) :where(.theme-panel, .dropdown-menu, .modal-content, .offcanvas) {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 1px solid var(--ykm-premium-line) !important;
+  border-radius: var(--ykm-radius) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.88) inset,
+    0 22px 50px rgba(16, 42, 62, 0.16) !important;
+}
+
+html:not([data-theme="dark"]) :where(.alert, .yk-alert) {
+  border-radius: var(--ykm-radius) !important;
+  border-width: 1px !important;
+  box-shadow: 0 8px 22px rgba(18, 57, 82, 0.06) !important;
+}
+
+@media (max-width: 900px) {
+  html:not([data-theme="dark"]) body {
+    background: linear-gradient(180deg, #f8fcfd 0%, #eef8f7 100%) !important;
+  }
+
+  html:not([data-theme="dark"]) :where(.yk-patient-board .yk-patient-command, .card, .yk-card, .patient-card, .agent-card, .tool-card) {
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.88) inset,
+      0 10px 22px rgba(18, 57, 82, 0.08) !important;
+  }
+
+  html:not([data-theme="dark"]) :where(.btn-primary, .yk-primary, .primary-btn, .btn-success)::after {
+    width: 34% !important;
+  }
+}
+
+/* D700 palette activation repair.
+   This file is loaded last, so it must preserve modern polish while letting
+   every selected palette visibly drive colors. */
+html[data-palette="medical-clinic"] {
+  --palette-accent: #1769aa;
+  --palette-accent-dark: #0f766e;
+  --palette-accent-soft: #dff6ff;
+  --palette-bg-1: #f4fbfc;
+  --palette-bg-2: #edf8f7;
+  --palette-bg-3: #f8fbfc;
+  --palette-card: rgba(255, 255, 255, 0.92);
+  --palette-card-strong: #ffffff;
+  --palette-header: rgba(255, 255, 255, 0.96);
+  --palette-border: #d8e5e8;
+  --palette-ink: #152033;
+  --palette-muted: #65778b;
+  --palette-warm: #16815f;
+}
+
+html[data-palette="midnight-pro"] {
+  --palette-accent: #6366f1;
+  --palette-accent-dark: #4338ca;
+  --palette-accent-soft: #c7d2fe;
+  --palette-bg-1: #0b0f2e;
+  --palette-bg-2: #11163a;
+  --palette-bg-3: #171b45;
+  --palette-card: rgba(22, 27, 61, 0.88);
+  --palette-card-strong: rgba(25, 31, 72, 0.96);
+  --palette-header: rgba(11, 15, 46, 0.88);
+  --palette-border: rgba(129, 140, 248, 0.24);
+  --palette-ink: #f0e7ff;
+  --palette-muted: #a5b4fc;
+  --palette-warm: #22d3ee;
+}
+
+html[data-palette="ocean-wave"] {
+  --palette-accent: #0e7490;
+  --palette-accent-dark: #155e75;
+  --palette-accent-soft: #cffafe;
+  --palette-bg-1: #ecfeff;
+  --palette-bg-2: #cffafe;
+  --palette-bg-3: #e0f7fb;
+  --palette-card: rgba(255, 255, 255, 0.9);
+  --palette-card-strong: #ffffff;
+  --palette-header: rgba(255, 255, 255, 0.94);
+  --palette-border: rgba(8, 145, 178, 0.2);
+  --palette-ink: #164e63;
+  --palette-muted: #42758a;
+  --palette-warm: #38bdf8;
+}
+
+html[data-palette="sunset-glow"] {
+  --palette-accent: #f97316;
+  --palette-accent-dark: #c2410c;
+  --palette-accent-soft: #fed7aa;
+  --palette-bg-1: #fff7ed;
+  --palette-bg-2: #ffedd5;
+  --palette-bg-3: #fff1f2;
+  --palette-card: rgba(255, 255, 255, 0.9);
+  --palette-card-strong: #ffffff;
+  --palette-header: rgba(255, 255, 255, 0.94);
+  --palette-border: rgba(234, 88, 12, 0.2);
+  --palette-ink: #431407;
+  --palette-muted: #7c3f16;
+  --palette-warm: #ec4899;
+}
+
+html[data-palette]:not([data-theme="dark"]) {
+  --ykm-page-1: var(--yk-theme-page, var(--palette-bg-1, #f6faf9));
+  --ykm-page-2: var(--yk-theme-page-2, var(--palette-bg-2, #eef8f7));
+  --ykm-page-3: var(--yk-theme-page-3, var(--palette-bg-3, #f8fbfc));
+  --ykm-bg: var(--ykm-page-1);
+  --ykm-surface: var(--yk-theme-surface, var(--palette-card, #ffffff));
+  --ykm-surface-2: var(--yk-theme-surface-soft, var(--palette-card, #f9fcfb));
+  --ykm-surface-strong: var(--yk-theme-surface-strong, var(--palette-card-strong, #ffffff));
+  --ykm-ink: var(--yk-theme-text, var(--palette-ink, #152033));
+  --ykm-text: var(--yk-theme-text, var(--palette-ink, #2d4057));
+  --ykm-muted: var(--yk-theme-muted, var(--palette-muted, #65778b));
+  --ykm-line: var(--yk-theme-line, var(--palette-border, #d8e5e8));
+  --ykm-line-strong: var(--yk-theme-line-strong, color-mix(in srgb, var(--palette-accent, #1769aa), transparent 70%));
+  --ykm-blue: var(--palette-accent, #1769aa);
+  --ykm-teal: var(--palette-accent-dark, #0f766e);
+  --ykm-green: var(--palette-warm, var(--palette-accent, #16815f));
+  --ykm-rose: color-mix(in srgb, var(--palette-accent, #a83a62), #ec4899 36%);
+  --ykm-amber: var(--palette-warm, #a26a18);
+  --ykm-premium-blue: var(--ykm-blue);
+  --ykm-premium-cyan: var(--ykm-teal);
+  --ykm-premium-ink: var(--ykm-ink);
+  --ykm-premium-panel: var(--ykm-surface-strong);
+  --ykm-premium-line: var(--ykm-line);
+  --ykm-premium-glow: 0 18px 44px color-mix(in srgb, var(--ykm-blue), transparent 86%);
+  --ykm-shadow: 0 2px 10px color-mix(in srgb, var(--ykm-blue), transparent 92%);
+  --ykm-shadow-hover: 0 8px 22px color-mix(in srgb, var(--ykm-blue), transparent 86%);
+  --ykm-focus: 0 0 0 3px color-mix(in srgb, var(--ykm-blue), transparent 84%);
+}
+
+html[data-palette]:not([data-theme="dark"]) body {
+  background:
+    radial-gradient(circle at 10% -8%, color-mix(in srgb, var(--ykm-blue), transparent 82%) 0, transparent 30%),
+    radial-gradient(circle at 96% 2%, color-mix(in srgb, var(--ykm-amber), transparent 84%) 0, transparent 28%),
+    linear-gradient(135deg, var(--ykm-page-1) 0%, var(--ykm-page-2) 54%, var(--ykm-page-3) 100%) !important;
+  color: var(--ykm-text) !important;
+  -webkit-text-fill-color: initial !important;
+}
+
+html[data-palette]:not([data-theme="dark"]) body::before {
+  background: linear-gradient(90deg, var(--ykm-blue), var(--ykm-teal), var(--ykm-rose), var(--ykm-amber)) !important;
+}
+
+html[data-palette]:not([data-theme="dark"]) :where(.top-header, .yk-header) {
+  background: var(--yk-theme-header, var(--palette-header, var(--ykm-surface-strong))) !important;
+  border-color: var(--ykm-line) !important;
+  color: var(--ykm-text) !important;
+}
+
+html[data-palette]:not([data-theme="dark"]):not([data-sidebar-palette]) :where(.sidebar, #leftSidebar, .yk-sidebar, .sidebar.use-modern-nav) {
+  background: linear-gradient(180deg, var(--ykm-surface-strong) 0%, var(--ykm-page-2) 100%) !important;
+  border-right-color: var(--ykm-line) !important;
+}
+
+html[data-palette]:not([data-theme="dark"]) :where(.card, .yk-card, .panel, .yk-panel, .stat-card, .kpi-card, .metric-card, .patient-card, .agent-card, .tool-card, .dashboard-card, .summary-card, .info-card, .yk-widget, .yk-section, .accordion-item, .theme-panel, .dropdown-menu, .modal-content, .offcanvas) {
+  background: var(--ykm-surface-strong) !important;
+  border-color: var(--ykm-line) !important;
+  color: var(--ykm-text) !important;
+  -webkit-text-fill-color: var(--ykm-text) !important;
+  box-shadow: var(--ykm-shadow) !important;
+}
+
+html[data-palette]:not([data-theme="dark"]) :where(.card:hover, .yk-card:hover, .patient-card:hover, .agent-card:hover, .tool-card:hover, .dashboard-card:hover, .summary-card:hover) {
+  border-color: var(--ykm-line-strong) !important;
+  box-shadow: var(--ykm-shadow-hover) !important;
+}
+
+html[data-palette]:not([data-theme="dark"]) :where(.btn-primary, .yk-primary, .primary-btn, .btn-success, .new-patient-btn, .search-btn, button[type="submit"]) {
+  background: linear-gradient(135deg, var(--ykm-blue), var(--ykm-teal)) !important;
+  border-color: color-mix(in srgb, var(--ykm-teal), transparent 28%) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--ykm-blue), transparent 76%) !important;
+}
+
+html[data-palette]:not([data-theme="dark"]) :where(.btn-outline-primary, .btn-outline-secondary, .btn-light, .header-icon-btn, .theme-picker-btn, .theme-mode-btn, .theme-swatch, .experience-mode-btn, .profile-chip) {
+  background: color-mix(in srgb, var(--ykm-surface-strong), var(--ykm-blue) 4%) !important;
+  border-color: var(--ykm-line) !important;
+  color: var(--ykm-text) !important;
+  -webkit-text-fill-color: var(--ykm-text) !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+html[data-palette]:not([data-theme="dark"]) :where(.theme-swatch.active, .theme-mode-btn.active, .experience-mode-btn.active) {
+  border-color: var(--ykm-blue) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ykm-blue), transparent 84%) !important;
+}
+
+html[data-palette]:not([data-theme="dark"]) :where(.form-control, .form-select, input:not([type="checkbox"]):not([type="radio"]), select, textarea, .yk-patient-searchbar) {
+  background: var(--ykm-surface-strong) !important;
+  border-color: var(--ykm-line) !important;
+  color: var(--ykm-ink) !important;
+  -webkit-text-fill-color: var(--ykm-ink) !important;
+}
+
+html[data-palette]:not([data-theme="dark"]) :where(.form-control:focus, .form-select:focus, input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus, .yk-patient-searchbar:focus-within) {
+  border-color: var(--ykm-blue) !important;
+  box-shadow: var(--ykm-focus) !important;
+}
+
+html[data-palette]:not([data-theme="dark"]) :where(.table thead, .yk-table thead) {
+  background: color-mix(in srgb, var(--ykm-blue), var(--ykm-surface-strong) 88%) !important;
+  color: var(--ykm-ink) !important;
+}
+
+html[data-palette]:not([data-theme="dark"]) :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: color-mix(in srgb, var(--ykm-blue), var(--ykm-surface-strong) 94%) !important;
+}
+
+html[data-palette]:not([data-theme="dark"]) :where(.badge, .chip, .yk-chip, .tag, .pill) {
+  background: color-mix(in srgb, var(--palette-accent-soft, var(--ykm-blue)), var(--ykm-surface-strong) 54%) !important;
+  border-color: var(--ykm-line) !important;
+  color: var(--ykm-teal) !important;
+  -webkit-text-fill-color: var(--ykm-teal) !important;
+}
+
+@media (max-width: 900px) {
+  html[data-palette]:not([data-theme="dark"]) body {
+    background:
+      radial-gradient(circle at 12% -6%, color-mix(in srgb, var(--ykm-blue), transparent 86%) 0, transparent 30%),
+      linear-gradient(180deg, var(--ykm-page-1) 0%, var(--ykm-page-2) 100%) !important;
+  }
+}
+

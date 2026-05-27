@@ -1,0 +1,44 @@
+{
+  "ok": true,
+  "started_at": "2026-05-20 23:29:40",
+  "hf_home": "D:\\YazKlinik_Final_D500\\models\\huggingface",
+  "models": [
+    {
+      "model": "google/medgemma-1.5-4b-it",
+      "ok": true,
+      "local_path": "D:\\YazKlinik_Final_D500\\models\\huggingface\\hub\\models--google--medgemma-1.5-4b-it\\snapshots\\91850547d9f0b2fdd21aa7c5f4f3d1a8a52c243b",
+      "size_gb": 8.05,
+      "error": ""
+    },
+    {
+      "model": "google/medgemma-4b-it",
+      "ok": true,
+      "local_path": "D:\\YazKlinik_Final_D500\\models\\huggingface\\hub\\models--google--medgemma-4b-it\\snapshots\\290cda5eeccbee130f987c4ad74a59ae6f196408",
+      "size_gb": 8.05,
+      "error": ""
+    },
+    {
+      "model": "google/medgemma-4b-pt",
+      "ok": true,
+      "local_path": "D:\\YazKlinik_Final_D500\\models\\huggingface\\hub\\models--google--medgemma-4b-pt\\snapshots\\1b7b4a7e462da7ab2bc40591ec86ca449edc388a",
+      "size_gb": 8.05,
+      "error": ""
+    },
+    {
+      "model": "google/medgemma-27b-text-it",
+      "ok": true,
+      "local_path": "D:\\YazKlinik_Final_D500\\models\\huggingface\\hub\\models--google--medgemma-27b-text-it\\snapshots\\5b667cf2ddcf064085bc90952edb35a0edbfb79c",
+      "size_gb": 50.34,
+      "error": ""
+    },
+    {
+      "model": "google/medgemma-27b-it",
+      "ok": true,
+      "local_path": "D:\\YazKlinik_Final_D500\\models\\huggingface\\hub\\models--google--medgemma-27b-it\\snapshots\\2d3e00ea38b50018bf5dd3aa1009457cd2d5a48f",
+      "size_gb": 51.13,
+      "error": ""
+    }
+  ],
+  "huggingface_user": "yazhakan",
+  "finished_at": "2026-05-20 23:29:46"
+}

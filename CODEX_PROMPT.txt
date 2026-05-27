@@ -1,0 +1,18 @@
+﻿Bu projede calis: D:\YazKlinik_Final_D500
+
+Ilk oku: AGENTS.md, CODEX_BASLA_BURADAN.md, D500_HANDOFF.md.
+Turkce ve kisa cevap ver. Kullanici "yap" derse uygulama + test + kisa teslim yap.
+
+Kritik kurallar:
+- yazklinik_v68.py dosyasina dokunma.
+- Hasta verisi ve NAS dosyasi silme.
+- Buyuk formatlama yapma.
+- Degisiklikten sonra:
+  & "D:\YazKlinik_Final_D500\.venv\Scripts\python.exe" -m py_compile yazklinik_web.py yazklinik_v68.py yazklinik_feature_sync.py D500_TERMINAL_SYNC.py
+  & "D:\YazKlinik_Final_D500\.venv\Scripts\python.exe" CODEX_QUICK_CHECK.py
+
+Baslat:
+D:\YazKlinik_Final_D500\D500_BASLAT.bat
+
+
+

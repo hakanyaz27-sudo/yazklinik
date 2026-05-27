@@ -1,0 +1,453 @@
+﻿/* ============================================================
+   YazKlinik Apple Liquid Glass (iOS 26) - Tum Hastalar
+   Scope: .yk-patient-board (sadece bu sayfayi etkiler).
+   Koyu lacivert-mor zemin + glassmorphism kart + neon glow.
+   D700 v18 2026-05-17 - Liquid Glass variant
+   ============================================================ */
+
+/* === BODY - koyu zemin + radial neon glow halkalar === */
+html.yk-page-home, html.yk-page-home body,
+body.yk-page-home {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(79, 172, 254, 0.18) 0px, transparent 35%),
+    radial-gradient(circle at 88% 12%, rgba(240, 147, 251, 0.16) 0px, transparent 38%),
+    radial-gradient(circle at 50% 95%, rgba(0, 242, 254, 0.10) 0px, transparent 42%),
+    linear-gradient(160deg, #0a0e27 0%, #1a1d3a 55%, #0f172a 100%) !important;
+  background-attachment: fixed !important;
+  color: #f8fafc !important;
+}
+
+/* Genel metin rengi (sidebar/ust bar harici kalan icerik) */
+body.yk-page-home .yk-patient-board,
+body.yk-page-home .yk-patient-board * {
+  color-scheme: dark;
+}
+
+/* === BOARD WRAPPER === */
+.yk-patient-board {
+  padding: 28px 12px !important;
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+/* === COMMAND PANEL - liquid glass === */
+.yk-patient-board .yk-patient-command {
+  background: rgba(255, 255, 255, 0.06) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 28px !important;
+  padding: 30px 34px !important;
+  margin-bottom: 22px !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 20px 60px rgba(0, 0, 0, 0.40),
+    0 4px 16px rgba(0, 0, 0, 0.20) !important;
+  animation: ykLGFade 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes ykLGFade {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* === TITLE === */
+.yk-patient-board .yk-patient-title .eyebrow {
+  text-transform: uppercase !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: rgba(248, 250, 252, 0.45) !important;
+  letter-spacing: 0.18em !important;
+  margin-bottom: 6px !important;
+  display: block;
+}
+.yk-patient-board .yk-patient-title h1 {
+  font-size: 40px !important;
+  font-weight: 700 !important;
+  color: #f8fafc !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.05 !important;
+  margin: 0 !important;
+  text-shadow: 0 0 24px rgba(79, 172, 254, 0.25);
+}
+.yk-patient-board .yk-patient-count {
+  background: linear-gradient(135deg, #f093fb, #f5576c) !important;
+  color: #fff !important;
+  padding: 6px 14px !important;
+  border-radius: 22px !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  margin-left: 12px !important;
+  box-shadow:
+    0 4px 16px rgba(240, 147, 251, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* === TOOLBAR === */
+.yk-patient-board .yk-patient-toolbar .btn {
+  border-radius: 14px !important;
+  padding: 10px 18px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgba(248, 250, 252, 0.85) !important;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+.yk-patient-board .yk-patient-toolbar .btn:hover {
+  background: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(79, 172, 254, 0.50) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(79, 172, 254, 0.20);
+}
+.yk-patient-board .yk-patient-toolbar .btn-outline-secondary {
+  color: rgba(248, 250, 252, 0.75) !important;
+}
+
+/* === METRIC CARDS - glass + neon ring === */
+.yk-patient-board .yk-patient-metrics,
+.yk-patient-board [class*="metric"] {
+  gap: 14px !important;
+}
+.yk-patient-board .yk-patient-metric,
+.yk-patient-board .yk-stat,
+.yk-patient-board .stat-card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 22px !important;
+  padding: 20px 22px !important;
+  -webkit-backdrop-filter: blur(30px) saturate(160%);
+  backdrop-filter: blur(30px) saturate(160%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.10) inset,
+    0 12px 36px rgba(0, 0, 0, 0.30) !important;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  position: relative;
+  overflow: hidden !important;
+  color: #f8fafc !important;
+}
+.yk-patient-board .yk-patient-metric:hover,
+.yk-patient-board .yk-stat:hover {
+  transform: translateY(-4px) scale(1.015);
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.20) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 20px 48px rgba(0, 0, 0, 0.40) !important;
+}
+/* Neon vurgu cizgisi - her metric farkli renk */
+.yk-patient-board .yk-patient-metric:nth-of-type(1)::before,
+.yk-patient-board .yk-stat:nth-of-type(1)::before {
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background: linear-gradient(180deg, #f093fb, #f5576c);
+  box-shadow: 0 0 16px rgba(240, 147, 251, 0.7);
+}
+.yk-patient-board .yk-patient-metric:nth-of-type(2)::before,
+.yk-patient-board .yk-stat:nth-of-type(2)::before {
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background: linear-gradient(180deg, #4facfe, #00f2fe);
+  box-shadow: 0 0 16px rgba(0, 242, 254, 0.7);
+}
+.yk-patient-board .yk-patient-metric:nth-of-type(3)::before,
+.yk-patient-board .yk-stat:nth-of-type(3)::before {
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background: linear-gradient(180deg, #43e97b, #38f9d7);
+  box-shadow: 0 0 16px rgba(67, 233, 123, 0.7);
+}
+.yk-patient-board .yk-patient-metric:nth-of-type(4)::before,
+.yk-patient-board .yk-stat:nth-of-type(4)::before {
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background: linear-gradient(180deg, #fee140, #fa709a);
+  box-shadow: 0 0 16px rgba(254, 225, 64, 0.6);
+}
+.yk-patient-board .yk-patient-metric:nth-of-type(5)::before,
+.yk-patient-board .yk-stat:nth-of-type(5)::before {
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background: linear-gradient(180deg, #ff5858, #f857a6);
+  box-shadow: 0 0 16px rgba(255, 88, 88, 0.7);
+}
+
+/* Metric eyebrow / label */
+.yk-patient-board .yk-patient-metric .label,
+.yk-patient-board .yk-patient-metric > div:first-child,
+.yk-patient-board .yk-stat .label {
+  color: rgba(248, 250, 252, 0.55) !important;
+  text-transform: uppercase;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+}
+/* Metric value */
+.yk-patient-board .yk-patient-metric .value,
+.yk-patient-board .yk-patient-metric > div:last-child,
+.yk-patient-board .yk-stat .value {
+  font-size: 34px !important;
+  font-weight: 700 !important;
+  color: #f8fafc !important;
+  letter-spacing: -0.02em !important;
+  margin-top: 4px !important;
+  font-variant-numeric: tabular-nums !important;
+  text-shadow: 0 0 18px rgba(79, 172, 254, 0.20);
+}
+
+/* === SEARCH BAR - liquid glass pill === */
+.yk-patient-board .yk-patient-search-form { margin-top: 18px; }
+.yk-patient-board .yk-patient-searchbar {
+  background: rgba(255, 255, 255, 0.05) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(160%);
+  backdrop-filter: blur(30px) saturate(160%);
+  border-radius: 22px !important;
+  padding: 5px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  transition: all 0.2s ease;
+}
+.yk-patient-board .yk-patient-searchbar:focus-within {
+  background: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(0, 242, 254, 0.50) !important;
+  box-shadow: 0 0 0 4px rgba(0, 242, 254, 0.12),
+              0 12px 32px rgba(0, 242, 254, 0.15) !important;
+}
+.yk-patient-board #searchBox {
+  border: none !important;
+  background: transparent !important;
+  padding: 14px 18px !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  color: #f8fafc !important;
+  flex: 1 !important;
+  outline: none !important;
+}
+.yk-patient-board #searchBox::placeholder { color: rgba(248,250,252,0.40) !important; }
+.yk-patient-board #searchBox:focus { box-shadow: none !important; }
+.yk-patient-board .yk-patient-searchbar .btn {
+  border-radius: 18px !important;
+  padding: 12px 24px !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+}
+.yk-patient-board .yk-patient-searchbar .btn-primary {
+  background: linear-gradient(135deg, #4facfe, #00f2fe) !important;
+  border: none !important;
+  color: #0a0e27 !important;
+  box-shadow:
+    0 8px 24px rgba(0, 242, 254, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.20) inset !important;
+}
+
+/* === PATIENT CARDS === */
+.yk-patient-board #patientList {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+  gap: 16px !important;
+}
+.yk-patient-board #patientList .patient-card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 22px !important;
+  padding: 20px !important;
+  color: #f8fafc !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 12px 36px rgba(0, 0, 0, 0.32) !important;
+  transition: all 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+.yk-patient-board #patientList .patient-card::before {
+  display: none !important;
+}
+/* Hover: parlak ic cizgi + lift */
+.yk-patient-board #patientList .patient-card:hover {
+  transform: translateY(-4px) scale(1.015) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(79, 172, 254, 0.40) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 0 0 1.5px rgba(79, 172, 254, 0.30) inset,
+    0 24px 60px rgba(0, 0, 0, 0.45),
+    0 8px 24px rgba(79, 172, 254, 0.20) !important;
+}
+
+/* Avatar - cam halka + neon glow */
+.yk-patient-board #patientList .yk-patient-avatar {
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 50% !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  background: linear-gradient(135deg, #4facfe, #00f2fe) !important;
+  border: 2px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow:
+    0 0 0 4px rgba(79, 172, 254, 0.15),
+    0 0 24px rgba(79, 172, 254, 0.50),
+    0 4px 16px rgba(0, 0, 0, 0.30) !important;
+  color: #0a0e27 !important;
+  text-shadow: none !important;
+}
+/* Gebe - neon pembe */
+.yk-patient-board #patientList .patient-card.yk-patient-status-pregnant .yk-patient-avatar {
+  background: linear-gradient(135deg, #f093fb, #f5576c) !important;
+  box-shadow:
+    0 0 0 4px rgba(240, 147, 251, 0.20),
+    0 0 24px rgba(240, 147, 251, 0.55),
+    0 4px 16px rgba(0, 0, 0, 0.30) !important;
+  color: #fff !important;
+}
+/* Yeni - neon yesil */
+.yk-patient-board #patientList .patient-card.yk-patient-status-new .yk-patient-avatar {
+  background: linear-gradient(135deg, #43e97b, #38f9d7) !important;
+  box-shadow:
+    0 0 0 4px rgba(67, 233, 123, 0.20),
+    0 0 24px rgba(67, 233, 123, 0.55),
+    0 4px 16px rgba(0, 0, 0, 0.30) !important;
+  color: #0a0e27 !important;
+}
+/* Riskli - neon kirmizi-mor */
+.yk-patient-board #patientList .patient-card.yk-patient-status-risk .yk-patient-avatar {
+  background: linear-gradient(135deg, #ff5858, #f857a6) !important;
+  box-shadow:
+    0 0 0 4px rgba(248, 87, 166, 0.20),
+    0 0 24px rgba(248, 87, 166, 0.60),
+    0 4px 16px rgba(0, 0, 0, 0.30) !important;
+  color: #fff !important;
+}
+
+/* Patient name */
+.yk-patient-board #patientList .yk-patient-name {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  color: #f8fafc !important;
+  letter-spacing: -0.01em !important;
+  margin: 0 !important;
+  text-shadow: 0 0 12px rgba(79, 172, 254, 0.15);
+}
+.yk-patient-board #patientList .yk-patient-meta {
+  font-size: 12.5px !important;
+  color: rgba(248, 250, 252, 0.55) !important;
+  margin-top: 4px !important;
+}
+
+/* Kart icindeki butonlar - subtle glass */
+.yk-patient-board #patientList .patient-card .btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  color: rgba(248, 250, 252, 0.85) !important;
+  border-radius: 12px !important;
+}
+.yk-patient-board #patientList .patient-card .btn:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(79, 172, 254, 0.40) !important;
+}
+.yk-patient-board #patientList .patient-card .btn-primary {
+  background: linear-gradient(135deg, #4facfe, #00f2fe) !important;
+  color: #0a0e27 !important;
+  border: none !important;
+  font-weight: 700 !important;
+}
+
+/* === STAGGER FADE-IN === */
+.yk-patient-board #patientList .patient-card {
+  animation: ykLGStagger 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+.yk-patient-board #patientList .patient-card:nth-child(1) { animation-delay: 0.05s; }
+.yk-patient-board #patientList .patient-card:nth-child(2) { animation-delay: 0.08s; }
+.yk-patient-board #patientList .patient-card:nth-child(3) { animation-delay: 0.11s; }
+.yk-patient-board #patientList .patient-card:nth-child(4) { animation-delay: 0.14s; }
+.yk-patient-board #patientList .patient-card:nth-child(5) { animation-delay: 0.17s; }
+.yk-patient-board #patientList .patient-card:nth-child(6) { animation-delay: 0.20s; }
+.yk-patient-board #patientList .patient-card:nth-child(7) { animation-delay: 0.23s; }
+.yk-patient-board #patientList .patient-card:nth-child(8) { animation-delay: 0.26s; }
+.yk-patient-board #patientList .patient-card:nth-child(9) { animation-delay: 0.29s; }
+.yk-patient-board #patientList .patient-card:nth-child(10){ animation-delay: 0.32s; }
+@keyframes ykLGStagger {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* === GRID/LISTE TOGGLE === */
+.yk-patient-board .yk-patient-view-toggle {
+  background: rgba(255, 255, 255, 0.05) !important;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-radius: 16px !important;
+  padding: 5px !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+.yk-patient-board .yk-patient-view-toggle button {
+  border-radius: 11px !important;
+  padding: 8px 16px !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  background: transparent !important;
+  color: rgba(248, 250, 252, 0.65) !important;
+  border: none !important;
+}
+.yk-patient-board .yk-patient-view-toggle button.active {
+  background: linear-gradient(135deg, #4facfe, #00f2fe) !important;
+  color: #0a0e27 !important;
+  box-shadow: 0 4px 16px rgba(0, 242, 254, 0.35) !important;
+}
+
+/* === PAGER === */
+.yk-patient-board .yk-patient-pager,
+.yk-patient-board [class*="pager"] {
+  background: rgba(255, 255, 255, 0.05) !important;
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 18px !important;
+  padding: 14px 18px !important;
+  margin-bottom: 16px !important;
+  color: rgba(248, 250, 252, 0.85) !important;
+}
+.yk-patient-board .yk-patient-pager .btn,
+.yk-patient-board [class*="pager"] .btn {
+  border-radius: 12px !important;
+  padding: 8px 16px !important;
+  font-weight: 600 !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: rgba(248, 250, 252, 0.85) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+.yk-patient-board .yk-patient-pager .btn:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(79, 172, 254, 0.40) !important;
+}
+
+/* === FLAG / BADGE / TAG renkleri (varsa) === */
+.yk-patient-board .badge,
+.yk-patient-board .yk-tag,
+.yk-patient-board [class*="tag-"] {
+  background: rgba(255, 255, 255, 0.10) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: rgba(248, 250, 252, 0.85) !important;
+  border-radius: 999px !important;
+  padding: 3px 10px !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+}
+
+/* === MOBILE === */
+@media (max-width: 720px) {
+  .yk-patient-board .yk-patient-title h1 { font-size: 28px !important; }
+  .yk-patient-board .yk-patient-command { padding: 20px 16px !important; border-radius: 22px !important; }
+  .yk-patient-board #patientList { grid-template-columns: 1fr !important; }
+  .yk-patient-board .yk-patient-metric .value,
+  .yk-patient-board .yk-stat .value { font-size: 26px !important; }
+}
+
+/* === REDUCED MOTION === */
+@media (prefers-reduced-motion: reduce) {
+  .yk-patient-board .yk-patient-command,
+  .yk-patient-board #patientList .patient-card { animation: none !important; }
+}
+

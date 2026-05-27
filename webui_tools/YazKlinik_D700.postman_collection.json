@@ -1,0 +1,153 @@
+﻿{
+  "info": {
+    "name": "YazKlinik D700 - Temel API Kontrolleri",
+    "_postman_id": "d700-local-health-readiness",
+    "description": "D700 icin login, public status, readiness, PostgreSQL ve Alex temel API kontrolleri.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Login - doktor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-www-form-urlencoded"
+          }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "username",
+              "value": "{{username}}",
+              "type": "text"
+            },
+            {
+              "key": "password",
+              "value": "{{password}}",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/giris",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "giris"
+          ]
+        }
+      }
+    },
+    {
+      "name": "02 Public Status",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/status",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "status"
+          ]
+        }
+      }
+    },
+    {
+      "name": "03 Sistem Durumu",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/sistem-durumu",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "sistem-durumu"
+          ]
+        }
+      }
+    },
+    {
+      "name": "04 Compliance Readiness",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/agents/compliance/readiness",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "agents",
+            "compliance",
+            "readiness"
+          ]
+        }
+      }
+    },
+    {
+      "name": "05 PostgreSQL Health",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/db/postgres/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "db",
+            "postgres",
+            "health"
+          ]
+        }
+      }
+    },
+    {
+      "name": "06 Alex QA Deep",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/alex/qa?deep=1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "alex",
+            "qa"
+          ],
+          "query": [
+            {
+              "key": "deep",
+              "value": "1"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://127.0.0.1:5443"
+    },
+    {
+      "key": "username",
+      "value": "doktor"
+    },
+    {
+      "key": "password",
+      "value": "1133"
+    }
+  ]
+}
+
+

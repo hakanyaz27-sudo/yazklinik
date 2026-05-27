@@ -1,0 +1,292 @@
+﻿/* D700 Sidebar Classic Override
+   Keep left menu simple while full theme palette remains active.
+*/
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-section,
+html:not([data-theme="dark"]) .sidebar-modern-nav .sidebar-section {
+  margin: 0 0 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-section-title,
+html:not([data-theme="dark"]) .sidebar-modern-nav .sidebar-section-title {
+  padding: 7px 10px 4px !important;
+  margin: 0 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  text-transform: uppercase !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-link,
+html:not([data-theme="dark"]) .sidebar-modern-nav .sidebar-link {
+  min-height: 37px !important;
+  margin: 0 0 3px !important;
+  padding: 7px 10px !important;
+  border-radius: 8px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transform: none !important;
+  transition: background-color 140ms ease, border-color 140ms ease !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-link::before,
+html:not([data-theme="dark"]) .sidebar-modern-nav .sidebar-link::before {
+  display: none !important;
+  content: none !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-link:hover,
+html:not([data-theme="dark"]) .sidebar-modern-nav .sidebar-link:hover {
+  background: #edf4fb !important;
+  border-color: #cfe0f0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-link.active,
+html:not([data-theme="dark"]) .sidebar-modern-nav .sidebar-link.active {
+  background: #e8f1fa !important;
+  border-color: #c4d8ed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-link-icon,
+html:not([data-theme="dark"]) .sidebar-modern-nav .sidebar-link-icon {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  border-radius: 5px !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-link-icon i,
+html:not([data-theme="dark"]) .sidebar-modern-nav .sidebar-link-icon i {
+  font-size: 14px !important;
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-subgroup,
+html:not([data-theme="dark"]) .sidebar-modern-nav .sidebar-subgroup,
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-fold {
+  margin: 4px 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-subgroup summary,
+html:not([data-theme="dark"]) .sidebar-modern-nav .sidebar-subgroup summary,
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-fold summary {
+  min-height: 34px !important;
+  padding: 6px 10px !important;
+  border: 1px solid transparent !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-weight: 700 !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-subgroup summary:hover,
+html:not([data-theme="dark"]) .sidebar-modern-nav .sidebar-subgroup summary:hover,
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-fold summary:hover {
+  background: #edf4fb !important;
+  border-color: #cfe0f0 !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-subgroup summary small,
+html:not([data-theme="dark"]) .sidebar-modern-nav .sidebar-subgroup summary small {
+  background: transparent !important;
+  color: #6b7d91 !important;
+  font-size: 10px !important;
+  padding: 0 !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-subgroup .sidebar-fold-body,
+html:not([data-theme="dark"]) .sidebar-modern-nav .sidebar-subgroup .sidebar-fold-body {
+  padding: 2px 4px 4px !important;
+}
+
+html:not([data-theme="dark"]) .sidebar.use-modern-nav .sidebar-subgroup .sidebar-link,
+html:not([data-theme="dark"]) .sidebar-modern-nav .sidebar-subgroup .sidebar-link {
+  min-height: 34px !important;
+  padding: 6px 9px !important;
+  margin-bottom: 3px !important;
+}
+
+/* D700 v3: real high-contrast lock for dark sidebar palettes.
+   This file loads after the other theme CSS, so keep the sidebar readable here. */
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-link,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-link span:not(.sidebar-link-icon):not(.sidebar-badge-mini),
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-link strong,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-link small,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-link i,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-quick-action,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-quick-action strong,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-quick-action span,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-quick-action small,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-menu-shortcuts a,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-menu-shortcuts a *,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-brand-name,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .yk-midnight-pro-btn,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .yk-midnight-pro-btn *,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-orbit,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-orbit-title,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-orbit-row,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-orbit-row a,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-menu-finder-title,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-menu-finder-title span,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-fold summary,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-fold summary * {
+  color: #F8FAFC !important;
+  -webkit-text-fill-color: #F8FAFC !important;
+  opacity: 1 !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .35) !important;
+}
+
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-section-title,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-section-title *,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .yk-sidebar-section-label,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-manifest-group-title,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-orbit-kicker,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-menu-finder-title small,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-subgroup summary small {
+  color: #E5EEF7 !important;
+  -webkit-text-fill-color: #E5EEF7 !important;
+  opacity: 1 !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .32) !important;
+}
+
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-orbit .keycap {
+  color: #F8FAFC !important;
+  -webkit-text-fill-color: #F8FAFC !important;
+  border-color: rgba(248, 250, 252, .42) !important;
+  background: rgba(255, 255, 255, .10) !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .35) !important;
+}
+
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .yk-midnight-pro-btn {
+  background: rgba(15, 33, 55, .92) !important;
+  border-color: rgba(248, 250, 252, .24) !important;
+}
+
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-brand-doctor,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .yk-mode-badge,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .yk-version-badge {
+  color: #0B2545 !important;
+  -webkit-text-fill-color: #0B2545 !important;
+  text-shadow: none !important;
+}
+
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-link:hover,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-quick-action:hover,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-menu-shortcuts a:hover,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-subgroup summary:hover,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-fold summary:hover {
+  background: rgba(255, 255, 255, .14) !important;
+  border-color: rgba(255, 255, 255, .26) !important;
+}
+
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"]):not([data-theme="dark"])
+  body .sidebar.use-modern-nav .sidebar-link.active {
+  background: rgba(96, 165, 250, .32) !important;
+  border-color: rgba(147, 197, 253, .44) !important;
+}
+
+/* D700 v7: night/pro sidebars still had occasional low-contrast text.
+   Enforce readable ink in both light+dark theme modes when palette is dark. */
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"])
+  body :where(.sidebar.use-modern-nav, .sidebar-modern-nav) :where(
+    .sidebar-link,
+    .sidebar-link *,
+    .sidebar-fold > summary,
+    .sidebar-fold > summary *,
+    .sidebar-subgroup > summary,
+    .sidebar-subgroup > summary *,
+    .sidebar-menu-shortcuts a,
+    .sidebar-menu-shortcuts a *,
+    .yk-midnight-pro-btn,
+    .yk-midnight-pro-btn *
+  ) {
+  color: #F8FBFF !important;
+  -webkit-text-fill-color: #F8FBFF !important;
+  opacity: 1 !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .38) !important;
+}
+
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"])
+  body :where(.sidebar.use-modern-nav, .sidebar-modern-nav) .sidebar-link {
+  background: rgba(255, 255, 255, .06) !important;
+  border-color: rgba(203, 226, 255, .16) !important;
+}
+
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"])
+  body :where(.sidebar.use-modern-nav, .sidebar-modern-nav) .sidebar-link:hover,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"])
+  body :where(.sidebar.use-modern-nav, .sidebar-modern-nav) .sidebar-subgroup > summary:hover,
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"])
+  body :where(.sidebar.use-modern-nav, .sidebar-modern-nav) .sidebar-fold > summary:hover {
+  background: rgba(255, 255, 255, .14) !important;
+  border-color: rgba(203, 226, 255, .30) !important;
+}
+
+html[data-sidebar-palette]:not([data-sidebar-palette="light"]):not([data-sidebar-palette="pearl"])
+  body :where(.sidebar.use-modern-nav, .sidebar-modern-nav) .sidebar-link.active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, .48), rgba(20, 184, 166, .40)) !important;
+  border-color: rgba(191, 219, 254, .52) !important;
+}
+

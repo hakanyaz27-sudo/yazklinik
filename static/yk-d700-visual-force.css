@@ -1,0 +1,1730 @@
+/* D700 visual force layer (2026-05-27)
+   Loaded last to guarantee visible improvements on every page/theme. */
+
+:root {
+  --yk700-accent-a: #1667a6;
+  --yk700-accent-b: #11837d;
+  --yk700-ink: #14324c;
+  --yk700-line: rgba(20, 72, 114, 0.22);
+  --yk700-line-soft: rgba(20, 72, 114, 0.14);
+  --yk700-shadow: 0 12px 30px rgba(15, 48, 79, 0.16);
+  --yk700-shadow-strong: 0 18px 42px rgba(15, 48, 79, 0.24);
+  --yk700-radius: 14px;
+}
+
+html body {
+  background-image:
+    radial-gradient(960px 360px at 110% -8%, rgba(22, 103, 166, 0.16), transparent 62%),
+    radial-gradient(860px 330px at -10% -5%, rgba(17, 131, 125, 0.15), transparent 58%) !important;
+}
+
+html[data-theme="dark"] body {
+  background-image:
+    radial-gradient(980px 360px at 110% -8%, rgba(22, 103, 166, 0.22), transparent 64%),
+    radial-gradient(860px 330px at -10% -5%, rgba(17, 131, 125, 0.20), transparent 60%) !important;
+}
+
+:where(.top-header, .yk-header) {
+  border-bottom: 1px solid var(--yk700-line) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.55) inset,
+    0 10px 28px rgba(14, 43, 70, 0.14) !important;
+  backdrop-filter: blur(10px) saturate(136%);
+  -webkit-backdrop-filter: blur(10px) saturate(136%);
+}
+
+html[data-theme="dark"] :where(.top-header, .yk-header) {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05) inset,
+    0 12px 30px rgba(0, 0, 0, 0.42) !important;
+}
+
+:where(.sidebar.use-modern-nav .sidebar-link, .sidebar a.sidebar-link) {
+  border-radius: 12px !important;
+  border: 1px solid transparent !important;
+}
+
+:where(.sidebar.use-modern-nav .sidebar-link:hover, .sidebar a.sidebar-link:hover) {
+  background: rgba(22, 103, 166, 0.10) !important;
+  border-color: rgba(22, 103, 166, 0.24) !important;
+}
+
+:where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  background: linear-gradient(135deg, rgba(22, 103, 166, 0.22), rgba(17, 131, 125, 0.18)) !important;
+  border-color: rgba(22, 103, 166, 0.32) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.32) !important;
+}
+
+:where(.card, .yk-card, .panel, .stat-card, .metric-card, .patient-card, .quick-card, .section-card, .dashboard-card) {
+  border-radius: var(--yk700-radius) !important;
+  border: 1px solid var(--yk700-line-soft) !important;
+  box-shadow: var(--yk700-shadow) !important;
+}
+
+:where(.card:hover, .yk-card:hover, .panel:hover, .stat-card:hover, .metric-card:hover, .patient-card:hover, .quick-card:hover, .section-card:hover, .dashboard-card:hover) {
+  transform: translateY(-2px) !important;
+  box-shadow: var(--yk700-shadow-strong) !important;
+}
+
+:where(.btn-primary, .btn-success, .btn-info, button.btn-primary, button.btn-success, button.btn-info, .yk-btn-primary) {
+  background-image: linear-gradient(135deg, var(--yk700-accent-a) 0%, var(--yk700-accent-b) 100%) !important;
+  border: 1px solid rgba(10, 59, 94, 0.26) !important;
+  box-shadow: 0 8px 20px rgba(15, 79, 126, 0.30) !important;
+}
+
+:where(.btn-primary:hover, .btn-success:hover, .btn-info:hover, button.btn-primary:hover, button.btn-success:hover, button.btn-info:hover, .yk-btn-primary:hover) {
+  filter: brightness(1.04) !important;
+  box-shadow: 0 12px 28px rgba(15, 79, 126, 0.38) !important;
+}
+
+:where(.form-control, .form-select, input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-radius: 12px !important;
+  border: 1px solid var(--yk700-line) !important;
+}
+
+:where(.form-control:focus, .form-select:focus, input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus) {
+  border-color: #1a76ad !important;
+  box-shadow: 0 0 0 4px rgba(26, 118, 173, 0.16) !important;
+}
+
+:where(table.table thead th, .yk-table thead th) {
+  background: linear-gradient(180deg, #f8fbff 0%, #eef5fb 100%) !important;
+  border-bottom: 1px solid var(--yk700-line) !important;
+  color: var(--yk700-ink) !important;
+  font-weight: 800 !important;
+}
+
+:where(table.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: rgba(22, 103, 166, 0.08) !important;
+}
+
+.yk-login-shell {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.yk-login-shell .card {
+  border-radius: 20px !important;
+  border: 1px solid var(--yk700-line) !important;
+  box-shadow:
+    0 24px 50px rgba(15, 48, 79, 0.26),
+    0 1px 0 rgba(255, 255, 255, 0.70) inset !important;
+}
+
+.yk-login-shell .btn.btn-primary {
+  min-height: 54px;
+  font-weight: 900 !important;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 760px) {
+  :where(.card, .yk-card, .panel, .stat-card, .metric-card, .patient-card, .quick-card, .section-card, .dashboard-card) {
+    border-radius: 12px !important;
+  }
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v2 (2026-05-27)
+   Hedef: daha premium tipografi + ritim + okunabilirlik.
+   ------------------------------------------------------------------ */
+:root {
+  --yk700-font: "Inter", "Segoe UI", "SF Pro Text", system-ui, sans-serif;
+  --yk700-surface: #ffffff;
+  --yk700-surface-soft: #f7fbff;
+  --yk700-zebra: #f9fcff;
+  --yk700-ink-soft: #33516d;
+}
+
+html, body {
+  font-family: var(--yk700-font) !important;
+  font-feature-settings: "cv02" 1, "cv03" 1, "tnum" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+:where(.main-container, .container, .container-fluid) {
+  max-width: 1520px;
+}
+
+:where(h1, h2, h3, h4, h5, h6) {
+  letter-spacing: .01em !important;
+}
+
+:where(.card, .yk-card, .panel, .section-card, .dashboard-card) {
+  background: linear-gradient(180deg, var(--yk700-surface) 0%, var(--yk700-surface-soft) 100%) !important;
+}
+
+:where(.card-header, .yk-card-header) {
+  border-bottom: 1px solid var(--yk700-line-soft) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(241,248,255,.90)) !important;
+  font-weight: 800 !important;
+  color: var(--yk700-ink) !important;
+}
+
+:where(.text-muted, small, .small, .form-text, .hint, .yk-hint) {
+  color: var(--yk700-ink-soft) !important;
+}
+
+:where(.btn, button.btn, .yk-btn) {
+  border-radius: 12px !important;
+  font-weight: 750 !important;
+  letter-spacing: .01em;
+}
+
+:where(.btn-outline-primary, .btn-outline-secondary, .btn-light) {
+  border-color: var(--yk700-line) !important;
+  color: #1c4468 !important;
+  background: #fff !important;
+}
+
+:where(.btn-outline-primary:hover, .btn-outline-secondary:hover, .btn-light:hover) {
+  background: rgba(22, 103, 166, 0.08) !important;
+}
+
+:where(.form-control, .form-select, input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  background: #fff !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.76) !important;
+  min-height: 42px;
+  color: #173a58 !important;
+}
+
+:where(table.table, .yk-table) {
+  border: 1px solid var(--yk700-line-soft);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+:where(table.table tbody tr:nth-child(even) td, .yk-table tbody tr:nth-child(even) td) {
+  background: var(--yk700-zebra);
+}
+
+:where(table.table td, table.table th, .yk-table td, .yk-table th) {
+  padding-top: .72rem !important;
+  padding-bottom: .72rem !important;
+}
+
+html[data-theme="dark"] :where(.card, .yk-card, .panel, .section-card, .dashboard-card) {
+  background: linear-gradient(180deg, rgba(16,24,39,.96), rgba(12,20,33,.98)) !important;
+}
+
+html[data-theme="dark"] :where(.card-header, .yk-card-header) {
+  background: linear-gradient(180deg, rgba(32,46,68,.72), rgba(21,31,48,.72)) !important;
+  border-bottom-color: rgba(148, 163, 184, 0.24) !important;
+}
+
+html[data-theme="dark"] :where(table.table tbody tr:nth-child(even) td, .yk-table tbody tr:nth-child(even) td) {
+  background: rgba(30, 41, 59, 0.36) !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :where(.card, .yk-card, .panel, .stat-card, .metric-card, .patient-card, .quick-card, .section-card, .dashboard-card) {
+    animation: yk700CardIn .24s ease both;
+  }
+  @keyframes yk700CardIn {
+    from { opacity: .84; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v3 (2026-05-27)
+   Hedef: fark edilir premium kontrast + düzen + görünürlük.
+   ------------------------------------------------------------------ */
+:root {
+  --yk700-v3-grad-a: #0f4f83;
+  --yk700-v3-grad-b: #0f7b72;
+  --yk700-v3-tag-bg: #ecf7ff;
+  --yk700-v3-tag-fg: #0f4c77;
+}
+
+:where(.top-header, .yk-header) {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.98), rgba(246,251,255,.96)) !important;
+}
+
+:where(.sidebar) {
+  border-right: 1px solid rgba(20, 72, 114, 0.18) !important;
+}
+
+:where(.sidebar.use-modern-nav .sidebar-link, .sidebar a.sidebar-link) {
+  margin-bottom: 4px !important;
+  font-weight: 700 !important;
+}
+
+:where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  color: #0e3f64 !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.42),
+    0 6px 16px rgba(15, 79, 131, 0.18) !important;
+}
+
+:where(.card, .yk-card, .panel, .section-card, .dashboard-card) {
+  border-width: 1px !important;
+}
+
+:where(.card-title, .panel-title, .section-title, .metric-title, .stat-title) {
+  font-weight: 850 !important;
+  color: #143c5f !important;
+}
+
+:where(.badge, .chip, .tag, .yk-chip) {
+  border-radius: 999px !important;
+  border: 1px solid rgba(15, 76, 119, .18) !important;
+  background: var(--yk700-v3-tag-bg) !important;
+  color: var(--yk700-v3-tag-fg) !important;
+  font-weight: 700 !important;
+}
+
+:where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  background-image:
+    linear-gradient(135deg, var(--yk700-v3-grad-a) 0%, var(--yk700-v3-grad-b) 100%) !important;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .12);
+}
+
+:where(.btn-lg, .btn-group-lg > .btn) {
+  min-height: 46px;
+}
+
+:where(.form-label, label) {
+  font-weight: 700 !important;
+  color: #244a67 !important;
+}
+
+:where(.form-control, .form-select, input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  min-height: 44px !important;
+}
+
+:where(table.table thead th, .yk-table thead th) {
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  font-size: .78rem !important;
+}
+
+:where(table.table tbody td, .yk-table tbody td) {
+  color: #1e4464;
+}
+
+html[data-theme="dark"] :where(.top-header, .yk-header) {
+  background:
+    linear-gradient(180deg, rgba(18,26,39,.96), rgba(15,22,34,.96)) !important;
+}
+
+html[data-theme="dark"] :where(.card-title, .panel-title, .section-title, .metric-title, .stat-title) {
+  color: #d9ecff !important;
+}
+
+html[data-theme="dark"] :where(.badge, .chip, .tag, .yk-chip) {
+  background: rgba(30, 64, 97, 0.36) !important;
+  color: #d2e9ff !important;
+  border-color: rgba(125, 177, 222, 0.34) !important;
+}
+
+@media (max-width: 960px) {
+  :where(.top-header, .yk-header) {
+    backdrop-filter: blur(8px) saturate(128%);
+    -webkit-backdrop-filter: blur(8px) saturate(128%);
+  }
+  :where(.card, .yk-card, .panel, .section-card, .dashboard-card) {
+    box-shadow: 0 10px 22px rgba(9, 30, 52, 0.16) !important;
+  }
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v4 (2026-05-27)
+   Hedef: daha net fark; bilgi hiyerarsisi ve okunabilirlik.
+   ------------------------------------------------------------------ */
+:root {
+  --yk700-v4-ink: #123858;
+  --yk700-v4-soft: #2b5577;
+  --yk700-v4-line: rgba(18, 56, 88, 0.16);
+  --yk700-v4-focus: rgba(19, 106, 168, 0.20);
+  --yk700-v4-pane: linear-gradient(180deg, #ffffff 0%, #f4f9ff 100%);
+}
+
+:where(.main-content, .content, main, .dashboard-main) {
+  padding-top: 12px !important;
+}
+
+:where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  background: var(--yk700-v4-pane) !important;
+  border: 1px solid var(--yk700-v4-line) !important;
+  box-shadow:
+    0 14px 32px rgba(12, 42, 70, 0.14),
+    0 1px 0 rgba(255, 255, 255, 0.8) inset !important;
+}
+
+:where(.card-header, .yk-card-header, .panel-header) {
+  padding-top: .85rem !important;
+  padding-bottom: .85rem !important;
+}
+
+:where(.card-title, .panel-title, .section-title, .metric-title, .stat-title) {
+  color: var(--yk700-v4-ink) !important;
+  font-size: clamp(1rem, 0.92rem + .25vw, 1.18rem) !important;
+}
+
+:where(.sidebar.use-modern-nav .sidebar-link, .sidebar a.sidebar-link) {
+  padding-top: .62rem !important;
+  padding-bottom: .62rem !important;
+  padding-left: .78rem !important;
+}
+
+:where(.sidebar.use-modern-nav .sidebar-link:hover, .sidebar a.sidebar-link:hover) {
+  transform: translateX(2px);
+}
+
+:where(.btn, button.btn, .yk-btn) {
+  min-height: 40px !important;
+  padding: .56rem .95rem !important;
+}
+
+:where(.form-control, .form-select, input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-color: rgba(19, 82, 128, 0.22) !important;
+}
+
+:where(.form-control:focus, .form-select:focus, input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus) {
+  box-shadow: 0 0 0 4px var(--yk700-v4-focus) !important;
+}
+
+:where(table.table thead th, .yk-table thead th) {
+  color: var(--yk700-v4-soft) !important;
+  background: linear-gradient(180deg, #fbfdff 0%, #eaf4ff 100%) !important;
+}
+
+:where(table.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: rgba(19, 106, 168, 0.10) !important;
+}
+
+:where(.kpi-value, .metric-value, .stat-value, .value, .big-number) {
+  font-weight: 900 !important;
+  letter-spacing: 0.01em;
+  color: #0f456d !important;
+}
+
+html[data-theme="dark"] :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  background: linear-gradient(180deg, rgba(17,26,39,.98), rgba(12,20,31,.98)) !important;
+  border-color: rgba(130, 168, 203, 0.24) !important;
+  box-shadow:
+    0 16px 34px rgba(0,0,0,.42),
+    0 1px 0 rgba(255,255,255,.05) inset !important;
+}
+
+html[data-theme="dark"] :where(.card-title, .panel-title, .section-title, .metric-title, .stat-title) {
+  color: #e4f1ff !important;
+}
+
+html[data-theme="dark"] :where(table.table thead th, .yk-table thead th) {
+  background: linear-gradient(180deg, rgba(40,58,83,.80), rgba(26,39,58,.80)) !important;
+  color: #cfe6ff !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v5 (2026-05-27)
+   Hedef: daha net okunurluk ve aksiyon hiyerarsisi.
+   ------------------------------------------------------------------ */
+:root {
+  --yk700-v5-focus: #0e6fb1;
+  --yk700-v5-focus-soft: rgba(14, 111, 177, 0.20);
+}
+
+:where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  font-weight: 800 !important;
+  letter-spacing: .015em !important;
+}
+
+:where(.form-control, .form-select, input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+}
+
+:where(.form-control:focus, .form-select:focus, input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus) {
+  border-color: var(--yk700-v5-focus) !important;
+  box-shadow: 0 0 0 4px var(--yk700-v5-focus-soft) !important;
+}
+
+:where(.table, .yk-table) {
+  font-size: .95rem !important;
+}
+
+:where(.table thead th, .yk-table thead th) {
+  font-weight: 800 !important;
+}
+
+:where(.table tbody td, .yk-table tbody td) {
+  vertical-align: middle !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v6 (2026-05-27)
+   Hedef: farki sertlestir - premium kontrast + net hiyerarsi.
+   ------------------------------------------------------------------ */
+:root {
+  --yk700-v6-brand-a: #0f4d7d;
+  --yk700-v6-brand-b: #0d7c72;
+  --yk700-v6-sidebar-bg: linear-gradient(180deg, #0f3d66 0%, #0b3153 48%, #0a2a47 100%);
+  --yk700-v6-sidebar-ink: #e7f4ff;
+  --yk700-v6-sidebar-muted: #b8d6ec;
+}
+
+html body {
+  background-image:
+    radial-gradient(860px 360px at 108% -8%, rgba(15, 96, 154, 0.22), transparent 64%),
+    radial-gradient(760px 330px at -8% 4%, rgba(13, 124, 114, 0.19), transparent 60%) !important;
+}
+
+:where(.sidebar) {
+  background: var(--yk700-v6-sidebar-bg) !important;
+  border-right: 1px solid rgba(186, 220, 244, 0.16) !important;
+}
+
+:where(.sidebar .sidebar-brand, .sidebar .brand, .sidebar .logo-text) {
+  color: #ffffff !important;
+}
+
+:where(.sidebar.use-modern-nav .sidebar-link, .sidebar a.sidebar-link) {
+  color: var(--yk700-v6-sidebar-ink) !important;
+  border: 1px solid transparent !important;
+}
+
+:where(.sidebar.use-modern-nav .sidebar-link .muted, .sidebar a.sidebar-link .muted, .sidebar small) {
+  color: var(--yk700-v6-sidebar-muted) !important;
+}
+
+:where(.sidebar.use-modern-nav .sidebar-link:hover, .sidebar a.sidebar-link:hover) {
+  background: rgba(117, 187, 238, 0.16) !important;
+  border-color: rgba(172, 221, 255, 0.35) !important;
+}
+
+:where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  background: linear-gradient(135deg, rgba(109, 183, 241, 0.30), rgba(70, 221, 194, 0.20)) !important;
+  border-color: rgba(190, 231, 255, 0.42) !important;
+  color: #ffffff !important;
+}
+
+:where(.top-header, .yk-header) {
+  border-bottom: 1px solid rgba(17, 79, 126, 0.26) !important;
+}
+
+:where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  background-image: linear-gradient(135deg, var(--yk700-v6-brand-a) 0%, var(--yk700-v6-brand-b) 100%) !important;
+  box-shadow: 0 10px 26px rgba(13, 85, 134, 0.34) !important;
+}
+
+:where(.btn-primary:hover, .btn-success:hover, .btn-info:hover, .yk-btn-primary:hover) {
+  filter: brightness(1.06) !important;
+  box-shadow: 0 14px 30px rgba(13, 85, 134, 0.42) !important;
+}
+
+:where(.card, .yk-card, .panel, .section-card, .dashboard-card) {
+  border: 1px solid rgba(16, 86, 138, 0.18) !important;
+}
+
+:where(.table thead th, .yk-table thead th) {
+  background: linear-gradient(180deg, #f9fcff 0%, #e5f1ff 100%) !important;
+}
+
+html[data-theme="dark"] :where(.sidebar) {
+  background: linear-gradient(180deg, #0b1f36 0%, #0b2238 50%, #0a1b2e 100%) !important;
+  border-right-color: rgba(160, 205, 236, 0.22) !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v7 (2026-05-27)
+   Hedef: tema scriptlerinden bagimsiz, kalici premium gorunum.
+   ------------------------------------------------------------------ */
+html.yk-d700-force-v7 {
+  --yk700-v7-focus: #0c6bab;
+  --yk700-v7-focus-soft: rgba(12, 107, 171, 0.20);
+}
+
+html.yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,250,255,.95)) !important;
+  border-bottom: 1px solid rgba(16, 83, 130, 0.26) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar) {
+  background: linear-gradient(180deg, #0f3d66 0%, #0b3153 48%, #0a2a47 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link, .sidebar a.sidebar-link) {
+  color: #e7f4ff !important;
+  border: 1px solid transparent !important;
+  border-radius: 12px !important;
+  padding: .64rem .8rem !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link:hover, .sidebar a.sidebar-link:hover) {
+  background: rgba(117, 187, 238, 0.16) !important;
+  border-color: rgba(172, 221, 255, 0.35) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  background: linear-gradient(135deg, rgba(109,183,241,.30), rgba(70,221,194,.20)) !important;
+  border-color: rgba(190, 231, 255, 0.42) !important;
+  color: #ffffff !important;
+}
+
+html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  border-radius: 16px !important;
+  border: 1px solid rgba(16, 86, 138, 0.18) !important;
+  box-shadow: 0 15px 34px rgba(12, 42, 70, 0.16) !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  background-image: linear-gradient(135deg, #0f4d7d 0%, #0d7c72 100%) !important;
+  box-shadow: 0 10px 26px rgba(13, 85, 134, 0.34) !important;
+  font-weight: 800 !important;
+}
+
+html.yk-d700-force-v7 :where(.form-control, .form-select, input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus {
+  border-color: var(--yk700-v7-focus) !important;
+  box-shadow: 0 0 0 4px var(--yk700-v7-focus-soft) !important;
+}
+
+html.yk-d700-force-v7 :where(.table thead th, .yk-table thead th) {
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  font-size: .78rem !important;
+}
+
+html.yk-d700-force-v7 :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: rgba(19, 106, 168, 0.10) !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v8 (2026-05-27)
+   Hedef: cok daha gorunur premium kontrast ve aksiyon netligi.
+   ------------------------------------------------------------------ */
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  border-left: 4px solid #e8f7ff !important;
+  padding-left: calc(.8rem - 3px) !important;
+  box-shadow: 0 8px 22px rgba(7, 51, 84, 0.28) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link i, .sidebar .sidebar-link-icon) {
+  color: #d6efff !important;
+}
+
+html.yk-d700-force-v7 :where(.top-header, .yk-header) {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.64) inset,
+    0 10px 24px rgba(8, 45, 74, 0.16) !important;
+}
+
+html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  box-shadow:
+    0 18px 38px rgba(9, 40, 67, 0.20),
+    0 1px 0 rgba(255, 255, 255, 0.72) inset !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  text-shadow: 0 1px 0 rgba(0,0,0,.16);
+  border: 1px solid rgba(7, 48, 78, 0.34) !important;
+}
+
+html.yk-d700-force-v7 :where(.table thead th, .yk-table thead th) {
+  background: linear-gradient(180deg, #fbfdff 0%, #deedff 100%) !important;
+  color: #214d72 !important;
+  font-weight: 850 !important;
+}
+
+html[data-theme="dark"].yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  border-left-color: #9ed8ff !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v9 (2026-05-27)
+   Hedef: farki tek bakista gosteren daha guclu premium katman.
+   ------------------------------------------------------------------ */
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link, .sidebar a.sidebar-link) {
+  font-weight: 720 !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  background: linear-gradient(135deg, rgba(78, 172, 235, 0.52), rgba(53, 207, 177, 0.34)) !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  border-radius: 12px !important;
+  box-shadow: 0 12px 30px rgba(10, 69, 110, 0.40) !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary:hover, .btn-success:hover, .btn-info:hover, .yk-btn-primary:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 34px rgba(10, 69, 110, 0.48) !important;
+}
+
+html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  border-color: rgba(9, 83, 134, 0.24) !important;
+}
+
+html.yk-d700-force-v7 :where(.table tbody tr:nth-child(odd) td, .yk-table tbody tr:nth-child(odd) td) {
+  background: rgba(228, 242, 255, 0.42);
+}
+
+html[data-theme="dark"].yk-d700-force-v7 :where(.table tbody tr:nth-child(odd) td, .yk-table tbody tr:nth-child(odd) td) {
+  background: rgba(32, 55, 80, 0.38);
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v10 (2026-05-27)
+   Hedef: net ve guclu fark - premium kontrol paneli hissi.
+   ------------------------------------------------------------------ */
+html.yk-d700-force-v7 :where(.top-header, .yk-header) {
+  border-bottom: 1px solid rgba(12, 84, 132, 0.30) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.70) inset,
+    0 14px 30px rgba(7, 45, 74, 0.20) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link, .sidebar a.sidebar-link) {
+  margin-bottom: 5px !important;
+  letter-spacing: .01em;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  border-left-width: 5px !important;
+  box-shadow:
+    0 10px 24px rgba(6, 44, 73, 0.34),
+    inset 0 0 0 1px rgba(255,255,255,.24) !important;
+}
+
+html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  border-radius: 18px !important;
+  box-shadow:
+    0 20px 44px rgba(8, 42, 70, 0.24),
+    0 1px 0 rgba(255,255,255,.76) inset !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  min-height: 42px !important;
+  padding: .62rem 1rem !important;
+}
+
+html.yk-d700-force-v7 :where(.table thead th, .yk-table thead th) {
+  border-bottom: 1px solid rgba(17, 87, 136, 0.28) !important;
+}
+
+html.yk-d700-force-v7 :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: rgba(11, 117, 188, 0.13) !important;
+}
+
+html[data-theme="dark"].yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  box-shadow:
+    0 22px 46px rgba(0,0,0,.44),
+    0 1px 0 rgba(255,255,255,.06) inset !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v11 (2026-05-27)
+   Hedef: ilk bakista fark edilen, temiz ve keskin premium yuzey.
+   ------------------------------------------------------------------ */
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  background: linear-gradient(135deg, rgba(92, 189, 255, 0.58), rgba(66, 230, 196, 0.40)) !important;
+}
+
+html.yk-d700-force-v7 :where(.kpi-value, .metric-value, .stat-value, .value, .big-number) {
+  font-weight: 920 !important;
+  color: #0e4c79 !important;
+  letter-spacing: 0.01em;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  background-image: linear-gradient(135deg, #0c4f82 0%, #098873 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.table thead th, .yk-table thead th) {
+  background: linear-gradient(180deg, #fdfefe 0%, #d8ebff 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: rgba(8, 124, 201, 0.16) !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v12 (2026-05-27)
+   Hedef: en net premium ayrim - menude ve KPI'da aninda fark.
+   ------------------------------------------------------------------ */
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  background: linear-gradient(135deg, rgba(96, 202, 255, 0.66), rgba(72, 240, 207, 0.46)) !important;
+  border-left-color: #f4fcff !important;
+}
+
+html.yk-d700-force-v7 :where(.kpi-value, .metric-value, .stat-value, .value, .big-number) {
+  color: #0b588a !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.48);
+}
+
+html.yk-d700-force-v7 :where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  background-image: linear-gradient(135deg, #0a568c 0%, #07967b 100%) !important;
+  box-shadow: 0 14px 32px rgba(8, 76, 121, 0.44) !important;
+}
+
+html.yk-d700-force-v7 :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: rgba(8, 132, 214, 0.20) !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v13 (2026-05-27)
+   Hedef: kullaniciya aninda fark - daha parlak aktif yol ve temiz KPI.
+   ------------------------------------------------------------------ */
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  background: linear-gradient(135deg, rgba(102, 214, 255, 0.72), rgba(82, 247, 214, 0.52)) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active i, .sidebar .sidebar-link.active .sidebar-link-icon) {
+  color: #ffffff !important;
+}
+
+html.yk-d700-force-v7 :where(.kpi-value, .metric-value, .stat-value, .value, .big-number) {
+  color: #09568a !important;
+  font-weight: 950 !important;
+}
+
+html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  box-shadow:
+    0 24px 46px rgba(7, 44, 72, 0.26),
+    0 1px 0 rgba(255,255,255,.78) inset !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v14 (2026-05-27)
+   Hedef: kullaniciya ilk bakista net fark - premium ve canli gorunum.
+   ------------------------------------------------------------------ */
+html.yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1200px 460px at 108% -8%, rgba(8, 127, 196, 0.30), transparent 66%),
+    radial-gradient(980px 420px at -8% -2%, rgba(15, 166, 135, 0.24), transparent 64%),
+    linear-gradient(160deg, #e6f3ff 0%, #f5fcff 46%, #e8fbf4 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(242, 250, 255, 0.94), rgba(233, 246, 255, 0.90)) !important;
+  border-bottom: 1px solid rgba(10, 87, 137, 0.32) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.82) inset,
+    0 18px 34px rgba(7, 52, 85, 0.22) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar) {
+  background:
+    radial-gradient(560px 320px at 105% -10%, rgba(112, 218, 255, 0.26), transparent 64%),
+    linear-gradient(180deg, #0c426d 0%, #0a3760 42%, #092f52 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link, .sidebar a.sidebar-link) {
+  color: #ebf8ff !important;
+  font-weight: 760 !important;
+  border-radius: 13px !important;
+  margin-bottom: 6px !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  background: linear-gradient(135deg, rgba(130, 224, 255, 0.82), rgba(92, 255, 222, 0.62)) !important;
+  color: #04314d !important;
+  border-left: 6px solid #f6fdff !important;
+  padding-left: calc(.8rem - 5px) !important;
+  box-shadow:
+    0 14px 32px rgba(3, 42, 70, 0.44),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.50) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active i, .sidebar .sidebar-link.active .sidebar-link-icon) {
+  color: #073f61 !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.46);
+}
+
+html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  border-radius: 20px !important;
+  border: 1px solid rgba(8, 89, 143, 0.24) !important;
+  box-shadow:
+    0 26px 52px rgba(6, 44, 73, 0.28),
+    0 1px 0 rgba(255, 255, 255, 0.86) inset !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  background-image: linear-gradient(135deg, #0a5b92 0%, #00a283 100%) !important;
+  border: 1px solid rgba(4, 67, 107, 0.42) !important;
+  min-height: 44px !important;
+  border-radius: 13px !important;
+  font-weight: 860 !important;
+  letter-spacing: .01em;
+  box-shadow: 0 16px 34px rgba(6, 77, 122, 0.46) !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary:hover, .btn-success:hover, .btn-info:hover, .yk-btn-primary:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 20px 38px rgba(6, 77, 122, 0.54) !important;
+}
+
+html.yk-d700-force-v7 :where(.kpi-value, .metric-value, .stat-value, .value, .big-number) {
+  color: #065387 !important;
+  font-weight: 980 !important;
+  letter-spacing: .012em;
+  text-shadow: 0 1px 0 rgba(255,255,255,.52);
+}
+
+html.yk-d700-force-v7 :where(.table thead th, .yk-table thead th) {
+  background: linear-gradient(180deg, #fdfeff 0%, #d6ecff 100%) !important;
+  color: #174e78 !important;
+  font-weight: 860 !important;
+  border-bottom: 1px solid rgba(10, 87, 137, 0.32) !important;
+}
+
+html.yk-d700-force-v7 :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: rgba(8, 140, 227, 0.22) !important;
+}
+
+html[data-theme="dark"].yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1160px 430px at 108% -8%, rgba(41, 141, 204, 0.30), transparent 66%),
+    radial-gradient(940px 380px at -8% -2%, rgba(26, 174, 146, 0.24), transparent 64%),
+    linear-gradient(160deg, #0f172a 0%, #111b30 45%, #0f2431 100%) !important;
+}
+
+html[data-theme="dark"].yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(17, 28, 46, 0.90), rgba(18, 36, 54, 0.86)) !important;
+  border-bottom-color: rgba(122, 184, 224, 0.30) !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v15 (2026-05-27)
+   Hedef: farki tek bakista gosteren daha guclu premium katman.
+   ------------------------------------------------------------------ */
+html.yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1280px 520px at 110% -8%, rgba(12, 144, 222, 0.32), transparent 66%),
+    radial-gradient(980px 440px at -8% -2%, rgba(0, 176, 141, 0.26), transparent 64%),
+    linear-gradient(162deg, #e5f4ff 0%, #f4fcff 48%, #e4fbf2 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(247, 252, 255, 0.95), rgba(227, 243, 255, 0.92)) !important;
+  border-bottom: 1px solid rgba(7, 93, 148, 0.36) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.86) inset,
+    0 20px 38px rgba(7, 53, 87, 0.24) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar) {
+  background:
+    radial-gradient(640px 360px at 110% -10%, rgba(126, 226, 255, 0.30), transparent 66%),
+    linear-gradient(180deg, #0b436f 0%, #093861 45%, #082f52 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link, .sidebar a.sidebar-link) {
+  color: #f0faff !important;
+  font-weight: 790 !important;
+  letter-spacing: 0.005em;
+  border-radius: 13px !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  background: linear-gradient(135deg, rgba(142, 232, 255, 0.88), rgba(102, 255, 226, 0.70)) !important;
+  color: #043a5a !important;
+  border-left: 6px solid #f6fdff !important;
+  padding-left: calc(.8rem - 5px) !important;
+  box-shadow:
+    0 16px 36px rgba(3, 44, 73, 0.48),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.58) !important;
+}
+
+html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  border-radius: 20px !important;
+  border: 1px solid rgba(8, 95, 152, 0.26) !important;
+  box-shadow:
+    0 28px 56px rgba(6, 44, 74, 0.30),
+    0 1px 0 rgba(255, 255, 255, 0.88) inset !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  background-image: linear-gradient(135deg, #0863a0 0%, #00ad8b 100%) !important;
+  border: 1px solid rgba(5, 72, 114, 0.44) !important;
+  min-height: 44px !important;
+  border-radius: 14px !important;
+  font-weight: 880 !important;
+  box-shadow: 0 18px 36px rgba(5, 84, 132, 0.48) !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary:hover, .btn-success:hover, .btn-info:hover, .yk-btn-primary:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 22px 40px rgba(5, 84, 132, 0.56) !important;
+}
+
+html.yk-d700-force-v7 :where(.form-control, .form-select, input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-radius: 12px !important;
+  border-color: rgba(10, 96, 152, 0.26) !important;
+}
+
+html.yk-d700-force-v7 :where(.form-control:focus, .form-select:focus, input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus) {
+  border-color: rgba(9, 106, 167, 0.60) !important;
+  box-shadow: 0 0 0 4px rgba(9, 106, 167, 0.20) !important;
+}
+
+html.yk-d700-force-v7 :where(.kpi-value, .metric-value, .stat-value, .value, .big-number) {
+  color: #04558a !important;
+  font-weight: 990 !important;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.56);
+}
+
+html.yk-d700-force-v7 :where(.table thead th, .yk-table thead th) {
+  background: linear-gradient(180deg, #ffffff 0%, #d2eaff 100%) !important;
+  color: #16517b !important;
+  font-weight: 880 !important;
+  border-bottom: 1px solid rgba(8, 93, 148, 0.34) !important;
+}
+
+html.yk-d700-force-v7 :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: rgba(6, 146, 236, 0.24) !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+    transition: transform .22s ease, box-shadow .22s ease !important;
+  }
+}
+
+html[data-theme="dark"].yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1180px 440px at 110% -8%, rgba(33, 146, 214, 0.32), transparent 66%),
+    radial-gradient(940px 390px at -8% -2%, rgba(21, 180, 151, 0.24), transparent 64%),
+    linear-gradient(162deg, #0e1729 0%, #111d31 47%, #0f2834 100%) !important;
+}
+
+html[data-theme="dark"].yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(16, 30, 49, 0.92), rgba(18, 38, 57, 0.88)) !important;
+  border-bottom-color: rgba(126, 190, 231, 0.34) !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v16 (2026-05-27)
+   Hedef: ilk bakista daha guclu kalite algisi ve net premium ritim.
+   ------------------------------------------------------------------ */
+html.yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1360px 560px at 112% -10%, rgba(8, 156, 241, 0.34), transparent 67%),
+    radial-gradient(1040px 480px at -10% -4%, rgba(0, 188, 149, 0.28), transparent 65%),
+    linear-gradient(164deg, #e4f4ff 0%, #f4fdff 49%, #e1fbf1 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(249, 253, 255, 0.96), rgba(225, 242, 255, 0.93)) !important;
+  border-bottom: 1px solid rgba(8, 99, 157, 0.38) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.90) inset,
+    0 22px 42px rgba(7, 56, 92, 0.26) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar) {
+  background:
+    radial-gradient(720px 400px at 112% -10%, rgba(142, 232, 255, 0.34), transparent 67%),
+    linear-gradient(180deg, #0a436f 0%, #08385f 46%, #072f52 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link, .sidebar a.sidebar-link) {
+  color: #f2fbff !important;
+  font-weight: 810 !important;
+  letter-spacing: 0.006em;
+  border-radius: 14px !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  background: linear-gradient(135deg, rgba(150, 236, 255, 0.92), rgba(112, 255, 228, 0.74)) !important;
+  color: #033d5d !important;
+  border-left: 6px solid #f8fdff !important;
+  padding-left: calc(.8rem - 5px) !important;
+  box-shadow:
+    0 18px 40px rgba(3, 46, 77, 0.50),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.62) !important;
+}
+
+html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  border-radius: 21px !important;
+  border: 1px solid rgba(7, 98, 157, 0.28) !important;
+  box-shadow:
+    0 30px 60px rgba(6, 45, 76, 0.32),
+    0 1px 0 rgba(255, 255, 255, 0.90) inset !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  background-image: linear-gradient(135deg, #0569a9 0%, #00b592 100%) !important;
+  border: 1px solid rgba(4, 75, 119, 0.46) !important;
+  min-height: 45px !important;
+  border-radius: 14px !important;
+  font-weight: 900 !important;
+  box-shadow: 0 20px 38px rgba(5, 88, 138, 0.50) !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary:hover, .btn-success:hover, .btn-info:hover, .yk-btn-primary:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 24px 44px rgba(5, 88, 138, 0.58) !important;
+}
+
+html.yk-d700-force-v7 :where(.kpi-value, .metric-value, .stat-value, .value, .big-number) {
+  color: #035b92 !important;
+  font-weight: 995 !important;
+  letter-spacing: .012em;
+  text-shadow: 0 1px 0 rgba(255,255,255,.60);
+}
+
+html.yk-d700-force-v7 :where(.table thead th, .yk-table thead th) {
+  background: linear-gradient(180deg, #ffffff 0%, #cfe8ff 100%) !important;
+  color: #125782 !important;
+  font-weight: 900 !important;
+  border-bottom: 1px solid rgba(8, 98, 155, 0.36) !important;
+}
+
+html.yk-d700-force-v7 :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: rgba(4, 152, 244, 0.25) !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+    transition: transform .24s ease, box-shadow .24s ease !important;
+  }
+}
+
+html[data-theme="dark"].yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1240px 470px at 112% -10%, rgba(36, 154, 226, 0.34), transparent 67%),
+    radial-gradient(980px 420px at -10% -4%, rgba(24, 188, 158, 0.26), transparent 65%),
+    linear-gradient(164deg, #0d1729 0%, #102033 48%, #0d2935 100%) !important;
+}
+
+html[data-theme="dark"].yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(15, 31, 50, 0.93), rgba(17, 40, 59, 0.89)) !important;
+  border-bottom-color: rgba(128, 196, 239, 0.36) !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v17 (2026-05-27)
+   Hedef: maksimum netlik - daha keskin aktif yol, daha tok kart ve CTA.
+   ------------------------------------------------------------------ */
+html.yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1420px 590px at 114% -12%, rgba(6, 166, 247, 0.36), transparent 68%),
+    radial-gradient(1100px 500px at -12% -5%, rgba(0, 196, 154, 0.30), transparent 66%),
+    linear-gradient(166deg, #e2f3ff 0%, #f3fdff 50%, #dffbf0 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(251, 254, 255, 0.97), rgba(222, 241, 255, 0.94)) !important;
+  border-bottom: 1px solid rgba(7, 104, 165, 0.40) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.92) inset,
+    0 24px 46px rgba(6, 58, 95, 0.28) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar) {
+  background:
+    radial-gradient(760px 430px at 114% -10%, rgba(151, 239, 255, 0.38), transparent 68%),
+    linear-gradient(180deg, #08436f 0%, #07375e 47%, #062f52 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link, .sidebar a.sidebar-link) {
+  color: #f4fcff !important;
+  font-weight: 830 !important;
+  letter-spacing: .007em;
+  border-radius: 14px !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  background: linear-gradient(135deg, rgba(160, 241, 255, 0.94), rgba(122, 255, 232, 0.78)) !important;
+  color: #024162 !important;
+  border-left: 6px solid #fbfeff !important;
+  padding-left: calc(.8rem - 5px) !important;
+  box-shadow:
+    0 20px 44px rgba(2, 47, 79, 0.52),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.66) !important;
+}
+
+html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  border-radius: 22px !important;
+  border: 1px solid rgba(6, 100, 160, 0.30) !important;
+  box-shadow:
+    0 32px 64px rgba(5, 45, 77, 0.34),
+    0 1px 0 rgba(255, 255, 255, 0.92) inset !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  background-image: linear-gradient(135deg, #036fb1 0%, #00bc98 100%) !important;
+  border: 1px solid rgba(3, 77, 122, 0.48) !important;
+  min-height: 46px !important;
+  border-radius: 15px !important;
+  font-weight: 920 !important;
+  letter-spacing: .01em;
+  box-shadow: 0 22px 40px rgba(4, 91, 144, 0.52) !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary:hover, .btn-success:hover, .btn-info:hover, .yk-btn-primary:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 26px 48px rgba(4, 91, 144, 0.60) !important;
+}
+
+html.yk-d700-force-v7 :where(.kpi-value, .metric-value, .stat-value, .value, .big-number) {
+  color: #025f98 !important;
+  font-weight: 999 !important;
+  letter-spacing: .013em;
+  text-shadow: 0 1px 0 rgba(255,255,255,.64);
+}
+
+html.yk-d700-force-v7 :where(.table thead th, .yk-table thead th) {
+  background: linear-gradient(180deg, #ffffff 0%, #cbe7ff 100%) !important;
+  color: #105c88 !important;
+  font-weight: 920 !important;
+  border-bottom: 1px solid rgba(7, 101, 160, 0.38) !important;
+}
+
+html.yk-d700-force-v7 :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: rgba(3, 156, 248, 0.27) !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+    transition: transform .26s ease, box-shadow .26s ease !important;
+  }
+}
+
+html[data-theme="dark"].yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1300px 500px at 114% -12%, rgba(34, 161, 236, 0.36), transparent 68%),
+    radial-gradient(1040px 440px at -12% -5%, rgba(23, 196, 164, 0.28), transparent 66%),
+    linear-gradient(166deg, #0c1729 0%, #0f2134 49%, #0c2a36 100%) !important;
+}
+
+html[data-theme="dark"].yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(14, 31, 50, 0.94), rgba(16, 41, 60, 0.90)) !important;
+  border-bottom-color: rgba(132, 201, 245, 0.38) !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v18 (2026-05-27)
+   Hedef: cok daha belirgin premium ayrim ve canli derinlik.
+   ------------------------------------------------------------------ */
+html.yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1480px 620px at 116% -13%, rgba(4, 176, 255, 0.38), transparent 69%),
+    radial-gradient(1160px 520px at -14% -6%, rgba(0, 206, 160, 0.32), transparent 67%),
+    linear-gradient(168deg, #dff2ff 0%, #f2fdff 51%, #dcfbed 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(252, 255, 255, 0.98), rgba(218, 239, 255, 0.95)) !important;
+  border-bottom: 1px solid rgba(6, 108, 171, 0.42) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.94) inset,
+    0 26px 50px rgba(5, 59, 98, 0.30) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar) {
+  background:
+    radial-gradient(820px 450px at 116% -12%, rgba(162, 244, 255, 0.42), transparent 69%),
+    linear-gradient(180deg, #06436f 0%, #06365d 48%, #052f51 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link, .sidebar a.sidebar-link) {
+  color: #f6fdff !important;
+  font-weight: 850 !important;
+  letter-spacing: .008em;
+  border-radius: 15px !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  background: linear-gradient(135deg, rgba(170, 245, 255, 0.96), rgba(132, 255, 235, 0.82)) !important;
+  color: #014767 !important;
+  border-left: 7px solid #fcfeff !important;
+  padding-left: calc(.8rem - 6px) !important;
+  box-shadow:
+    0 22px 48px rgba(2, 49, 83, 0.54),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.70) !important;
+}
+
+html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  border-radius: 23px !important;
+  border: 1px solid rgba(5, 102, 163, 0.32) !important;
+  box-shadow:
+    0 34px 68px rgba(4, 46, 80, 0.36),
+    0 1px 0 rgba(255, 255, 255, 0.94) inset !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  background-image: linear-gradient(135deg, #0275b7 0%, #00c29c 100%) !important;
+  border: 1px solid rgba(2, 80, 127, 0.50) !important;
+  min-height: 47px !important;
+  border-radius: 15px !important;
+  font-weight: 940 !important;
+  letter-spacing: .012em;
+  box-shadow: 0 24px 42px rgba(3, 94, 149, 0.54) !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary:hover, .btn-success:hover, .btn-info:hover, .yk-btn-primary:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 28px 52px rgba(3, 94, 149, 0.62) !important;
+}
+
+html.yk-d700-force-v7 :where(.kpi-value, .metric-value, .stat-value, .value, .big-number) {
+  color: #0164a0 !important;
+  font-weight: 1000 !important;
+  letter-spacing: .014em;
+  text-shadow: 0 1px 0 rgba(255,255,255,.66);
+}
+
+html.yk-d700-force-v7 :where(.table thead th, .yk-table thead th) {
+  background: linear-gradient(180deg, #ffffff 0%, #c7e5ff 100%) !important;
+  color: #0d608d !important;
+  font-weight: 940 !important;
+  border-bottom: 1px solid rgba(6, 105, 167, 0.40) !important;
+}
+
+html.yk-d700-force-v7 :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: rgba(2, 162, 251, 0.29) !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+    transition: transform .28s ease, box-shadow .28s ease !important;
+  }
+}
+
+html[data-theme="dark"].yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1360px 530px at 116% -13%, rgba(32, 167, 244, 0.38), transparent 69%),
+    radial-gradient(1100px 460px at -14% -6%, rgba(21, 205, 171, 0.30), transparent 67%),
+    linear-gradient(168deg, #0b1729 0%, #0e2235 50%, #0b2b37 100%) !important;
+}
+
+html[data-theme="dark"].yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(13, 31, 51, 0.95), rgba(15, 42, 62, 0.91)) !important;
+  border-bottom-color: rgba(136, 205, 248, 0.40) !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v19 (2026-05-27)
+   Hedef: vitrinde aninda fark - daha parlak vurgu ve premium katman.
+   ------------------------------------------------------------------ */
+html.yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1540px 650px at 118% -14%, rgba(0, 186, 255, 0.40), transparent 70%),
+    radial-gradient(1220px 540px at -16% -7%, rgba(0, 214, 166, 0.34), transparent 68%),
+    linear-gradient(170deg, #ddf1ff 0%, #f1fdff 52%, #d9fbe9 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(253, 255, 255, 0.99), rgba(212, 236, 255, 0.96)) !important;
+  border-bottom: 1px solid rgba(5, 112, 178, 0.44) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.96) inset,
+    0 28px 54px rgba(4, 60, 101, 0.32) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar) {
+  background:
+    radial-gradient(860px 470px at 118% -14%, rgba(172, 247, 255, 0.46), transparent 70%),
+    linear-gradient(180deg, #05436f 0%, #05365c 49%, #042f50 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link, .sidebar a.sidebar-link) {
+  color: #f8fdff !important;
+  font-weight: 870 !important;
+  letter-spacing: .009em;
+  border-radius: 16px !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  background: linear-gradient(135deg, rgba(180, 247, 255, 0.98), rgba(142, 255, 238, 0.86)) !important;
+  color: #004a6b !important;
+  border-left: 7px solid #fdfeff !important;
+  padding-left: calc(.8rem - 6px) !important;
+  box-shadow:
+    0 24px 52px rgba(1, 50, 86, 0.56),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.72) !important;
+}
+
+html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  border-radius: 24px !important;
+  border: 1px solid rgba(4, 104, 166, 0.34) !important;
+  box-shadow:
+    0 36px 72px rgba(3, 47, 82, 0.38),
+    0 1px 0 rgba(255, 255, 255, 0.96) inset !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  background-image: linear-gradient(135deg, #007ac0 0%, #00c9a1 100%) !important;
+  border: 1px solid rgba(1, 83, 132, 0.52) !important;
+  min-height: 48px !important;
+  border-radius: 16px !important;
+  font-weight: 960 !important;
+  letter-spacing: .013em;
+  box-shadow: 0 26px 44px rgba(2, 97, 154, 0.56) !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary:hover, .btn-success:hover, .btn-info:hover, .yk-btn-primary:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 30px 56px rgba(2, 97, 154, 0.64) !important;
+}
+
+html.yk-d700-force-v7 :where(.kpi-value, .metric-value, .stat-value, .value, .big-number) {
+  color: #0069a6 !important;
+  font-weight: 1000 !important;
+  letter-spacing: .015em;
+  text-shadow: 0 1px 0 rgba(255,255,255,.68);
+}
+
+html.yk-d700-force-v7 :where(.table thead th, .yk-table thead th) {
+  background: linear-gradient(180deg, #ffffff 0%, #c3e2ff 100%) !important;
+  color: #0a6493 !important;
+  font-weight: 960 !important;
+  border-bottom: 1px solid rgba(5, 108, 172, 0.42) !important;
+}
+
+html.yk-d700-force-v7 :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: rgba(1, 169, 252, 0.31) !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+    transition: transform .30s ease, box-shadow .30s ease !important;
+  }
+}
+
+html[data-theme="dark"].yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1420px 560px at 118% -14%, rgba(30, 173, 249, 0.40), transparent 70%),
+    radial-gradient(1160px 480px at -16% -7%, rgba(20, 214, 178, 0.32), transparent 68%),
+    linear-gradient(170deg, #0a1628 0%, #0d2336 51%, #0a2c38 100%) !important;
+}
+
+html[data-theme="dark"].yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(12, 31, 51, 0.96), rgba(14, 43, 64, 0.92)) !important;
+  border-bottom-color: rgba(140, 210, 250, 0.42) !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v20 (2026-05-27)
+   Hedef: en belirgin premium seviyeye cikis - net kontrast ve derinlik.
+   ------------------------------------------------------------------ */
+html.yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1600px 680px at 120% -15%, rgba(0, 196, 255, 0.42), transparent 71%),
+    radial-gradient(1280px 560px at -18% -8%, rgba(0, 224, 173, 0.36), transparent 69%),
+    linear-gradient(172deg, #dbf0ff 0%, #f0fdff 53%, #d6fbe7 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(254, 255, 255, 0.99), rgba(206, 233, 255, 0.97)) !important;
+  border-bottom: 1px solid rgba(4, 116, 184, 0.46) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,.98) inset,
+    0 30px 58px rgba(3, 62, 104, 0.34) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar) {
+  background:
+    radial-gradient(900px 490px at 120% -15%, rgba(184, 249, 255, 0.50), transparent 71%),
+    linear-gradient(180deg, #04436f 0%, #04355b 50%, #032e4f 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link, .sidebar a.sidebar-link) {
+  color: #f9fdff !important;
+  font-weight: 890 !important;
+  letter-spacing: .01em;
+  border-radius: 16px !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  background: linear-gradient(135deg, rgba(192, 248, 255, 1), rgba(152, 255, 240, 0.90)) !important;
+  color: #004d6e !important;
+  border-left: 8px solid #ffffff !important;
+  padding-left: calc(.8rem - 7px) !important;
+  box-shadow:
+    0 26px 56px rgba(1, 52, 89, 0.58),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.74) !important;
+}
+
+html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  border-radius: 25px !important;
+  border: 1px solid rgba(3, 106, 169, 0.36) !important;
+  box-shadow:
+    0 38px 76px rgba(2, 48, 84, 0.40),
+    0 1px 0 rgba(255, 255, 255, 0.98) inset !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  background-image: linear-gradient(135deg, #007fc5 0%, #00cea5 100%) !important;
+  border: 1px solid rgba(1, 86, 136, 0.54) !important;
+  min-height: 49px !important;
+  border-radius: 16px !important;
+  font-weight: 980 !important;
+  letter-spacing: .014em;
+  box-shadow: 0 28px 46px rgba(1, 100, 159, 0.58) !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary:hover, .btn-success:hover, .btn-info:hover, .yk-btn-primary:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 32px 60px rgba(1, 100, 159, 0.66) !important;
+}
+
+html.yk-d700-force-v7 :where(.kpi-value, .metric-value, .stat-value, .value, .big-number) {
+  color: #006eab !important;
+  font-weight: 1000 !important;
+  letter-spacing: .016em;
+  text-shadow: 0 1px 0 rgba(255,255,255,.70);
+}
+
+html.yk-d700-force-v7 :where(.table thead th, .yk-table thead th) {
+  background: linear-gradient(180deg, #ffffff 0%, #c0e0ff 100%) !important;
+  color: #096a99 !important;
+  font-weight: 980 !important;
+  border-bottom: 1px solid rgba(4, 111, 177, 0.44) !important;
+}
+
+html.yk-d700-force-v7 :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: rgba(0, 176, 253, 0.33) !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+    transition: transform .32s ease, box-shadow .32s ease !important;
+  }
+}
+
+html[data-theme="dark"].yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1480px 590px at 120% -15%, rgba(28, 179, 251, 0.42), transparent 71%),
+    radial-gradient(1220px 500px at -18% -8%, rgba(18, 224, 186, 0.34), transparent 69%),
+    linear-gradient(172deg, #091628 0%, #0c2437 52%, #092d39 100%) !important;
+}
+
+html[data-theme="dark"].yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(11, 31, 52, 0.97), rgba(13, 44, 66, 0.93)) !important;
+  border-bottom-color: rgba(144, 214, 252, 0.44) !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v21 (2026-05-27)
+   Hedef: en guclu premium seviye - cesur kontrast, daha tok aktif odak.
+   ------------------------------------------------------------------ */
+html.yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1660px 710px at 122% -16%, rgba(0, 206, 255, 0.44), transparent 72%),
+    radial-gradient(1340px 590px at -20% -9%, rgba(0, 232, 180, 0.38), transparent 70%),
+    linear-gradient(174deg, #d8efff 0%, #effdff 54%, #d2fae4 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.995), rgba(198, 229, 255, 0.975)) !important;
+  border-bottom: 1px solid rgba(3, 120, 191, 0.48) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,1) inset,
+    0 32px 62px rgba(2, 63, 108, 0.36) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar) {
+  background:
+    radial-gradient(940px 520px at 122% -16%, rgba(196, 251, 255, 0.54), transparent 72%),
+    linear-gradient(180deg, #03436f 0%, #033559 50%, #022e4e 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link, .sidebar a.sidebar-link) {
+  color: #fbfeff !important;
+  font-weight: 910 !important;
+  letter-spacing: .011em;
+  border-radius: 17px !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  background: linear-gradient(135deg, rgba(204, 250, 255, 1), rgba(164, 255, 243, 0.92)) !important;
+  color: #005170 !important;
+  border-left: 8px solid #ffffff !important;
+  padding-left: calc(.8rem - 7px) !important;
+  box-shadow:
+    0 28px 60px rgba(0, 53, 92, 0.60),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.76) !important;
+}
+
+html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  border-radius: 26px !important;
+  border: 1px solid rgba(2, 108, 172, 0.38) !important;
+  box-shadow:
+    0 40px 80px rgba(1, 49, 86, 0.42),
+    0 1px 0 rgba(255, 255, 255, 1) inset !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  background-image: linear-gradient(135deg, #0084c9 0%, #00d2a8 100%) !important;
+  border: 1px solid rgba(0, 89, 140, 0.56) !important;
+  min-height: 50px !important;
+  border-radius: 17px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .015em;
+  box-shadow: 0 30px 48px rgba(0, 103, 164, 0.60) !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary:hover, .btn-success:hover, .btn-info:hover, .yk-btn-primary:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 34px 64px rgba(0, 103, 164, 0.68) !important;
+}
+
+html.yk-d700-force-v7 :where(.kpi-value, .metric-value, .stat-value, .value, .big-number) {
+  color: #0072b0 !important;
+  font-weight: 1000 !important;
+  letter-spacing: .017em;
+  text-shadow: 0 1px 0 rgba(255,255,255,.72);
+}
+
+html.yk-d700-force-v7 :where(.table thead th, .yk-table thead th) {
+  background: linear-gradient(180deg, #ffffff 0%, #bcdfff 100%) !important;
+  color: #066e9f !important;
+  font-weight: 1000 !important;
+  border-bottom: 1px solid rgba(3, 114, 182, 0.46) !important;
+}
+
+html.yk-d700-force-v7 :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: rgba(0, 182, 254, 0.35) !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+    transition: transform .34s ease, box-shadow .34s ease !important;
+  }
+}
+
+html[data-theme="dark"].yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1540px 620px at 122% -16%, rgba(26, 185, 253, 0.44), transparent 72%),
+    radial-gradient(1280px 520px at -20% -9%, rgba(16, 232, 192, 0.36), transparent 70%),
+    linear-gradient(174deg, #081628 0%, #0b2538 53%, #082f3b 100%) !important;
+}
+
+html[data-theme="dark"].yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(10, 31, 53, 0.98), rgba(12, 45, 68, 0.94)) !important;
+  border-bottom-color: rgba(148, 218, 253, 0.46) !important;
+}
+
+/* ------------------------------------------------------------------
+   D700 QUALITY PACK v22 (2026-05-27)
+   Hedef: farki tek bakista gosteren net premium kontrast + okunabilirlik.
+   ------------------------------------------------------------------ */
+html.yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1760px 760px at 124% -18%, rgba(0, 216, 255, 0.48), transparent 72%),
+    radial-gradient(1420px 640px at -22% -10%, rgba(0, 242, 188, 0.40), transparent 70%),
+    linear-gradient(176deg, #d3ecff 0%, #ecfcff 55%, #cdf9e1 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.998), rgba(191, 225, 255, 0.982)) !important;
+  border-bottom: 1px solid rgba(2, 124, 196, 0.54) !important;
+  box-shadow:
+    0 1px 0 rgba(255,255,255,1) inset,
+    0 36px 68px rgba(1, 61, 106, 0.40) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar) {
+  background:
+    radial-gradient(1000px 560px at 124% -18%, rgba(205, 253, 255, 0.58), transparent 72%),
+    linear-gradient(180deg, #023f69 0%, #023252 50%, #022b47 100%) !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link, .sidebar a.sidebar-link) {
+  color: #fcffff !important;
+  font-weight: 930 !important;
+  letter-spacing: .012em;
+  border-radius: 18px !important;
+}
+
+html.yk-d700-force-v7 :where(.sidebar.use-modern-nav .sidebar-link.active, .sidebar a.sidebar-link.active) {
+  background: linear-gradient(135deg, rgba(215, 252, 255, 1), rgba(176, 255, 246, 0.94)) !important;
+  color: #005777 !important;
+  border-left: 10px solid #ffffff !important;
+  padding-left: calc(.8rem - 9px) !important;
+  transform: translateX(1px) !important;
+  box-shadow:
+    0 32px 66px rgba(0, 50, 88, 0.64),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.80) !important;
+}
+
+html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card) {
+  border-radius: 27px !important;
+  border: 1px solid rgba(1, 112, 178, 0.44) !important;
+  box-shadow:
+    0 44px 88px rgba(1, 48, 84, 0.46),
+    0 1px 0 rgba(255, 255, 255, 1) inset !important;
+}
+
+html.yk-d700-force-v7 :where(.card:hover, .yk-card:hover, .panel:hover, .section-card:hover, .dashboard-card:hover, .stat-card:hover, .metric-card:hover) {
+  transform: translateY(-2px) !important;
+  box-shadow:
+    0 52px 102px rgba(1, 48, 84, 0.52),
+    0 1px 0 rgba(255, 255, 255, 1) inset !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+  background-image: linear-gradient(135deg, #008ad1 0%, #00d7ad 100%) !important;
+  border: 1px solid rgba(0, 93, 146, 0.58) !important;
+  min-height: 52px !important;
+  border-radius: 18px !important;
+  font-weight: 1000 !important;
+  letter-spacing: .017em;
+  box-shadow: 0 32px 54px rgba(0, 104, 165, 0.64) !important;
+}
+
+html.yk-d700-force-v7 :where(.btn-primary:hover, .btn-success:hover, .btn-info:hover, .yk-btn-primary:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 38px 70px rgba(0, 104, 165, 0.72) !important;
+}
+
+html.yk-d700-force-v7 :where(.form-control, .form-select, input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-color: rgba(4, 115, 182, 0.34) !important;
+  border-width: 1px !important;
+}
+
+html.yk-d700-force-v7 :where(.form-control:focus, .form-select:focus, input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus) {
+  border-color: rgba(2, 134, 210, 0.70) !important;
+  box-shadow: 0 0 0 4px rgba(0, 184, 255, 0.24), 0 12px 28px rgba(0, 92, 148, 0.22) !important;
+}
+
+html.yk-d700-force-v7 :where(.kpi-value, .metric-value, .stat-value, .value, .big-number) {
+  color: #0078b7 !important;
+  font-weight: 1000 !important;
+  letter-spacing: .018em;
+  text-shadow: 0 1px 0 rgba(255,255,255,.74);
+}
+
+html.yk-d700-force-v7 :where(.table thead th, .yk-table thead th) {
+  background: linear-gradient(180deg, #ffffff 0%, #b6dcff 100%) !important;
+  color: #0272a4 !important;
+  font-weight: 1000 !important;
+  border-bottom: 1px solid rgba(2, 118, 188, 0.50) !important;
+}
+
+html.yk-d700-force-v7 :where(.table tbody tr:hover td, .yk-table tbody tr:hover td) {
+  background: rgba(0, 189, 255, 0.38) !important;
+}
+
+html.yk-d700-force-v7 .yk-login-shell .card,
+html.yk-d700-force-v7 :where(.login-card, .auth-card) {
+  border-radius: 28px !important;
+  border: 1px solid rgba(2, 118, 188, 0.40) !important;
+  box-shadow:
+    0 48px 96px rgba(1, 52, 92, 0.48),
+    0 1px 0 rgba(255,255,255,1) inset !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.yk-d700-force-v7 :where(.card, .yk-card, .panel, .section-card, .dashboard-card, .stat-card, .metric-card, .btn-primary, .btn-success, .btn-info, .yk-btn-primary) {
+    transition: transform .36s ease, box-shadow .36s ease !important;
+  }
+}
+
+html[data-theme="dark"].yk-d700-force-v7 body {
+  background-image:
+    radial-gradient(1620px 670px at 124% -18%, rgba(24, 193, 255, 0.48), transparent 72%),
+    radial-gradient(1360px 560px at -22% -10%, rgba(14, 242, 199, 0.38), transparent 70%),
+    linear-gradient(176deg, #071627 0%, #0a2538 54%, #07303c 100%) !important;
+}
+
+html[data-theme="dark"].yk-d700-force-v7 :where(.top-header, .yk-header) {
+  background: linear-gradient(135deg, rgba(9, 30, 52, 0.985), rgba(11, 46, 70, 0.95)) !important;
+  border-bottom-color: rgba(154, 223, 255, 0.50) !important;
+}

@@ -1,0 +1,24 @@
+{
+  "name": "webui_tools",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node playwright_smoke.mjs",
+    "pw": "node playwright_smoke.mjs",
+    "axe": "node axe_smoke.mjs",
+    "lighthouse_login": "node lighthouse_run.cjs login",
+    "lighthouse_dashboard": "node lighthouse_run.cjs dashboard",
+    "lighthouse_all": "node lighthouse_run.cjs all"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "@playwright/test": "^1.60.0",
+    "lighthouse": "^13.3.0",
+    "playwright": "^1.60.0"
+  }
+}

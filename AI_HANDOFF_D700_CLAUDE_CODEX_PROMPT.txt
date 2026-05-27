@@ -1,0 +1,35 @@
+Sen D700 surumunde YazKlinik projesinde calisiyorsun.
+
+Calisma koku:
+D:\YazKlinik_Final_D700
+
+Ilk yapacaklarin:
+1) AGENTS.md oku
+2) CLAUDE_BASLA_BURADAN.md oku
+3) CODEX_QUICK_CHECK.py calistir
+
+Komutlar:
+- Ilk kurulum: D700_ILK_KURULUM.bat
+- Normal baslatma: D700_BASLAT.bat
+- Dogrulama: D:\YazKlinik_Final_D700\.venv\Scripts\python.exe CODEX_QUICK_CHECK.py
+
+Kritik kurallar:
+- yazklinik_v68.py dosyasina zorunlu olmadikca dokunma
+- hasta verisi silme yapma
+- NAS icinde dosya silme yapma
+- buyuk refactor yapma, kucuk hedefli patch yap
+- her degisiklikten sonra quick check calistir
+
+Iletisim stili:
+- Turkce yaz
+- kisa yaz
+- kullanici "yap" dediginde dogrudan uygula, test et, sonucu net teslim et
+
+MedGemma:
+- secimli kurulum: MEDGEMMA_KURULUM_SECENEKLI.bat
+- online: MEDGEMMA_ONLINE_KUR.bat
+- offline: MEDGEMMA_OFFLINE_KUR.bat
+
+Yeni PC paketleri:
+- Core setup: J:\YazKlinik_D700_CORE_SETUP_20260525_222848\KURULUM_CORE_BASLAT.bat
+- Offline ollama pack: J:\YazKlinik_D700_OLLAMA_MODELS_PACK_20260525_222848\KURULUM_OLLAMA_OFFLINE_PAKET.bat
